@@ -15,6 +15,10 @@ const userSchema = new mongoose.Schema(
       type: Number,
       max: 10,
     },
+    password: {
+      type: String,
+      required: true,
+    },
     alternatePhoneNo: {
       type: String,
       validate: {
@@ -52,11 +56,11 @@ const userSchema = new mongoose.Schema(
     },
     userStatus: {
       type: Boolean,
-      default: false, // default to false until verification
+      default: false,
     },
     emailVerified: {
       type: Boolean,
-      default: false, // default to false until verification
+      default: false,
     },
     documentStatus: {
       type: Boolean,
@@ -71,15 +75,17 @@ const userSchema = new mongoose.Schema(
       enum: ["app", "web"],
     },
     insDate: {
-      type: String,
+      type: Date,
+      default:Date.now()
+
     },
     insIp: {
       type: String,
     },
-    verificationToken: {
+    verificationOTP: {
       type: String,
     },
-    verificationTokenExpires: {
+    verificationOTPExpires: {
       type: Date,
     },
   },
