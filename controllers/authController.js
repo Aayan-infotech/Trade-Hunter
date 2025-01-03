@@ -23,15 +23,11 @@ const signUp = async (req, res) => {
       insDate,
     } = req.body;
 
-    // Debug the payload
-    console.log(req.body, "Incoming Payload");
 
     if (!password) {
       return res.status(400).json({ message: "Password is required." });
     }
 
-    // Debug the password before hashing
-    console.log(password, "Password before hashing");
 
     const ip = req.ip || req.socket.remoteAddress;
     const clientType = req.headers["x-client-type"];
@@ -173,6 +169,7 @@ const login = async (req, res) => {
       user: {
         email: user.email,
         name: user.name,
+        userType:user.userType
       },
     });
   } catch (err) {
