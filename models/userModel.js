@@ -11,6 +11,9 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    image: {
+      type: String,
+    },
     phoneNo: {
       type: Number,
       max: 10,
@@ -18,15 +21,6 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
-    },
-    alternatePhoneNo: {
-      type: String,
-      validate: {
-        validator: function (v) {
-          return /^\d{10}$/.test(v); // Ensures exactly 10 digits
-        },
-        message: (props) => `${props.value} is not a valid phone number!`,
-      },
     },
     address: {
       type: String,
@@ -46,9 +40,7 @@ const userSchema = new mongoose.Schema(
     businessType: {
       type: String,
     },
-    serviceType: {
-      type: String,
-    },
+    serviceType: [{ type: String }],
     userType: {
       type: String,
       required: true,
@@ -76,8 +68,7 @@ const userSchema = new mongoose.Schema(
     },
     insDate: {
       type: Date,
-      default:Date.now()
-
+      default: Date.now(),
     },
     insIp: {
       type: String,
@@ -87,6 +78,10 @@ const userSchema = new mongoose.Schema(
     },
     verificationOTPExpires: {
       type: Date,
+    },
+    termsAndCondition: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }
