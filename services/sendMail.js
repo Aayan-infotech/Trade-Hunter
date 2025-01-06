@@ -16,7 +16,7 @@ const sendEmail = async (recipient, subject, message) => {
     });
 
     const mailOptions = {
-      from: '"Trade Hunter" <anurag777222111@gmail.com>',
+      from: 'Trade Hunter',
       to: recipient, // Recipient's email address
       subject: subject, // Subject line
       text: message, // Plain text body
