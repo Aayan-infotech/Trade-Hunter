@@ -2,12 +2,13 @@ const bcrypt = require("bcrypt");
 const User = require("../models/userModel");
 const generateverificationOTP = require("../utils/VerifyOTP");
 const sendEmail = require("../services/sendMail");
-const jwt = require("jsonwebtoken")
+const jwt = require("jsonwebtoken");
 
 const signUp = async (req, res) => {
   try {
     const {
       name,
+      businessName,
       email,
       phoneNo,
       alternatePhoneNo,
@@ -23,27 +24,23 @@ const signUp = async (req, res) => {
       insDate,
     } = req.body;
 
-
     if (!password) {
       return res.status(400).json({ message: "Password is required." });
     }
 
-
     const ip = req.ip || req.socket.remoteAddress;
     const clientType = req.headers["x-client-type"];
     if (!clientType || !["web", "app"].includes(clientType)) {
-      return res.status(400).json({ message: "Invalid or missing client type." });
+      return res
+        .status(400)
+        .json({ message: "Invalid or missing client type." });
     }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       if (!existingUser.emailVerified) {
         const verificationOTP = await generateverificationOTP(existingUser);
-        await sendEmail(
-          email,
-          "Account Verification OTP",
-          verificationOTP
-        );
+        await sendEmail(email, "Account Verification OTP", verificationOTP);
         return res.status(400).json({
           verificationOTP,
           message:
@@ -64,6 +61,7 @@ const signUp = async (req, res) => {
     // Create the new user
     const newUser = new User({
       name,
+      businessName,
       email,
       phoneNo,
       alternatePhoneNo,
@@ -76,7 +74,7 @@ const signUp = async (req, res) => {
       userVerified,
       documentStatus,
       subscriptionStatus,
-      insBy:clientType,
+      insBy: clientType,
       insDate,
       insIp: ip,
     });
@@ -89,7 +87,7 @@ const signUp = async (req, res) => {
     await newUser.save();
 
     res.status(201).json({
-      message: "User registered successfully",
+      message: "Verification link is sent on the given email address.",
       user: newUser,
     });
   } catch (error) {
@@ -97,6 +95,8 @@ const signUp = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+// verifyemail
 const verifyEmail = async (req, res) => {
   const { email, OTP } = req.body;
 
@@ -132,6 +132,8 @@ const verifyEmail = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// login
 const login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -169,7 +171,7 @@ const login = async (req, res) => {
       user: {
         email: user.email,
         name: user.name,
-        userType:user.userType
+        userType: user.userType,
       },
     });
   } catch (err) {

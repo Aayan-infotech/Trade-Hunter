@@ -29,6 +29,7 @@ const createService = async (req, res) => {
     });
   }
 };
+
 const getAllServices = async (req, res) => {
   try {
     const Services = await Service.find({});
