@@ -1,7 +1,21 @@
 const mongoose = require("mongoose");
 
+// File Schema
+const fileSchema = new mongoose.Schema({
+  filename: String,
+  path: String,
+  size: Number,
+  description: String,
+  uploadedAt: { type: Date, default: Date.now },
+});
+
+// User Schema
 const userSchema = new mongoose.Schema(
   {
+    businessName: {
+      type: String,
+      required: false,
+    },
     name: {
       type: String,
       required: true,
@@ -83,6 +97,7 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    files: [fileSchema],
   },
   { timestamps: true }
 );
