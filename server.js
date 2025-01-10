@@ -14,8 +14,8 @@ app.use(express.json());
 
 connectDB();
 const apiRoutes = require("./apiRoutes");
-const authAdmin = require("./routes/authAdmin");
-const userRoutes = require("./routes/userRoutes");
+const authAdmin = require("./AdmRts/authAdmin");
+const userRoutes = require("./AdmRts/userRoutes");
 
 
 

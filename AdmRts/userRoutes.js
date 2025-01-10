@@ -5,7 +5,7 @@ const {
   getUserById,
   updateUser,
   deleteUser,
-} = require("../controllers/userController");
+} = require("../AdmCtrl/userController");
 
 router.get("/", getAllUsers);
 router.get("/:id", getUserById);
