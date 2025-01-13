@@ -25,8 +25,9 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    image: {
-      type: String,
+    images: {
+      type:String,
+      required: false,
     },
     phoneNo: {
       type: Number,
@@ -65,16 +66,19 @@ const userSchema = new mongoose.Schema(
       default: false,
     },
     emailVerified: {
-      type: Boolean,
-      default: false,
+      type: Number,
+      default: 0,
+      required: true,
     },
     documentStatus: {
-      type: Boolean,
-      default: false,
+      type: Number,
+      default: 0,
+      required: true,
     },
     subscriptionStatus: {
-      type: Boolean,
-      default: false,
+      type: Number,
+      default: 0,
+      required: true,
     },
     insBy: {
       type: String,
