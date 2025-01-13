@@ -23,7 +23,7 @@ router.post(
   uploadToS3,
   signUp
 );
-router.post("/verify-email", uploadToS3, verifyEmail);
+router.post("/verify-email", verifyEmail);
 router.post("/login", login);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password-with-otp", resetPasswordWithOTP);
