@@ -186,6 +186,7 @@ const login = async (req, res) => {
   }
 };
 
+
 //reset password
 const forgotPassword = async (req, res) => {
   const { email } = req.body;

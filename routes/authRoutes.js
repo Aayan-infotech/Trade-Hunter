@@ -11,12 +11,6 @@ const multer = require("multer");
 const upload = multer();
 const { uploadToS3 } = require("../common/multerConfig");
 
-// router.post("/signup",signUp)
-// router.post("/verify-email", uploadToS3, verifyEmail);
-// router.post("/login", login);
-// router.post("/forgot-password", forgotPassword);
-// router.post("/reset-password-with-otp", resetPasswordWithOTP);
-
 router.post(
   "/signup",
   upload.single("images"),
@@ -29,5 +23,9 @@ router.post(
   uploadToS3,
   signUp
 );
+router.post("/verify-email", uploadToS3, verifyEmail);
+router.post("/login", login);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password-with-otp", resetPasswordWithOTP);
 
 module.exports = router;
