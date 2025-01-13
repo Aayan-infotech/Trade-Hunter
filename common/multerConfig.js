@@ -1,13 +1,18 @@
-require('dotenv').config();
+require("dotenv").config();
 
-const { S3 } = require('@aws-sdk/client-s3');
-const { SecretsManagerClient, GetSecretValueCommand } = require('@aws-sdk/client-secrets-manager');
+const { S3 } = require("@aws-sdk/client-s3");
+const {
+  SecretsManagerClient,
+  GetSecretValueCommand,
+} = require("@aws-sdk/client-secrets-manager");
 
-const secretsManagerClient = new SecretsManagerClient({ region: process.env.AWS_REGION });
+const secretsManagerClient = new SecretsManagerClient({
+  region: process.env.AWS_REGION,
+});
 
 const getAwsCredentials = async () => {
   try {
-    const command = new GetSecretValueCommand({ SecretId: 'aws-7jan' });
+    const command = new GetSecretValueCommand({ SecretId: "aws-7jan" });
     const data = await secretsManagerClient.send(command);
 
     if (data.SecretString) {
@@ -18,8 +23,8 @@ const getAwsCredentials = async () => {
       };
     }
   } catch (error) {
-    console.error('Error fetching secrets:', error.message);
-    throw new Error('Failed to retrieve AWS credentials');
+    console.error("Error fetching secrets:", error.message);
+    throw new Error("Failed to retrieve AWS credentials");
   }
 };
 
@@ -34,7 +39,7 @@ const getS3Client = async () => {
       region: process.env.AWS_REGION,
     });
   } catch (error) {
-    console.error('Error initializing S3:', error.message);
+    console.error("Error initializing S3:", error.message);
     throw error;
   }
 };
@@ -43,7 +48,7 @@ const uploadToS3 = async (req, res, next) => {
   const s3 = await getS3Client();
 
   try {
-    const file = req.files.images;
+    const file = req.file;
 
     const files = Array.isArray(file) ? file : [file];
     const fileLocations = [];
@@ -52,7 +57,7 @@ const uploadToS3 = async (req, res, next) => {
       const params = {
         Bucket: process.env.AWS_S3_BUCKET_NAME,
         Key: `${Date.now()}-${file.name}`,
-        Body: file.data,
+        Body: file.buffer,
         ContentType: file.mimetype,
       };
 
@@ -64,7 +69,7 @@ const uploadToS3 = async (req, res, next) => {
     req.fileLocations = fileLocations;
     next();
   } catch (uploadError) {
-    console.error('S3 upload error:', uploadError);
+    console.error("S3 upload error:", uploadError);
     return res.status(500).send(uploadError.message);
   }
 };

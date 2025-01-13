@@ -5,27 +5,33 @@ const sendEmail = require("../services/sendMail");
 const jwt = require("jsonwebtoken");
 
 const signUp = async (req, res) => {
+  // const imagePaths = req.fileLocations;
   try {
     const {
       name,
       businessName,
       email,
       phoneNo,
-      alternatePhoneNo,
       address,
       password,
       ABN_Number,
       businessType,
       serviceType,
       userType,
-      userVerified = false,
-      documentStatus = false,
-      subscriptionStatus = false,
+      userVerified = 0,
+      documentStatus = 0,
+      subscriptionStatus = 0,
       insDate,
     } = req.body;
 
     if (!password) {
       return res.status(400).json({ message: "Password is required." });
+    }
+
+    if (!req.body || !req.body.password) {
+      return res
+        .status(400)
+        .json({ message: "Invalid request. Password is missing." });
     }
 
     const ip = req.ip || req.socket.remoteAddress;
@@ -64,7 +70,6 @@ const signUp = async (req, res) => {
       businessName,
       email,
       phoneNo,
-      alternatePhoneNo,
       address,
       password: hashedPassword, // Save hashed password
       ABN_Number,
@@ -76,6 +81,7 @@ const signUp = async (req, res) => {
       subscriptionStatus,
       insBy: clientType,
       insDate,
+      images: req.fileLocations[0],
       insIp: ip,
     });
 
@@ -180,4 +186,79 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { signUp, verifyEmail, login };
+//reset password
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    // Check if the user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    //Generate OTP
+    const generateOTP = () => {
+      return Math.floor(100000 + Math.random() * 900000).toString(); // Generates a 6-digit OTP
+    };
+
+    // Generate OTP
+    const otp = generateOTP(); // e.g., generates a 6-digit OTP
+    user.resetPasswordOTP = otp;
+    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000; // OTP valid for 15 minutes
+    await user.save();
+
+    // Send OTP to user's email
+    await sendEmail(
+      email,
+      "Password Reset OTP",
+      `Your OTP for password reset is: ${otp}. It is valid for 15 minutes.`
+    );
+
+    res.json({ message: "OTP sent to your email. Please check your inbox." });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// reset password with OTP
+const resetPasswordWithOTP = async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+
+  try {
+    // Find the user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Validate OTP and expiry
+    if (
+      user.resetPasswordOTP !== otp ||
+      user.resetPasswordExpires < Date.now()
+    ) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    // Update the password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.resetPasswordOTP = null; // Clear OTP
+    user.resetPasswordExpires = null; // Clear expiry
+    await user.save();
+
+    res.json({ message: "Password reset successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+module.exports = {
+  signUp,
+  verifyEmail,
+  login,
+  forgotPassword,
+  resetPasswordWithOTP,
+};
