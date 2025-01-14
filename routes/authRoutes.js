@@ -1,10 +1,12 @@
 const express = require("express");
 const {
   signUp,
-  verifyEmail,
   login,
+  verifyEmail,
+  verifyOtp,
   forgotPassword,
   resetPasswordWithOTP,
+  changePassword
 } = require("../controllers/authController");
 const router = express.Router();
 const multer = require("multer");
@@ -23,9 +25,12 @@ router.post(
   uploadToS3,
   signUp
 );
-router.post("/verify-email", verifyEmail);
+
 router.post("/login", login);
+router.post("/verify-email", verifyEmail);
+router.post("/verify-otp", verifyOtp);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password-with-otp", resetPasswordWithOTP);
+router.post("/changePassword", changePassword);
 
 module.exports = router;
