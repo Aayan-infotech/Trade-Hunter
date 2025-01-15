@@ -32,7 +32,7 @@ const signUp = async (req, res) => {
     }
 
     // Validate required fields
-    if(userType === "hunter"){
+    if (userType === "hunter") {
       if (
         isEmptyOrSpaces(name) ||
         isEmptyOrSpaces(email) ||
@@ -43,7 +43,7 @@ const signUp = async (req, res) => {
       ) {
         return apiResponse.error(res, "All fields are required.", 400);
       }
-    }else if(userType === "provider"){
+    } else if (userType === "provider") {
       if (
         isEmptyOrSpaces(name) ||
         isEmptyOrSpaces(businessName) ||
@@ -58,11 +58,11 @@ const signUp = async (req, res) => {
       ) {
         return apiResponse.error(res, "All fields are required.", 400);
       }
-  
+
     } else {
       return apiResponse.error(res, "Invalid user type", 400);
     }
-    
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -87,9 +87,11 @@ const signUp = async (req, res) => {
     }
 
     // Validate ABN_Number (adjust logic based on your format)
-    if (!/^[0-9]{11}$/.test(ABN_Number)) {
+
+    if (userType == "provider" && !/^[0-9]{11}$/.test(ABN_Number)) {
       return apiResponse.error(res, "Invalid ABN Number. Must be 11 digits.", 400);
     }
+
 
     // Validate client type from headers
     const clientType = req.headers["x-client-type"];
@@ -159,7 +161,7 @@ const signUp = async (req, res) => {
 
 // login
 const login = async (req, res) => {
-  const { email, password ,userType} = req.body;
+  const { email, password, userType } = req.body;
   if (!["hunter", "provider"].includes(userType)) {
     return apiResponse.error(res, "Invalid user type", 400);
   }
@@ -193,7 +195,7 @@ const login = async (req, res) => {
 
     apiResponse.success(res, "Login successful", {
       token: token,
-        user: user,
+      user: user,
     });
   } catch (err) {
     console.error("Login error:", err);
@@ -321,7 +323,7 @@ const changePassword = async (req, res) => {
     // Check if the old password matches
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) {
-      return apiResponse.error(res, "Old password is incorrect", 400,null);
+      return apiResponse.error(res, "Old password is incorrect", 400, null);
     }
 
     // Hash the new password
