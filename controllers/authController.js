@@ -27,22 +27,40 @@ const signUp = async (req, res) => {
     // Helper function to check for empty or whitespace strings
     const isEmptyOrSpaces = (str) => !str || str.trim() === "";
 
-    // Validate required fields
-    if (
-      isEmptyOrSpaces(name) ||
-      isEmptyOrSpaces(businessName) ||
-      isEmptyOrSpaces(email) ||
-      isEmptyOrSpaces(phoneNo) ||
-      isEmptyOrSpaces(address) ||
-      isEmptyOrSpaces(password) ||
-      isEmptyOrSpaces(ABN_Number) ||
-      isEmptyOrSpaces(businessType) ||
-      isEmptyOrSpaces(serviceType) ||
-      isEmptyOrSpaces(userType)
-    ) {
-      return apiResponse.error(res, "All fields are required.", 400);
+    if (!["hunter", "provider"].includes(userType)) {
+      return apiResponse.error(res, "Invalid user type", 400);
     }
 
+    // Validate required fields
+    if(userType === "hunter"){
+      if (
+        isEmptyOrSpaces(name) ||
+        isEmptyOrSpaces(email) ||
+        isEmptyOrSpaces(phoneNo) ||
+        isEmptyOrSpaces(address) ||
+        isEmptyOrSpaces(password) ||
+        isEmptyOrSpaces(userType)
+      ) {
+        return apiResponse.error(res, "All fields are required.", 400);
+      }
+    }else{
+      if (
+        isEmptyOrSpaces(name) ||
+        isEmptyOrSpaces(businessName) ||
+        isEmptyOrSpaces(email) ||
+        isEmptyOrSpaces(phoneNo) ||
+        isEmptyOrSpaces(address) ||
+        isEmptyOrSpaces(password) ||
+        isEmptyOrSpaces(ABN_Number) ||
+        isEmptyOrSpaces(businessType) ||
+        isEmptyOrSpaces(serviceType) ||
+        isEmptyOrSpaces(userType)
+      ) {
+        return apiResponse.error(res, "All fields are required.", 400);
+      }
+  
+    }
+    
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
