@@ -139,10 +139,12 @@ const signUp = async (req, res) => {
 
 // login
 const login = async (req, res) => {
-  const { email, password } = req.body;
-
+  const { email, password ,userType} = req.body;
+  if (!["hunter", "provider"].includes(userType)) {
+    return apiResponse.error(res, "Invalid user type", 400);
+  }
   try {
-    const user = await User.findOne({ email: email });
+    const user = await User.findOne({ email: email, userType: userType });
 
     if (!user) {
       return apiResponse.error(res, "Invalid credentials", 400);
