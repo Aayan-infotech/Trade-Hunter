@@ -43,7 +43,7 @@ const signUp = async (req, res) => {
       ) {
         return apiResponse.error(res, "All fields are required.", 400);
       }
-    }else{
+    }else if(userType === "provider"){
       if (
         isEmptyOrSpaces(name) ||
         isEmptyOrSpaces(businessName) ||
@@ -59,6 +59,8 @@ const signUp = async (req, res) => {
         return apiResponse.error(res, "All fields are required.", 400);
       }
   
+    } else {
+      return apiResponse.error(res, "Invalid user type", 400);
     }
     
     // Validate email format
