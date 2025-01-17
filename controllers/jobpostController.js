@@ -17,9 +17,10 @@ const createJobPost = async (req, res) => {
 
     // Parse location and timeframe
     const location = {
-      latitude: parseFloat(locationRaw?.latitude),
-      longitude: parseFloat(locationRaw?.longitude),
-      address: locationRaw?.address,
+      joblatitude: parseFloat(locationRaw?.joblatitude),
+      joblongitude: parseFloat(locationRaw?.joblongitude),
+      jobaddress: locationRaw?.jobaddress,
+      jobradius: parseFloat(locationRaw?.jobradius),
     };
 
     const timeframe = {
@@ -30,29 +31,31 @@ const createJobPost = async (req, res) => {
     // Validate required fields
     if (
       !title ||
-      !location.latitude ||
-      !location.longitude ||
-      !location.address ||
+      !location.joblatitude ||
+      !location.joblongitude ||
+      !location.jobaddress ||
+      !location.jobradius ||
       !estimatedBudget ||
       !serviceType ||
       !service ||
       !timeframe.from ||
       !timeframe.to ||
-      !requirements ||
-      (documents && documents.length === 0) // Additional check for documents
+      !requirements
     ) {
-      return apiResponse.error(res, "All fields except documents are required.", 400);
+      return res
+        .status(400)
+        .json({ error: "All fields are required, including location and timeframe." });
     }
 
-    // Validate serviceType
+    // Validate serviceType and service
     const validServices = ["Cleaning", "Plumbing", "Electrician", "Gardening", "Others"];
-    if (!validServices.includes(serviceType)) {
-      return apiResponse.error(res, "Invalid serviceType value.", 400);
+    if (!validServices.includes(serviceType) || !validServices.includes(service)) {
+      return res.status(400).json({ error: "Invalid serviceType or service value." });
     }
 
     // Check if timeframe is valid
     if (new Date(timeframe.from) > new Date(timeframe.to)) {
-      return apiResponse.error(res, "Invalid timeframe. 'From' must be earlier than 'To'.", 400);
+      return res.status(400).json({ error: "Invalid timeframe. 'From' must be earlier than 'To'." });
     }
 
     // Create new job post object
@@ -63,17 +66,23 @@ const createJobPost = async (req, res) => {
       serviceType,
       service,
       timeframe,
-      documents: req.fileLocations,  
+      documents: req.fileLocations, 
       requirements,
     });
 
     // Save the job post in the database
     await jobPost.save();
 
-    return apiResponse.success(res, "Job post created successfully.", jobPost, 201);
+    return res.status(201).json({
+      message: "Job post created successfully.",
+      jobPost,
+    });
   } catch (error) {
     console.error("Error creating job post:", error);
-    return apiResponse.error(res, "Internal server error.", 500, { error: error.message });
+    return res.status(500).json({
+      error: "Internal server error.",
+      details: error.message,
+    });
   }
 };
 
