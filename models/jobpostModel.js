@@ -8,17 +8,13 @@ const JobPostSchema = new mongoose.Schema({
   },
   location: {
     type: {
-      latitude: { type: Number, required: true },
-      longitude: { type: Number, required: true },
-      address: { type: String, required: true, trim: true },
+      joblatitude: { type: Number, required: true },
+      joblongitude: { type: Number, required: true },
+      jobaddress: { type: String, required: true, trim: true },
+      jobradius: { type: Number, required: true },
     },
-    // required: true,
   },
   estimatedBudget: {
-    type: Number,
-    required: true
-  },
-  radius: {
     type: Number,
     required: true
   },

@@ -7,7 +7,6 @@ const createJobPost = async (req, res) => {
       title,
       location: locationRaw,
       estimatedBudget,
-      radius,
       serviceType,
       service,
       timeframe: timeframeRaw,
@@ -35,7 +34,6 @@ const createJobPost = async (req, res) => {
       !location.longitude ||
       !location.address ||
       !estimatedBudget ||
-      !radius ||
       !serviceType ||
       !service ||
       !timeframe.from ||
@@ -62,7 +60,6 @@ const createJobPost = async (req, res) => {
       title,
       location,
       estimatedBudget,
-      radius,
       serviceType,
       service,
       timeframe,
