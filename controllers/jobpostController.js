@@ -13,7 +13,7 @@ const createJobPost = async (req, res) => {
       requirements,
     } = req.body;
 
-    const documents = req.files || []; 
+    const documents = req.files || [];
 
     // Parse location and timeframe
     const location = {
@@ -44,19 +44,37 @@ const createJobPost = async (req, res) => {
     ) {
       return res
         .status(400)
-        .json({ error: "All fields are required, including location and timeframe." });
+        .json({
+          error: "All fields are required, including location and timeframe.",
+        });
     }
 
     // Validate serviceType and service
-    const validServices = ["Cleaning", "Plumbing", "Electrician", "Gardening", "Others"];
-    if (!validServices.includes(serviceType) || !validServices.includes(service)) {
-      return res.status(400).json({ error: "Invalid serviceType or service value." });
+    const validServices = [
+      "Cleaning",
+      "Plumbing",
+      "Electrician",
+      "Gardening",
+      "Others",
+    ];
+    if (
+      !validServices.includes(serviceType) ||
+      !validServices.includes(service)
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Invalid serviceType or service value." });
     }
 
     // Check if timeframe is valid
     if (new Date(timeframe.from) > new Date(timeframe.to)) {
-      return res.status(400).json({ error: "Invalid timeframe. 'From' must be earlier than 'To'." });
+      return res
+        .status(400)
+        .json({
+          error: "Invalid timeframe. 'From' must be earlier than 'To'.",
+        });
     }
+    console.log(111, req.fileLocations);
 
     // Create new job post object
     const jobPost = new JobPost({
@@ -66,7 +84,7 @@ const createJobPost = async (req, res) => {
       serviceType,
       service,
       timeframe,
-      documents: req.fileLocations, 
+      documents: req.fileLocations,
       requirements,
     });
 
@@ -86,14 +104,19 @@ const createJobPost = async (req, res) => {
   }
 };
 
-
 const getAllJobPosts = async (req, res) => {
   try {
     const jobPosts = await JobPost.find();
-    return apiResponse.success(res, "Job posts retrieved successfully.", jobPosts);
+    return apiResponse.success(
+      res,
+      "Job posts retrieved successfully.",
+      jobPosts
+    );
   } catch (error) {
     console.error("Error retrieving job posts:", error);
-    return apiResponse.error(res, "Internal server error.", 500, { error: error.message });
+    return apiResponse.error(res, "Internal server error.", 500, {
+      error: error.message,
+    });
   }
 };
 
@@ -103,10 +126,16 @@ const getJobPostById = async (req, res) => {
     if (!jobPost) {
       return apiResponse.error(res, "Job post not found.", 404);
     }
-    return apiResponse.success(res, "Job post retrieved successfully.", jobPost);
+    return apiResponse.success(
+      res,
+      "Job post retrieved successfully.",
+      jobPost
+    );
   } catch (error) {
     console.error("Error retrieving job post:", error);
-    return apiResponse.error(res, "Internal server error.", 500, { error: error.message });
+    return apiResponse.error(res, "Internal server error.", 500, {
+      error: error.message,
+    });
   }
 };
 
@@ -130,7 +159,9 @@ const updateJobPost = async (req, res) => {
     return apiResponse.success(res, "Job post updated successfully.", jobPost);
   } catch (error) {
     console.error("Error updating job post:", error);
-    return apiResponse.error(res, "Internal server error.", 500, { error: error.message });
+    return apiResponse.error(res, "Internal server error.", 500, {
+      error: error.message,
+    });
   }
 };
 
@@ -143,7 +174,9 @@ const deleteJobPost = async (req, res) => {
     return apiResponse.success(res, "Job post deleted successfully.");
   } catch (error) {
     console.error("Error deleting job post:", error);
-    return apiResponse.error(res, "Internal server error.", 500, { error: error.message });
+    return apiResponse.error(res, "Internal server error.", 500, {
+      error: error.message,
+    });
   }
 };
 

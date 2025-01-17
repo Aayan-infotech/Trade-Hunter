@@ -18,8 +18,9 @@ const getAwsCredentials = async () => {
     if (data.SecretString) {
       const secret = JSON.parse(data.SecretString);
       return {
-        accessKeyId: secret.AWS_ACCESS_KEY_ID,
-        secretAccessKey: secret.AWS_SECRET_ACCESS_KEY,
+        accessKeyId: secret.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey:
+          secret.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY,
       };
     }
   } catch (error) {
