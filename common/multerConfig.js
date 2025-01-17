@@ -48,12 +48,15 @@ const uploadToS3 = async (req, res, next) => {
   const s3 = await getS3Client();
 
   try {
-    const file = req.file;
+    const file = req.files;
+    console.log("file:", file);
 
     const files = Array.isArray(file) ? file : [file];
     const fileLocations = [];
 
     for (const file of files) {
+      console.log("file:", file);
+      console.log("files:", files);
       const params = {
         Bucket: process.env.AWS_S3_BUCKET_NAME,
         Key: `${Date.now()}-${file.name}`,

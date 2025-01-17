@@ -1,16 +1,49 @@
-const express = require('express');
+const express = require("express");
+const {
+  createJobPost,
+  getAllJobPosts,
+  getJobPostById,
+  updateJobPost,
+  deleteJobPost,
+} = require("../controllers/jobpostController");
+const multer = require("multer");
+const upload = multer();
+const { uploadToS3 } = require("../common/multerConfig");
+const { verifyUser } = require("../middlewares/auth");
 const router = express.Router();
-const jobPostController = require('../controllers/jobpostController');
-const multer = require('multer');
 
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
+router.post(
+  "/jobpost",
+  verifyUser,
+  upload.array("documents"),
+  async (req, res, next) => {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: "No files uploaded." });
+    }
+    next();
+  },
+  uploadToS3,
+  createJobPost
+);
 
-router.post('/job-posts', upload.single('document'), jobPostController.createJobPost);
-router.get('/job-posts', jobPostController.getAllJobPosts);
-router.get('/job-posts/:id', jobPostController.getJobPostById);
-router.put('/job-posts/:id', upload.single('document'), jobPostController.updateJobPost);
-router.delete('/job-posts/:id', jobPostController.deleteJobPost);
+router.get("/", getAllJobPosts);
+router.get("/:id", verifyUser, getJobPostById);
 
+router.put(
+  "/:id",
+  verifyUser,
+  upload.array("images"),
+  async (req, res, next) => {
+    if (req.files && req.files.length > 0) {
+      next();
+    } else {
+      next();
+    }
+  },
+  uploadToS3,
+  updateJobPost
+);
+
+router.delete("/:id", deleteJobPost);
 
 module.exports = router;

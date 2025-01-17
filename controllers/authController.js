@@ -5,6 +5,7 @@ const sendEmail = require("../services/sendMail");
 const jwt = require("jsonwebtoken");
 const apiResponse = require('../utils/responsehandler');
 
+// register
 const signUp = async (req, res) => {
   try {
     const {

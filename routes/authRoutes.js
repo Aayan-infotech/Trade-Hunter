@@ -6,16 +6,14 @@ const {
   verifyOtp,
   forgotPassword,
   resetPasswordWithOTP,
-  changePassword
+  changePassword,
 } = require("../controllers/authController");
 const router = express.Router();
 const multer = require("multer");
 const upload = multer();
 const { uploadToS3 } = require("../common/multerConfig");
 
-router.post(
-  "/signup",
-  upload.single("images"),
+router.post("/signup", upload.single("images"),
   async (req, res, next) => {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded." });

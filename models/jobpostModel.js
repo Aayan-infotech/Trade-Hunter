@@ -1,5 +1,3 @@
-// models/JobPost.js
-
 const mongoose = require('mongoose');
 
 const JobPostSchema = new mongoose.Schema({
@@ -9,9 +7,12 @@ const JobPostSchema = new mongoose.Schema({
     trim: true
   },
   location: {
-    type: String,
-    required: true,
-    trim: true
+    type: {
+      latitude: { type: Number, required: true },
+      longitude: { type: Number, required: true },
+      address: { type: String, required: true, trim: true },
+    },
+    // required: true,
   },
   estimatedBudget: {
     type: Number,
@@ -28,7 +29,8 @@ const JobPostSchema = new mongoose.Schema({
   },
   service: {
     type: String,
-    required: true
+    required: true,
+    enum: ['Cleaning', 'Plumbing', 'Electrician', 'Gardening', 'Others']
   },
   timeframe: {
     from: {
@@ -40,9 +42,9 @@ const JobPostSchema = new mongoose.Schema({
       required: true
     }
   },
-  document: {
-    type: String, // This will store the S3 bucket URL for the uploaded document
-    required: false
+  documents: {
+    type: [String],
+    required: false,
   },
   requirements: {
     type: String,
