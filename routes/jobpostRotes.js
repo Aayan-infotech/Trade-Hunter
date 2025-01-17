@@ -25,25 +25,9 @@ router.post(
   uploadToS3,
   createJobPost
 );
-
 router.get("/", getAllJobPosts);
 router.get("/:id", verifyUser, getJobPostById);
-
-router.put(
-  "/:id",
-  verifyUser,
-  upload.array("images"),
-  async (req, res, next) => {
-    if (req.files && req.files.length > 0) {
-      next();
-    } else {
-      next();
-    }
-  },
-  uploadToS3,
-  updateJobPost
-);
-
+router.put("/:id",updateJobPost);
 router.delete("/:id", deleteJobPost);
 
 module.exports = router;
