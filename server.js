@@ -14,10 +14,14 @@ connectDB();
 const apiRoutes = require("./apiRoutes");
 const authAdmin = require("./AdmRts/authAdmin");
 const userRoutes = require("./AdmRts/userRoutes");
+const providerRts = require("./AdmRts/providerRts");
+
 
 app.use("/api", apiRoutes);
 app.use("/api/authAdmin", authAdmin);
 app.use("/api/users", userRoutes);
+app.use("/api/Prvdr", providerRts);
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
