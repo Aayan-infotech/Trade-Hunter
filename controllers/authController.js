@@ -4,6 +4,7 @@ const generateverificationOTP = require("../utils/VerifyOTP");
 const sendEmail = require("../services/sendMail");
 const jwt = require("jsonwebtoken");
 const apiResponse = require('../utils/responsehandler');
+const Provider = require("../models/providerModel");
 
 // register
 const signUp = async (req, res) => {
@@ -19,143 +20,137 @@ const signUp = async (req, res) => {
       businessType,
       serviceType,
       userType,
-      userVerified = 0,
-      documentStatus = 0,
-      subscriptionStatus = 0,
       insDate,
     } = req.body;
 
-    // Helper function to check for empty or whitespace strings
-    const isEmptyOrSpaces = (str) => !str || str.trim() === "";
-
+    // Validate userType
     if (!["hunter", "provider"].includes(userType)) {
-      return apiResponse.error(res, "Invalid user type", 400);
+      return res.status(400).json({ message: "Invalid user type" });
     }
 
-    // Validate required fields
+    // Validate required fields based on userType
     if (userType === "hunter") {
-      if (
-        isEmptyOrSpaces(name) ||
-        isEmptyOrSpaces(email) ||
-        isEmptyOrSpaces(phoneNo) ||
-        isEmptyOrSpaces(address) ||
-        isEmptyOrSpaces(password) ||
-        isEmptyOrSpaces(userType)
-      ) {
-        return apiResponse.error(res, "All fields are required.", 400);
+      if (!name || !email || !phoneNo || !address || !password) {
+        return res
+          .status(400)
+          .json({ message: "All hunter fields are required." });
       }
     } else if (userType === "provider") {
       if (
-        isEmptyOrSpaces(name) ||
-        isEmptyOrSpaces(businessName) ||
-        isEmptyOrSpaces(email) ||
-        isEmptyOrSpaces(phoneNo) ||
-        isEmptyOrSpaces(address) ||
-        isEmptyOrSpaces(password) ||
-        isEmptyOrSpaces(ABN_Number) ||
-        isEmptyOrSpaces(businessType) ||
-        isEmptyOrSpaces(serviceType) ||
-        isEmptyOrSpaces(userType)
+        !name ||
+        !businessName ||
+        !email ||
+        !phoneNo ||
+        !address ||
+        !password ||
+        !ABN_Number ||
+        !businessType ||
+        !serviceType
       ) {
-        return apiResponse.error(res, "All fields are required.", 400);
+        return res
+          .status(400)
+          .json({ message: "All provider fields are required." });
       }
-
-    } else {
-      return apiResponse.error(res, "Invalid user type", 400);
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return apiResponse.error(res, "Invalid email format.", 400);
+      return res.status(400).json({ message: "Invalid email format." });
     }
 
-    // Validate phone number (adjust regex as per your format)
-    const phoneRegex = /^[0-9]{10}$/; // Example: 10 digit numbers
+    // Validate phone number
+    const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(phoneNo)) {
-      return apiResponse.error(res, "Invalid phone number. Must be 10 digits.", 400);
+      return res
+        .status(400)
+        .json({ message: "Invalid phone number. Must be 10 digits." });
     }
 
-    // Validate password (minimum 8 characters with at least one number and one special character)
+    // Validate password
     const passwordRegex =
       /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!passwordRegex.test(password)) {
-      return apiResponse.error(
-        res,
-        "Password must be at least 8 characters long, include at least one letter, one number, and one special character.",
-        400
-      );
-    }
-
-    // Validate ABN_Number (adjust logic based on your format)
-
-    if (userType == "provider" && !/^[0-9]{11}$/.test(ABN_Number)) {
-      return apiResponse.error(res, "Invalid ABN Number. Must be 11 digits.", 400);
-    }
-
-
-    // Validate client type from headers
-    const clientType = req.headers["x-client-type"];
-    if (!clientType || !["web", "app"].includes(clientType)) {
-      return apiResponse.error(res, "Invalid or missing client type.", 400);
+      return res.status(400).json({
+        message:
+          "Password must be at least 8 characters long, include at least one letter, one number, and one special character.",
+      });
     }
 
     // Check if the email is already in use
-    const existingUser = await User.findOne({ email });
+    const existingUser = await (userType === "hunter"
+      ? User.findOne({ email })
+      : Provider.findOne({ email }));
+
     if (existingUser) {
       if (!existingUser.emailVerified) {
         const verificationOTP = await generateverificationOTP(existingUser);
         await sendEmail(email, "Account Verification OTP", verificationOTP);
-        return apiResponse.success(
-          res,
-          "You already have an account. Please verify your account using the OTP sent to your registered email.",
-          null, 400
-        );
+        return res.status(400).json({
+          message:
+            "You already have an account. Please verify your account using the OTP sent to your registered email.",
+        });
       }
-      return apiResponse.error(res, "User already exists.", 400);
+      return res.status(400).json({ message: "User already exists." });
     }
 
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-    if (!hashedPassword) {
-      return apiResponse.error(res, "Registration failed.", 500);
-    }
 
-    // Create the new user
-    const newUser = new User({
-      name,
-      businessName,
-      email,
-      phoneNo,
-      address,
-      password: hashedPassword, // Save hashed password
-      ABN_Number,
-      businessType,
-      serviceType,
-      userType,
-      userVerified,
-      documentStatus,
-      subscriptionStatus,
-      insBy: clientType,
-      insDate,
-      images: req.fileLocations[0],
-    });
+    // Create the user or provider
+    const newUser =
+      userType === "hunter"
+        ? new User({
+            name,
+            email,
+            phoneNo,
+            address: {
+              address: req.body.address,
+              latitude: req.body.latitude,
+              longitude: req.body.longitude,
+              radius: req.body.radius,
+            },
+            password: hashedPassword,
+            userType,
+            insBy: req.headers["x-client-type"],
+            insDate,
+            images: req.fileLocations?.[0],
+          })
+        : new Provider({
+            businessName,
+            contactName: name,
+            email,
+            phoneNo,
+            address: {
+              address: req.body.address,
+              latitude: req.body.latitude,
+              longitude: req.body.longitude,
+              radius: req.body.radius,
+            },
+            ABN_Number,
+            businessType,
+            serviceType,
+            password: hashedPassword,
+            userType,
+            insBy: req.headers["x-client-type"],
+            insDate,
+            images: req.fileLocations?.[0],
+          });
 
     const verificationOTP = await generateverificationOTP(newUser);
 
     await sendEmail(email, "Account Verification Link", verificationOTP);
-
     await newUser.save();
 
-    return apiResponse.success(
-      res,
-      "Verification link is sent on the given email address.",
-      { user: newUser },
-      201
-    );
+    return res.status(201).json({
+      message: "Verification link is sent on the given email address.",
+      user: newUser,
+    });
   } catch (error) {
-    console.error("Error during sign-up:", error);
-    return apiResponse.error(res, "Internal server error", 500, { error: error.message });
+    return res.status(500).json({
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
@@ -167,8 +162,15 @@ const login = async (req, res) => {
     return apiResponse.error(res, "Invalid user type", 400);
   }
   try {
-    const user = await User.findOne({ email: email, userType: userType });
 
+    let user;
+
+    if(userType == "hunter"){
+    user = await User.findOne({ email: email, userType: userType });
+    }
+    else{
+    user = await Provider.findOne({ email: email, userType: userType });
+    }
     if (!user) {
       return apiResponse.error(res, "Invalid credentials", 400);
     }
@@ -199,7 +201,6 @@ const login = async (req, res) => {
       user: user,
     });
   } catch (err) {
-    console.error("Login error:", err);
     apiResponse.error(res, "Server error", 500);
   }
 };
@@ -209,28 +210,40 @@ const login = async (req, res) => {
 const verifyEmail = async (req, res) => {
   const { email, OTP } = req.body;
 
+  let user;
+
+  // Determine which collection to query based on userType
+  if (req.body.userType === "hunter") {
+    user = await User.findOne({ email: email, userType: req.body.userType });
+  } else{
+    user = await Provider.findOne({ email: email, userType: req.body.userType });
+  }
+
+  if (!user) {
+    return apiResponse.error(res, "User not found, please sign up first", 400);
+  }
+
   try {
-    const user = await User.findOne({ email: email });
-    if (!user) {
-      return apiResponse.error(res, "User not found, please sign up first", 400);
-    }
-    if (user.userVerified) {
+    if (user.emailVerified) {
       return apiResponse.success(res, "User already verified.", 401);
     }
+
     if (OTP === user.verificationOTP) {
+      // Update the user fields to reflect email verification
       user.emailVerified = true;
       user.verificationOTP = null;
       user.verificationOTPExpires = null;
       await user.save();
-      return apiResponse.success(res, "Email verified successfully", 201);
+      return apiResponse.success(res, "Email verified successfully", 200);
     }
 
-    return apiResponse.success(res, "Invalid OTP.", 401);
+    return apiResponse.error(res, "Invalid OTP.", 401);
   } catch (err) {
-    console.error("Verify Email error:", err);
+    console.error("Verification error:", err.message);
     return apiResponse.error(res, "Server error", 500);
   }
 };
+
 
 
 //reset password
@@ -238,8 +251,15 @@ const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
   try {
-    // Check if the user exists
-    const user = await User.findOne({ email });
+    let user;
+
+    // Check if the email exists in the User model
+    user = await User.findOne({ email });
+    if (!user) {
+      // If not found in User, check in Provider model
+      user = await Provider.findOne({ email });
+    }
+
     if (!user) {
       return apiResponse.error(res, "User not found", 404);
     }
@@ -257,6 +277,7 @@ const forgotPassword = async (req, res) => {
     // Respond with success message
     return apiResponse.success(res, "OTP sent to your email. Please check your inbox.");
   } catch (err) {
+    console.error("Forgot Password Error:", err.message);
     return apiResponse.error(res, "Server error", 500);
   }
 };
@@ -267,13 +288,21 @@ const verifyOtp = async (req, res) => {
   const { email, OTP } = req.body;
 
   try {
-    const user = await User.findOne({ email: email });
+    let user;
+
+    // Check if the email exists in the User model
+    user = await User.findOne({ email });
+    if (!user) {
+      // If not found in User, check in Provider model
+      user = await Provider.findOne({ email });
+    }
+
     if (!user) {
       return apiResponse.error(res, "User not found, please sign up first", 400);
     }
 
     if (OTP === user.verificationOTP) {
-      user.emailVerified = 1;
+      user.emailVerified = true; // Use `true` for consistency
       user.verificationOTP = null;
       user.verificationOTPExpires = null;
       await user.save();
@@ -282,9 +311,11 @@ const verifyOtp = async (req, res) => {
 
     return apiResponse.error(res, "Invalid OTP", 401);
   } catch (err) {
+    console.error("Verify OTP Error:", err.message);
     return apiResponse.error(res, "Server error", 500);
   }
 };
+
 
 
 // reset password with OTP
@@ -292,8 +323,15 @@ const resetPasswordWithOTP = async (req, res) => {
   const { email, newPassword } = req.body;
 
   try {
-    // Find the user
-    const user = await User.findOne({ email });
+    let user;
+
+    // Check if the email exists in the User model
+    user = await User.findOne({ email });
+    if (!user) {
+      // If not found in User, check in Provider model
+      user = await Provider.findOne({ email });
+    }
+
     if (!user) {
       return apiResponse.error(res, "Invalid Email", 404);
     }
@@ -305,9 +343,11 @@ const resetPasswordWithOTP = async (req, res) => {
 
     return apiResponse.success(res, "Password reset successfully", 200);
   } catch (err) {
+    console.error("Reset Password Error:", err.message);
     return apiResponse.error(res, "Server error", 500);
   }
 };
+
 
 
 // change password

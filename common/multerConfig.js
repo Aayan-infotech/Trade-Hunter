@@ -24,7 +24,6 @@ const getAwsCredentials = async () => {
       };
     }
   } catch (error) {
-    console.error("Error fetching secrets:", error.message);
     throw new Error("Failed to retrieve AWS credentials");
   }
 };
@@ -40,7 +39,6 @@ const getS3Client = async () => {
       region: process.env.AWS_REGION,
     });
   } catch (error) {
-    console.error("Error initializing S3:", error.message);
     throw error;
   }
 };
@@ -49,15 +47,13 @@ const uploadToS3 = async (req, res, next) => {
   const s3 = await getS3Client();
 
   try {
-    const file = req.files;
-    console.log("file:", file);
+    const file = req.file;
 
     const files = Array.isArray(file) ? file : [file];
     const fileLocations = [];
 
     for (const file of files) {
-      console.log("file:", file);
-      console.log("files:", files);
+
       const params = {
         Bucket: process.env.AWS_S3_BUCKET_NAME,
         Key: `${Date.now()}-${file.originalname}`,
@@ -73,7 +69,6 @@ const uploadToS3 = async (req, res, next) => {
     req.fileLocations = fileLocations;
     next();
   } catch (uploadError) {
-    console.error("S3 upload error:", uploadError);
     return res.status(500).send(uploadError.message);
   }
 };

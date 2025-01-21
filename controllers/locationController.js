@@ -23,7 +23,6 @@ const getNearbyLocations = async (req, res) => {
       data: locations,
     });
   } catch (error) {
-    console.error("Error fetching nearby locations:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };

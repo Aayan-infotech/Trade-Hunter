@@ -9,35 +9,31 @@ const fileSchema = new mongoose.Schema({
   uploadedAt: { type: Date, default: Date.now },
 });
 
-// User Schema
-const userSchema = new mongoose.Schema(
+// provider Schema
+const providerSchema = new mongoose.Schema(
   {
-    name: {
+    businessName: {
+      type: String,
+      required: false,
+    },
+    contactName: {
       type: String,
       required: true,
+    },
+    address: {
+      type: {
+        latitude: { type: Number, required: true },
+        longitude: { type: Number, required: true },
+        address: { type: String, required: true, trim: true },
+        radius: { type: Number, required: true },
+        _id: false,
+      },
     },
     email: {
       type: String,
       required: true,
       unique: true,
     },
-    images: {
-      type:String,
-      required: false,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-    address: {
-      type: {
-          latitude: { type: Number, required: true },
-          longitude: { type: Number, required: true },
-          address: { type: String, required: true, trim: true },
-          radius: { type: Number, required: true },
-          _id:false,
-        },
-  },
     phoneNo: {
       type: String,
       validate: {
@@ -47,16 +43,42 @@ const userSchema = new mongoose.Schema(
         message: (props) => `${props.value} is not a valid phone number!`,
       },
     },
+    ABN_Number: {
+      type: String,
+    },
+    businessType: {
+      type: String,
+    },
+
+    serviceType: [{ type: String }],
     userType: {
       type: String,
       required: true,
-      enum: ["hunter"],
+      default: "provider",
+    },
+    password: {
+      type: String,
+      required: true,
+    },
+    images: {
+      type: String,
+      required: false,
     },
     userStatus: {
       type: Boolean,
       default: false,
     },
     emailVerified: {
+      type: Number,
+      default: 0,
+      required: true,
+    },
+    documentStatus: {
+      type: Number,
+      default: 0,
+      required: true,
+    },
+    subscriptionStatus: {
       type: Number,
       default: 0,
       required: true,
@@ -87,4 +109,4 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.model("provider", providerSchema);

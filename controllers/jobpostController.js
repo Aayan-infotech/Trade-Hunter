@@ -1,5 +1,6 @@
 const JobPost = require("../models/jobpostModel");
 const apiResponse = require("../utils/responsehandler");
+const User = require("../models/userModel");
 
 const createJobPost = async (req, res) => {
   try {
@@ -12,6 +13,8 @@ const createJobPost = async (req, res) => {
       timeframe: timeframeRaw,
       requirements,
     } = req.body;
+
+    const userId = req.user.userId;
 
     const documents = req.files || [];
 
@@ -42,11 +45,9 @@ const createJobPost = async (req, res) => {
       !timeframe.to ||
       !requirements
     ) {
-      return res
-        .status(400)
-        .json({
-          error: "All fields are required, including location and timeframe.",
-        });
+      return res.status(400).json({
+        error: "All fields are required, including location and timeframe.",
+      });
     }
 
     // Validate serviceType and service
@@ -68,13 +69,10 @@ const createJobPost = async (req, res) => {
 
     // Check if timeframe is valid
     if (new Date(timeframe.from) > new Date(timeframe.to)) {
-      return res
-        .status(400)
-        .json({
-          error: "Invalid timeframe. 'From' must be earlier than 'To'.",
-        });
+      return res.status(400).json({
+        error: "Invalid timeframe. 'From' must be earlier than 'To'.",
+      });
     }
-    console.log(111, req.fileLocations);
 
     // Create new job post object
     const jobPost = new JobPost({
@@ -86,7 +84,9 @@ const createJobPost = async (req, res) => {
       timeframe,
       documents: req.fileLocations,
       requirements,
+      user: userId,
     });
+    console.log("abc", jobPost);
 
     // Save the job post in the database
     await jobPost.save();
@@ -96,7 +96,6 @@ const createJobPost = async (req, res) => {
       jobPost,
     });
   } catch (error) {
-    console.error("Error creating job post:", error);
     return res.status(500).json({
       error: "Internal server error.",
       details: error.message,
@@ -113,7 +112,6 @@ const getAllJobPosts = async (req, res) => {
       jobPosts
     );
   } catch (error) {
-    console.error("Error retrieving job posts:", error);
     return apiResponse.error(res, "Internal server error.", 500, {
       error: error.message,
     });
@@ -132,7 +130,6 @@ const getJobPostById = async (req, res) => {
       jobPost
     );
   } catch (error) {
-    console.error("Error retrieving job post:", error);
     return apiResponse.error(res, "Internal server error.", 500, {
       error: error.message,
     });
@@ -158,7 +155,6 @@ const updateJobPost = async (req, res) => {
 
     return apiResponse.success(res, "Job post updated successfully.", jobPost);
   } catch (error) {
-    console.error("Error updating job post:", error);
     return apiResponse.error(res, "Internal server error.", 500, {
       error: error.message,
     });
@@ -173,7 +169,6 @@ const deleteJobPost = async (req, res) => {
     }
     return apiResponse.success(res, "Job post deleted successfully.");
   } catch (error) {
-    console.error("Error deleting job post:", error);
     return apiResponse.error(res, "Internal server error.", 500, {
       error: error.message,
     });

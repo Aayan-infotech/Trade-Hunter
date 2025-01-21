@@ -21,7 +21,6 @@ const createService = async (req, res) => {
       data: newService,
     });
   } catch (error) {
-    console.error("Error creating service group:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error.",
@@ -40,7 +39,6 @@ const getAllServices = async (req, res) => {
       data: Services,
     });
   } catch (error) {
-    console.error("Error creating service group:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error.",
