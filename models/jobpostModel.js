@@ -50,6 +50,11 @@ const JobPostSchema = new mongoose.Schema({
     trim: true
   },
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  jobStatus: {
+    type: String,
+    enum: ['pending', 'accepted', 'completed' ],
+    default: 'pending' 
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model('JobPost', JobPostSchema);

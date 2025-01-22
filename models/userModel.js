@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const Address = require("./addressModel"); 
 
 // File Schema
 const fileSchema = new mongoose.Schema({
@@ -8,6 +9,7 @@ const fileSchema = new mongoose.Schema({
   description: String,
   uploadedAt: { type: Date, default: Date.now },
 });
+
 
 // User Schema
 const userSchema = new mongoose.Schema(
@@ -29,15 +31,12 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    address: {
-      type: {
-          latitude: { type: Number, required: true },
-          longitude: { type: Number, required: true },
-          address: { type: String, required: true, trim: true },
-          radius: { type: Number, required: true },
-          _id:false,
-        },
-  },
+    addresses: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Address", 
+      },
+    ],
     phoneNo: {
       type: String,
       validate: {

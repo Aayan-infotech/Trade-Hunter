@@ -85,6 +85,7 @@ const createJobPost = async (req, res) => {
       documents: req.fileLocations,
       requirements,
       user: userId,
+      obStatus: "pending",
     });
     console.log("abc", jobPost);
 

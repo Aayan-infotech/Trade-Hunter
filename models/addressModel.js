@@ -1,6 +1,15 @@
 const mongoose = require("mongoose");
 
 const addressSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  isSelected: {
+    type: Number,
+    default: 0,
+    required: true,
+  },
   addressType: {
     type: String,
     required: true,
@@ -21,7 +30,8 @@ const addressSchema = new mongoose.Schema({
   },
   radius: {
     type: Number,
-    required: true,
+    required: false,
+    default: 10,
   },
   createdAt: {
     type: Date,

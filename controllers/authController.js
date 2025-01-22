@@ -5,6 +5,7 @@ const sendEmail = require("../services/sendMail");
 const jwt = require("jsonwebtoken");
 const apiResponse = require('../utils/responsehandler');
 const Provider = require("../models/providerModel");
+const Address = require("../models/addressModel");
 
 // register
 const signUp = async (req, res) => {
@@ -14,7 +15,11 @@ const signUp = async (req, res) => {
       businessName,
       email,
       phoneNo,
+      addressType,
       address,
+      latitude,
+      longitude,
+      radius,
       password,
       ABN_Number,
       businessType,
@@ -30,7 +35,7 @@ const signUp = async (req, res) => {
 
     // Validate required fields based on userType
     if (userType === "hunter") {
-      if (!name || !email || !phoneNo || !address || !password) {
+      if (!name || !email || !phoneNo || !address || !latitude || !longitude || !radius || !password) {
         return res
           .status(400)
           .json({ message: "All hunter fields are required." });
@@ -42,6 +47,9 @@ const signUp = async (req, res) => {
         !email ||
         !phoneNo ||
         !address ||
+        !latitude ||
+        !longitude ||
+        !radius ||
         !password ||
         !ABN_Number ||
         !businessType ||
@@ -104,12 +112,7 @@ const signUp = async (req, res) => {
             name,
             email,
             phoneNo,
-            address: {
-              address: req.body.address,
-              latitude: req.body.latitude,
-              longitude: req.body.longitude,
-              radius: req.body.radius,
-            },
+            // addressId: newAddress._id, 
             password: hashedPassword,
             userType,
             insBy: req.headers["x-client-type"],
@@ -121,12 +124,7 @@ const signUp = async (req, res) => {
             contactName: name,
             email,
             phoneNo,
-            address: {
-              address: req.body.address,
-              latitude: req.body.latitude,
-              longitude: req.body.longitude,
-              radius: req.body.radius,
-            },
+            // addressId: newAddress._id, // Reference the new address
             ABN_Number,
             businessType,
             serviceType,
@@ -140,7 +138,23 @@ const signUp = async (req, res) => {
     const verificationOTP = await generateverificationOTP(newUser);
 
     await sendEmail(email, "Account Verification Link", verificationOTP);
-    await newUser.save();
+    const answer = await newUser.save();
+    console.log("answer", answer);
+    
+
+     // Create the address
+     const newAddress = new Address({
+      userId: answer._id,
+      addressType,
+      address,
+      latitude,
+      longitude,
+      radius,
+      isSelected: 1,
+    });
+
+    await newAddress.save();
+
 
     return res.status(201).json({
       message: "Verification link is sent on the given email address.",
@@ -153,7 +167,6 @@ const signUp = async (req, res) => {
     });
   }
 };
-
 
 // login
 const login = async (req, res) => {
@@ -205,7 +218,6 @@ const login = async (req, res) => {
   }
 };
 
-
 // verifyemail
 const verifyEmail = async (req, res) => {
   const { email, OTP } = req.body;
@@ -244,8 +256,6 @@ const verifyEmail = async (req, res) => {
   }
 };
 
-
-
 //reset password
 const forgotPassword = async (req, res) => {
   const { email } = req.body;
@@ -282,7 +292,6 @@ const forgotPassword = async (req, res) => {
   }
 };
 
-
 // verify otp
 const verifyOtp = async (req, res) => {
   const { email, OTP } = req.body;
@@ -316,8 +325,6 @@ const verifyOtp = async (req, res) => {
   }
 };
 
-
-
 // reset password with OTP
 const resetPasswordWithOTP = async (req, res) => {
   const { email, newPassword } = req.body;
@@ -348,8 +355,6 @@ const resetPasswordWithOTP = async (req, res) => {
   }
 };
 
-
-
 // change password
 const changePassword = async (req, res) => {
   const { email, oldPassword, newPassword } = req.body;
@@ -377,7 +382,6 @@ const changePassword = async (req, res) => {
     return apiResponse.error(res, "Server error", 500);
   }
 };
-
 
 module.exports = {
   signUp,
