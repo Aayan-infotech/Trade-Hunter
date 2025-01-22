@@ -53,36 +53,48 @@ exports.deleteUser = async (req, res) => {
 };
 
 
-// get users based on userType and pagination
 // exports.getUsersByType = async (req, res) => {
 //   try {
-//     const { hunte } = req.params; // Extract userType from route params
-//     const limit = parseInt(req.params.limit) || 10; // Default limit is 10
+//     const { hunte } = req.params; // Extract userType from params
+//     const limit = parseInt(req.params.limit) || 10; // Extract limit from params
+//     const page = parseInt(req.query.page) || 1; // Extract page number from query
+//     const search = req.query.search || ""; // Extract search query from query
 
-//     // Normalize userType to lowercase for consistent comparison
+//     // Validate userType
 //     const userType = hunte.toLowerCase();
-
-//     if (!userType || (userType !== "provider" && userType !== "hunter")) {
+//     if (!["provider", "hunter"].includes(userType)) {
 //       return res.status(400).json({ message: "Invalid or missing userType" });
 //     }
 
-//     const query = { userType };
+//     // Construct query with search
+//     const query = {
+//       userType,
+//       $or: [
+//         { name: { $regex: search, $options: "i" } }, // Search by name (case-insensitive)
+//         { email: { $regex: search, $options: "i" } }, // Search by email (case-insensitive)
+//       ],
+//     };
 
+//     // Fetch users with pagination
 //     const users = await User.find(query)
+//       .skip((page - 1) * limit)
 //       .limit(limit)
-//       .select("name email userType"); // Selecting specific fields
+//       .select("name email phoneNo userType userStatus emailVerified documentStatus subscriptionStatus");
+
+//     // Count total users for pagination metadata
+//     const totalUsers = await User.countDocuments(query);
 
 //     res.status(200).json({
+//       page,
 //       limit,
-//       total: users.length,
+//       totalUsers,
+//       totalPages: Math.ceil(totalUsers / limit),
 //       users,
 //     });
 //   } catch (error) {
-//     console.error("Error fetching users:", error);
 //     res.status(500).json({ message: "Error retrieving users", error });
 //   }
 // };
-
 
 exports.getUsersByType = async (req, res) => {
   try {
@@ -91,11 +103,7 @@ exports.getUsersByType = async (req, res) => {
     const page = parseInt(req.query.page) || 1; // Extract page number from query
     const search = req.query.search || ""; // Extract search query from query
 
-    // Validate userType
-    const userType = hunte.toLowerCase();
-    if (!["provider", "hunter"].includes(userType)) {
-      return res.status(400).json({ message: "Invalid or missing userType" });
-    }
+    const userType = hunte.toLowerCase(); // Extracted userType without validation
 
     // Construct query with search
     const query = {
