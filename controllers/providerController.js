@@ -2,6 +2,7 @@ const File = require("../models/userModel");
 const multer = require("multer");
 const path = require("path");
 const User = require("../models/userModel")
+const providerModel = require('../models/providerModel');
 
 // Configure multer storage
 const storage = multer.diskStorage({
@@ -42,7 +43,7 @@ exports.uploadFile = (req, res) => {
     const { description } = req.body;
     const { providerId } = req.params;
 
-//added
+    //added
     // Check if providerId exists and belongs to a user with the role 'provider'
     const provider = await User.findById(providerId).exec();
     if (!provider) {
@@ -60,33 +61,95 @@ exports.uploadFile = (req, res) => {
     // .......................
 
     try {
-        // Assuming multiple files are allowed and we want to save them all
-        const filesData = req.files.map(file => ({
-          filename: file.filename,
-          path: file.path,
-          size: file.size,
-          description: description || " ",
-        }));
-  
-        // Check if there are existing files associated with this provider
-        const existingFiles = provider.files || [];
-  
-        // Combine the existing files with the new ones
-        const updatedFiles = [...existingFiles, ...filesData];
-  
-        // Update the provider's file details
-        const updatedProvider = await User.findByIdAndUpdate(
-          providerId,
-          { files: updatedFiles },
-          { new: true, runValidators: true }
-        );
-  
-        res.status(200).json({
-          message: "Files uploaded successfully!",
-          provider: updatedProvider,
-        });
-      } catch (error) {
+      // Assuming multiple files are allowed and we want to save them all
+      const filesData = req.files.map(file => ({
+        filename: file.filename,
+        path: file.path,
+        size: file.size,
+        description: description || " ",
+      }));
+
+      // Check if there are existing files associated with this provider
+      const existingFiles = provider.files || [];
+
+      // Combine the existing files with the new ones
+      const updatedFiles = [...existingFiles, ...filesData];
+
+      // Update the provider's file details
+      const updatedProvider = await User.findByIdAndUpdate(
+        providerId,
+        { files: updatedFiles },
+        { new: true, runValidators: true }
+      );
+
+      res.status(200).json({
+        message: "Files uploaded successfully!",
+        provider: updatedProvider,
+      });
+    } catch (error) {
       res.status(500).json({ message: "Error saving file to the database.", error });
     }
   });
 };
+
+exports.getProviderByUserLocation = async (req, res) => {
+  try {
+    const RADIUS_OF_EARTH = 6371;
+    const radiusInKm = 10;
+    const { latitude, longitude,serviceType } = req.body;
+
+    let aggregation = [];
+
+    aggregation.push({
+      $match:{
+        serviceType:{$in:[serviceType]}
+      }
+    })
+
+    aggregation.push({
+      $addFields: {
+        distance: {
+          $multiply: [
+            RADIUS_OF_EARTH,
+            {
+              $acos: {
+                $add: [
+                  {
+                    $multiply: [
+                        { $sin: { $degreesToRadians: "$address.latitude" } },
+                    { $sin: { $degreesToRadians: latitude } },
+                    ]
+                  },
+                  {
+                    $multiply: [
+                      { $cos: { $degreesToRadians: "$address.latitude" } },
+                      { $cos: { $degreesToRadians: latitude } },
+                      { $cos: { $subtract: [{ $degreesToRadians: "$address.longitude" }, { $degreesToRadians: longitude }] } },
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    })
+    
+    aggregation.push({
+      $match: {
+        distance: { $lte: radiusInKm }
+      }
+    });
+
+    const result =await providerModel.aggregate(aggregation);
+    res.status(200).json({
+      status:200,
+      data:result
+    })
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+      status: 500
+    })
+  }
+}
