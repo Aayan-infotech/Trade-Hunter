@@ -21,13 +21,11 @@ const providerSchema = new mongoose.Schema(
       required: true,
     },
     address: {
-      type: {
-        latitude: { type: Number, required: true },
-        longitude: { type: Number, required: true },
-        address: { type: String, required: true, trim: true },
-        radius: { type: Number, required: true },
-        _id: false,
-      },
+      latitude: { type: Number, required: true },
+      longitude: { type: Number, required: true },
+      addressText: { type: String, required: true, trim: true },
+      radius: { type: Number, required: true },
+      _id: false,
     },
     email: {
       type: String,
@@ -45,11 +43,12 @@ const providerSchema = new mongoose.Schema(
     },
     ABN_Number: {
       type: String,
+      required: true,
     },
     businessType: {
       type: String,
+      required: true,
     },
-
     serviceType: [{ type: String }],
     userType: {
       type: String,

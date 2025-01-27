@@ -5,6 +5,7 @@ const {
   getAddressbyUserId,
   updateAddress,
   deleteAddress,
+  isAddressSelected
 } = require("../controllers/addressController");
 const { verifyUser } = require("../middlewares/auth");
 const router = express.Router();
@@ -16,5 +17,6 @@ router.get("/addresses", getAddresses);
 router.get("/addresses-by-id", verifyUser, getAddressbyUserId);
 router.put("/update-addresses/:id",  updateAddress);
 router.delete("/delete-addresses/:id", deleteAddress);
+router.post("/select-address", isAddressSelected );
 
 module.exports = router;

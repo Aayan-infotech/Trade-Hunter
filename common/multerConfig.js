@@ -33,8 +33,8 @@ const getS3Client = async () => {
     const credentials = await getAwsCredentials();
     return new S3({
       credentials: {
-        accessKeyId: credentials.accessKeyId,
-        secretAccessKey: credentials.secretAccessKey,
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey:  process.env.AWS_SECRET_ACCESS_KEY,
       },
       region: process.env.AWS_REGION,
     });
@@ -47,10 +47,12 @@ const uploadToS3 = async (req, res, next) => {
   const s3 = await getS3Client();
 
   try {
+    console.log(req.file)
     const file = req.file;
 
     const files = Array.isArray(file) ? file : [file];
     const fileLocations = [];
+    console.log(file)
 
     for (const file of files) {
 

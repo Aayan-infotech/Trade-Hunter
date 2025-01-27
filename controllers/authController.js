@@ -3,7 +3,7 @@ const User = require("../models/userModel");
 const generateverificationOTP = require("../utils/VerifyOTP");
 const sendEmail = require("../services/sendMail");
 const jwt = require("jsonwebtoken");
-const apiResponse = require('../utils/responsehandler');
+const apiResponse = require("../utils/responsehandler");
 const Provider = require("../models/providerModel");
 const Address = require("../models/addressModel");
 
@@ -11,12 +11,12 @@ const Address = require("../models/addressModel");
 const signUp = async (req, res) => {
   try {
     const {
-      name,
       businessName,
+      name,
       email,
       phoneNo,
       addressType,
-      address,
+      addressText,
       latitude,
       longitude,
       radius,
@@ -28,14 +28,31 @@ const signUp = async (req, res) => {
       insDate,
     } = req.body;
 
+    console.log(req.body);
     // Validate userType
     if (!["hunter", "provider"].includes(userType)) {
       return res.status(400).json({ message: "Invalid user type" });
     }
 
+    const address = {
+      latitude: parseFloat(latitude),
+      longitude: parseFloat(longitude),
+      addressText: addressText,
+      radius: parseFloat(radius),
+    };
+
     // Validate required fields based on userType
     if (userType === "hunter") {
-      if (!name || !email || !phoneNo || !address || !latitude || !longitude || !radius || !password) {
+      if (
+        !name ||
+        !email ||
+        !phoneNo ||
+        !address ||
+        !latitude ||
+        !longitude ||
+        !radius ||
+        !password
+      ) {
         return res
           .status(400)
           .json({ message: "All hunter fields are required." });
@@ -47,6 +64,7 @@ const signUp = async (req, res) => {
         !email ||
         !phoneNo ||
         !address ||
+        !addressText ||
         !latitude ||
         !longitude ||
         !radius ||
@@ -112,7 +130,6 @@ const signUp = async (req, res) => {
             name,
             email,
             phoneNo,
-            // addressId: newAddress._id, 
             password: hashedPassword,
             userType,
             insBy: req.headers["x-client-type"],
@@ -124,7 +141,6 @@ const signUp = async (req, res) => {
             contactName: name,
             email,
             phoneNo,
-            // addressId: newAddress._id, // Reference the new address
             ABN_Number,
             businessType,
             serviceType,
@@ -133,28 +149,27 @@ const signUp = async (req, res) => {
             insBy: req.headers["x-client-type"],
             insDate,
             images: req.fileLocations?.[0],
+            address,
           });
 
     const verificationOTP = await generateverificationOTP(newUser);
-
     await sendEmail(email, "Account Verification Link", verificationOTP);
     const answer = await newUser.save();
-    console.log("answer", answer);
-    
 
-     // Create the address
-     const newAddress = new Address({
-      userId: answer._id,
-      addressType,
-      address,
-      latitude,
-      longitude,
-      radius,
-      isSelected: 1,
-    });
+    if (userType == "hunter") {
+      // Create the address
+      const newAddress = new Address({
+        userId: answer._id,
+        addressType,
+        address:addressText,
+        latitude,
+        longitude,
+        radius,
+        isSelected: 1,
+      });
 
-    await newAddress.save();
-
+      await newAddress.save();
+    }
 
     return res.status(201).json({
       message: "Verification link is sent on the given email address.",
@@ -175,14 +190,12 @@ const login = async (req, res) => {
     return apiResponse.error(res, "Invalid user type", 400);
   }
   try {
-
     let user;
 
-    if(userType == "hunter"){
-    user = await User.findOne({ email: email, userType: userType });
-    }
-    else{
-    user = await Provider.findOne({ email: email, userType: userType });
+    if (userType == "hunter") {
+      user = await User.findOne({ email: email, userType: userType });
+    } else {
+      user = await Provider.findOne({ email: email, userType: userType });
     }
     if (!user) {
       return apiResponse.error(res, "Invalid credentials", 400);
@@ -227,8 +240,11 @@ const verifyEmail = async (req, res) => {
   // Determine which collection to query based on userType
   if (req.body.userType === "hunter") {
     user = await User.findOne({ email: email, userType: req.body.userType });
-  } else{
-    user = await Provider.findOne({ email: email, userType: req.body.userType });
+  } else {
+    user = await Provider.findOne({
+      email: email,
+      userType: req.body.userType,
+    });
   }
 
   if (!user) {
@@ -285,7 +301,10 @@ const forgotPassword = async (req, res) => {
     );
 
     // Respond with success message
-    return apiResponse.success(res, "OTP sent to your email. Please check your inbox.");
+    return apiResponse.success(
+      res,
+      "OTP sent to your email. Please check your inbox."
+    );
   } catch (err) {
     console.error("Forgot Password Error:", err.message);
     return apiResponse.error(res, "Server error", 500);
@@ -307,7 +326,11 @@ const verifyOtp = async (req, res) => {
     }
 
     if (!user) {
-      return apiResponse.error(res, "User not found, please sign up first", 400);
+      return apiResponse.error(
+        res,
+        "User not found, please sign up first",
+        400
+      );
     }
 
     if (OTP === user.verificationOTP) {
@@ -390,5 +413,5 @@ module.exports = {
   verifyOtp,
   forgotPassword,
   resetPasswordWithOTP,
-  changePassword
+  changePassword,
 };

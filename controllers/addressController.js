@@ -98,10 +98,42 @@ const deleteAddress = async (req, res) => {
   }
 };
 
+const isAddressSelected = async(req, res) => {
+  try {
+    // const userId = req.body.userId;
+    const { addressId, userId } = req.body;
+    const addresses = await Address.find({userId});
+    
+    const updatedAddress = addresses.map((address) => {
+      if (address.id.toString() === addressId ) {
+        address.isSelected = 1;
+      }else{
+        address.isSelected = 0;
+      }
+      return address;
+    })
+    res.status(200).json({
+      success : true,
+      status: 200,
+      message: "address selected successfully",
+      data : updatedAddress
+    });
+  }
+  catch(error){
+    return res.status(500).json({
+      success:false,
+      status: 500,
+      message: "Internal Server Error",
+      error : error.message
+    })
+  }
+};
+
 module.exports = {
   createAddress,
   getAddresses,
   getAddressbyUserId,
   updateAddress,
   deleteAddress,
+  isAddressSelected,
 };

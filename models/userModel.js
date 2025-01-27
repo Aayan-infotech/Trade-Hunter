@@ -31,12 +31,12 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    addresses: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Address", 
-      },
-    ],
+    // addresses: [
+    //   {
+    //     type: mongoose.Schema.Types.ObjectId,
+    //     ref: "Address", 
+    //   },
+    // ],
     phoneNo: {
       type: String,
       validate: {
