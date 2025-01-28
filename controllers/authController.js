@@ -63,7 +63,7 @@ const signUp = async (req, res) => {
         !email ||
         !phoneNo ||
         !address ||
-        !addressText ||
+       // !addressText ||
         !latitude ||
         !longitude ||
         !radius ||
