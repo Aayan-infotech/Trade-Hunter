@@ -197,7 +197,8 @@ const login = async (req, res) => {
     if (!user) {
       return apiResponse.error(res, "Invalid credentials or Sub", 400);
     }
-    if (user.subscriptionStatus !== 1) {
+    
+    if (userType === "provider" && user.subscriptionStatus !== 1) {
       return res.status(403).json({ message: "You have not subscribed to the service" });
     }
 
