@@ -31,12 +31,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    // addresses: [
-    //   {
-    //     type: mongoose.Schema.Types.ObjectId,
-    //     ref: "Address", 
-    //   },
-    // ],
     phoneNo: {
       type: String,
       validate: {
@@ -80,6 +74,9 @@ const userSchema = new mongoose.Schema(
     termsAndCondition: {
       type: Boolean,
       default: false,
+    },
+    refreshToken:{
+      type: String,
     },
     files: [fileSchema],
   },

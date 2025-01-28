@@ -18,23 +18,23 @@ const JobPostSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  serviceType: {
+  businessType: {
     type: String,
     required: true,
-    enum: ['Cleaning', 'Plumbing', 'Electrician', 'Gardening', 'Others']
+    // enum: ['Cleaning', 'Plumbing', 'Electrician', 'Gardening', 'Others']
   },
-  service: {
+  services: {
     type: String,
     required: true,
-    enum: ['Cleaning', 'Plumbing', 'Electrician', 'Gardening', 'Others']
+    // enum: ['Cleaning', 'Plumbing', 'Electrician', 'Gardening', 'Others']
   },
   timeframe: {
     from: {
-      type: Date,
+      type: String,
       required: true
     },
     to: {
-      type: Date,
+      type: String,
       required: true
     }
   },
@@ -50,8 +50,8 @@ const JobPostSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   jobStatus: {
     type: String,
-    enum: ['pending', 'accepted', 'completed' ],
-    default: 'pending' 
+    enum: ['Pending', 'Accepted', 'Completed' ],
+    default: 'Pending' 
   }
 }, { timestamps: true });
 

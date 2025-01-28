@@ -25,13 +25,12 @@ const signUp = async (req, res) => {
       businessType,
       serviceType,
       userType,
-      insDate,
     } = req.body;
 
     console.log(req.body);
     // Validate userType
     if (!["hunter", "provider"].includes(userType)) {
-      return res.status(400).json({ message: "Invalid user type" });
+      return res.status(400).json({ message: "Invalid user" });
     }
 
     const address = {
@@ -133,7 +132,6 @@ const signUp = async (req, res) => {
             password: hashedPassword,
             userType,
             insBy: req.headers["x-client-type"],
-            insDate,
             images: req.fileLocations?.[0],
           })
         : new Provider({
@@ -147,7 +145,6 @@ const signUp = async (req, res) => {
             password: hashedPassword,
             userType,
             insBy: req.headers["x-client-type"],
-            insDate,
             images: req.fileLocations?.[0],
             address,
           });
@@ -161,7 +158,7 @@ const signUp = async (req, res) => {
       const newAddress = new Address({
         userId: answer._id,
         addressType,
-        address:addressText,
+        address: addressText,
         latitude,
         longitude,
         radius,
@@ -198,7 +195,10 @@ const login = async (req, res) => {
       user = await Provider.findOne({ email: email, userType: userType });
     }
     if (!user) {
-      return apiResponse.error(res, "Invalid credentials", 400);
+      return apiResponse.error(res, "Invalid credentials or Sub", 400);
+    }
+    if (user.subscriptionStatus !== 1) {
+      return res.status(403).json({ message: "You have not subscribed to the service" });
     }
 
     if (!user.emailVerified) {
@@ -222,11 +222,29 @@ const login = async (req, res) => {
       { expiresIn: "1h" }
     );
 
+    // const token = jwt.sign(
+    //   { userid: user._id, email: user.email },
+    //   process.env.JWT_SECRET,
+    //   { expiresIn: "30s" }
+    // );
+
+    // const refreshToken = jwt.sign(
+    //   { userid: user._id, email: user.email },
+    //   process.env.REFRESH_TOKEN_SECRET,
+    //   { expiresIn: "1m" }
+    // );
+
+    // user.refreshToken = refreshToken;
+    // await user.save();
+
     apiResponse.success(res, "Login successful", {
       token: token,
+      // accessToken: accessToken,
+      // refreshToken: refreshToken,
       user: user,
     });
   } catch (err) {
+    console.log(err.message)
     apiResponse.error(res, "Server error", 500);
   }
 };
