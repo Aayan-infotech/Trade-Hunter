@@ -8,8 +8,8 @@ const createJobPost = async (req, res) => {
       title,
       location: locationRaw,
       estimatedBudget,
-      serviceType,
-      service,
+      businessType,
+      services,
       timeframe: timeframeRaw,
       requirements,
     } = req.body;
@@ -26,9 +26,10 @@ const createJobPost = async (req, res) => {
       jobradius: parseFloat(locationRaw?.jobradius),
     };
 
-    const timeframe = {
-      from: new Date(timeframeRaw?.from),
-      to: new Date(timeframeRaw?.to),
+    // Convert to  timestamps
+    const convertedTimeframe = {
+      from: Math.floor(new Date(timeframeRaw?.from).getTime() / 1000), 
+      to: Math.floor(new Date(timeframeRaw?.to).getTime() / 1000),
     };
 
     // Validate required fields
@@ -39,10 +40,10 @@ const createJobPost = async (req, res) => {
       !location.jobaddress ||
       !location.jobradius ||
       !estimatedBudget ||
-      !serviceType ||
-      !service ||
-      !timeframe.from ||
-      !timeframe.to ||
+      !businessType ||
+      !services ||
+      !convertedTimeframe.from ||
+      !convertedTimeframe.to ||
       !requirements
     ) {
       return res.status(400).json({
@@ -51,24 +52,24 @@ const createJobPost = async (req, res) => {
     }
 
     // Validate serviceType and service
-    const validServices = [
-      "Cleaning",
-      "Plumbing",
-      "Electrician",
-      "Gardening",
-      "Others",
-    ];
-    if (
-      !validServices.includes(serviceType) ||
-      !validServices.includes(service)
-    ) {
-      return res
-        .status(400)
-        .json({ error: "Invalid serviceType or service value." });
-    }
+    // const validServices = [
+    //   "Cleaning",
+    //   "Plumbing",
+    //   "Electrician",
+    //   "Gardening",
+    //   "Others",
+    // ];
+    // if (
+    //   !validServices.includes(businessType) ||
+    //   !validServices.includes(services)
+    // ) {
+    //   return res
+    //     .status(400)
+    //     .json({ error: "Invalid businessType or services value." });
+    // }
 
     // Check if timeframe is valid
-    if (new Date(timeframe.from) > new Date(timeframe.to)) {
+    if (new Date(convertedTimeframe.from) > new Date(convertedTimeframe.to)) {
       return res.status(400).json({
         error: "Invalid timeframe. 'From' must be earlier than 'To'.",
       });
@@ -79,15 +80,14 @@ const createJobPost = async (req, res) => {
       title,
       location,
       estimatedBudget,
-      serviceType,
-      service,
-      timeframe,
+      businessType,
+      services,
+      timeframe: convertedTimeframe,
       documents: req.fileLocations,
       requirements,
       user: userId,
       obStatus: "pending",
     });
-    console.log("abc", jobPost);
 
     // Save the job post in the database
     await jobPost.save();

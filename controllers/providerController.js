@@ -96,13 +96,75 @@ exports.getProviderByUserLocation = async (req, res) => {
   try {
     const RADIUS_OF_EARTH = 6371;
     const radiusInKm = 10;
-    const { latitude, longitude,serviceType } = req.body;
+    const { latitude, longitude, businessType } = req.body;
 
     let aggregation = [];
 
     aggregation.push({
       $match:{
-        serviceType:{$in:[serviceType]}
+        businessType:{$in:[businessType]}
+      }
+    })
+
+    aggregation.push({
+      $addFields: {
+        distance: {
+          $multiply: [
+            RADIUS_OF_EARTH,
+            {
+              $acos: {
+                $add: [
+                  {
+                    $multiply: [
+                        { $sin: { $degreesToRadians: "$address.latitude" } },
+                    { $sin: { $degreesToRadians: latitude } },
+                    ]
+                  },
+                  {
+                    $multiply: [
+                      { $cos: { $degreesToRadians: "$address.latitude" } },
+                      { $cos: { $degreesToRadians: latitude } },
+                      { $cos: { $subtract: [{ $degreesToRadians: "$address.longitude" }, { $degreesToRadians: longitude }] } },
+                    ]
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    })
+    
+    aggregation.push({
+      $match: {
+        distance: { $lte: radiusInKm }
+      }
+    });
+
+    const result =await providerModel.aggregate(aggregation);
+    res.status(200).json({
+      status:200,
+      data:result
+    })
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+      status: 500
+    })
+  }
+}
+
+exports.getProviderByLocation = async (req, res) => {
+  try {
+    const RADIUS_OF_EARTH = 6371;
+    const radiusInKm = 10;
+    const { latitude, longitude } = req.body;
+
+    let aggregation = [];
+
+    aggregation.push({
+      $match:{
+        businessType:{$in:[businessType]}
       }
     })
 

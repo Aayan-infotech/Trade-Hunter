@@ -49,7 +49,7 @@ const providerSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    serviceType: [{ type: String }],
+    businessType: [{ type: String }],
     userType: {
       type: String,
       required: true,
@@ -102,6 +102,9 @@ const providerSchema = new mongoose.Schema(
     termsAndCondition: {
       type: Boolean,
       default: false,
+    },
+    refreshToken:{
+      type: String,
     },
     files: [fileSchema],
   },

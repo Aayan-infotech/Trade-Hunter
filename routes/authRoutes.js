@@ -12,6 +12,8 @@ const router = express.Router();
 const multer = require("multer");
 const upload = multer();
 const { uploadToS3 } = require("../common/multerConfig");
+const { refreshToken } = require("../middlewares/auth");
+
 
 router.post("/signup", 
   upload.single("images"),
@@ -30,5 +32,6 @@ router.post("/verify-otp", verifyOtp);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password-with-otp", resetPasswordWithOTP);
 router.post("/changePassword", changePassword);
+router.post("/refreshtoken", refreshToken);
 
 module.exports = router;
