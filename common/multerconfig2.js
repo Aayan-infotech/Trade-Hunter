@@ -43,7 +43,7 @@ const getS3Client = async () => {
   }
 };
 
-const uploadToS3 = async (req, res, next) => {
+const uploadToS3files = async (req, res, next) => {
   const s3 = await getS3Client();
 
   try {
@@ -51,7 +51,7 @@ const uploadToS3 = async (req, res, next) => {
 
     const files = Array.isArray(file) ? file : [file];
     const fileLocations = [];
-    console.log(file)
+    console.log(files)
 
     for (const file of files) {
 
@@ -74,4 +74,4 @@ const uploadToS3 = async (req, res, next) => {
   }
 };
 
-module.exports = { uploadToS3 };
+module.exports = { uploadToS3files };

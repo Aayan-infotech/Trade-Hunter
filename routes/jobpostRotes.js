@@ -8,7 +8,7 @@ const {
 } = require("../controllers/jobpostController");
 const multer = require("multer");
 const upload = multer();
-const { uploadToS3 } = require("../common/multerConfig");
+const { uploadToS3files } = require("../common/multerconfig2");
 const { verifyUser } = require("../middlewares/auth");
 const router = express.Router();
 
@@ -22,7 +22,7 @@ router.post(
     }
     next();
   },
-  uploadToS3,
+  uploadToS3files,
   createJobPost
 );
 router.get("/", getAllJobPosts);
