@@ -28,7 +28,7 @@ const createJobPost = async (req, res) => {
 
     // Convert to  timestamps
     const convertedTimeframe = {
-      from: Math.floor(new Date(timeframeRaw?.from).getTime() / 1000), 
+      from: Math.floor(new Date(timeframeRaw?.from).getTime() / 1000),
       to: Math.floor(new Date(timeframeRaw?.to).getTime() / 1000),
     };
 
@@ -47,7 +47,7 @@ const createJobPost = async (req, res) => {
       !requirements
     ) {
       return res.status(400).json({
-        error: "All fields are required, including location and timeframe.",
+        error: "All fields are required",
       });
     }
 
@@ -86,7 +86,7 @@ const createJobPost = async (req, res) => {
       documents: req.fileLocations,
       requirements,
       user: userId,
-      obStatus: "pending",
+      JobStatus: "pending",
     });
 
     // Save the job post in the database
