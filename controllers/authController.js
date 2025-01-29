@@ -198,9 +198,9 @@ const login = async (req, res) => {
       return apiResponse.error(res, "Invalid credentials or Sub", 400);
     }
     
-    if (userType === "provider" && user.subscriptionStatus !== 1) {
-      return res.status(200).json({ message: "You have not subscribed to the service" });
-    }
+    // if (userType === "provider" && user.subscriptionStatus !== 1) {
+    //   return res.status(200).json({ message: "You have not subscribed to the service" });
+    // }
 
     if (!user.emailVerified) {
       const verificationOTP = await generateverificationOTP(user);
