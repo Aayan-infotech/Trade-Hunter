@@ -13,45 +13,45 @@ const verifyUser = (req, res, next) => {
 };
 
 const authenticateUser = (req, res, next) => {
-    const authHeader = req.headers.authorization;
+  const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return res.status(401).json({
-            status: 401,
-            message: ["Unauthorized access."],
-        });
-    }
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({
+      status: 401,
+      message: ["Unauthorized access."],
+    });
+  }
 
-    const token = authHeader.split(" ")[1];
+  const token = authHeader.split(" ")[1];
 
-    try {
-        const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+  try {
+    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
-        req.user = {
-            id: decoded._id,
-            email: decoded.email,
-        };
+    req.user = {
+      id: decoded._id,
+      email: decoded.email,
+    };
 
-        next();
-    } catch (error) {
-        return res.status(401).json({
-            status: 401,
-            message: ["expired token. Please login again."],
-        });
-    }
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      status: 401,
+      message: ["expired token. Please login again."],
+    });
+  }
 };
 
 const refreshToken = async (req, res) => {
   try {
-    const { token, userType } = req.body;
-    const decoded = jwt.verify(token, process.env.REFRESH_TOKEN_SECRET);
+    const { refreshToken, userType } = req.body;
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
 
     let user;
-    if(userType === "hunter"){
+    if (userType === "hunter") {
       user = await User.findOne({ _id: decoded.userid, refreshToken });
     }
 
-    if(userType === "provider"){
+    if (userType === "provider") {
       user = await Provider.findOne({ _id: decoded.userid, refreshToken });
     }
 
@@ -76,7 +76,7 @@ const refreshToken = async (req, res) => {
   } catch (error) {
     return res.status(403).json({
       status: 403,
-      message: ["Expired refresh token. Please login again."],
+      message: error.message,
     });
   }
 };
