@@ -1,8 +1,8 @@
 const File = require("../models/userModel");
 const multer = require("multer");
 const path = require("path");
-const User = require("../models/userModel")
-const providerModel = require('../models/providerModel');
+const User = require("../models/userModel");
+const providerModel = require("../models/providerModel");
 
 // Configure multer storage
 const storage = multer.diskStorage({
@@ -10,7 +10,10 @@ const storage = multer.diskStorage({
     cb(null, "uploads/");
   },
   filename: function (req, file, cb) {
-    cb(null, file.fieldname + "-" + Date.now() + path.extname(file.originalname));
+    cb(
+      null,
+      file.fieldname + "-" + Date.now() + path.extname(file.originalname)
+    );
   },
 });
 
@@ -21,7 +24,9 @@ const upload = multer({
   fileFilter: function (req, file, cb) {
     const filetypes = /jpeg|jpg|png|gif|webp|jfif|pdf/;
     const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const extname = filetypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
 
     if (mimetype && extname) {
       return cb(null, true);
@@ -56,13 +61,15 @@ exports.uploadFile = (req, res) => {
 
     // Handling multiple file uploads
     if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ message: "Please upload at least one file." });
+      return res
+        .status(400)
+        .json({ message: "Please upload at least one file." });
     }
     // .......................
 
     try {
       // Assuming multiple files are allowed and we want to save them all
-      const filesData = req.files.map(file => ({
+      const filesData = req.files.map((file) => ({
         filename: file.filename,
         path: file.path,
         size: file.size,
@@ -87,7 +94,9 @@ exports.uploadFile = (req, res) => {
         provider: updatedProvider,
       });
     } catch (error) {
-      res.status(500).json({ message: "Error saving file to the database.", error });
+      res
+        .status(500)
+        .json({ message: "Error saving file to the database.", error });
     }
   });
 };
@@ -95,16 +104,15 @@ exports.uploadFile = (req, res) => {
 exports.getProviderByUserLocation = async (req, res) => {
   try {
     const RADIUS_OF_EARTH = 6371;
-    const radiusInKm = 10;
-    const { latitude, longitude, businessType } = req.body;
+    const { latitude, longitude, businessType, redius } = req.body;
 
     let aggregation = [];
 
     aggregation.push({
-      $match:{
-        businessType:{$in:[businessType]}
-      }
-    })
+      $match: {
+        businessType: { $in: [businessType] },
+      },
+    });
 
     aggregation.push({
       $addFields: {
@@ -116,43 +124,50 @@ exports.getProviderByUserLocation = async (req, res) => {
                 $add: [
                   {
                     $multiply: [
-                        { $sin: { $degreesToRadians: "$address.latitude" } },
-                    { $sin: { $degreesToRadians: latitude } },
-                    ]
+                      { $sin: { $degreesToRadians: "$address.latitude" } },
+                      { $sin: { $degreesToRadians: latitude } },
+                    ],
                   },
                   {
                     $multiply: [
                       { $cos: { $degreesToRadians: "$address.latitude" } },
                       { $cos: { $degreesToRadians: latitude } },
-                      { $cos: { $subtract: [{ $degreesToRadians: "$address.longitude" }, { $degreesToRadians: longitude }] } },
-                    ]
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      }
-    })
-    
-    aggregation.push({
-      $match: {
-        distance: { $lte: radiusInKm }
-      }
+                      {
+                        $cos: {
+                          $subtract: [
+                            { $degreesToRadians: "$address.longitude" },
+                            { $degreesToRadians: longitude },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
     });
 
-    const result =await providerModel.aggregate(aggregation);
+    aggregation.push({
+      $match: {
+        distance: { $lte: redius },
+      },
+    });
+
+    const result = await providerModel.aggregate(aggregation);
     res.status(200).json({
-      status:200,
-      data:result
-    })
+      status: 200,
+      data: result,
+    });
   } catch (error) {
     res.status(500).json({
       message: error.message,
-      status: 500
-    })
+      status: 500,
+    });
   }
-}
+};
 
 exports.getProviderByLocation = async (req, res) => {
   try {
@@ -163,10 +178,10 @@ exports.getProviderByLocation = async (req, res) => {
     let aggregation = [];
 
     aggregation.push({
-      $match:{
-        businessType:{$in:[businessType]}
-      }
-    })
+      $match: {
+        businessType: { $in: [businessType] },
+      },
+    });
 
     aggregation.push({
       $addFields: {
@@ -178,40 +193,47 @@ exports.getProviderByLocation = async (req, res) => {
                 $add: [
                   {
                     $multiply: [
-                        { $sin: { $degreesToRadians: "$address.latitude" } },
-                    { $sin: { $degreesToRadians: latitude } },
-                    ]
+                      { $sin: { $degreesToRadians: "$address.latitude" } },
+                      { $sin: { $degreesToRadians: latitude } },
+                    ],
                   },
                   {
                     $multiply: [
                       { $cos: { $degreesToRadians: "$address.latitude" } },
                       { $cos: { $degreesToRadians: latitude } },
-                      { $cos: { $subtract: [{ $degreesToRadians: "$address.longitude" }, { $degreesToRadians: longitude }] } },
-                    ]
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      }
-    })
-    
-    aggregation.push({
-      $match: {
-        distance: { $lte: radiusInKm }
-      }
+                      {
+                        $cos: {
+                          $subtract: [
+                            { $degreesToRadians: "$address.longitude" },
+                            { $degreesToRadians: longitude },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
     });
 
-    const result =await providerModel.aggregate(aggregation);
+    aggregation.push({
+      $match: {
+        distance: { $lte: radiusInKm },
+      },
+    });
+
+    const result = await providerModel.aggregate(aggregation);
     res.status(200).json({
-      status:200,
-      data:result
-    })
+      status: 200,
+      data: result,
+    });
   } catch (error) {
     res.status(500).json({
       message: error.message,
-      status: 500
-    })
+      status: 500,
+    });
   }
-}
+};

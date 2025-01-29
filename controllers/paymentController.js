@@ -29,10 +29,7 @@ const createPayment = async (req, res) => {
       !SubscriptionId ||
       !SubscriptionAmount
     ) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields are required.",
-      });
+      return apiResponse.error(res, "All fields are required", 400);
     }
 
     const provider =  await Provider.findById(userId);
@@ -52,18 +49,18 @@ const createPayment = async (req, res) => {
     provider.subscriptionStatus = 1;
     await provider.save();
     await newPayment.save();
-    res.status(201).json(newPayment);
+    return apiResponse.success(res, "Payment created successfully", newPayment);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return apiResponse.error(res, "Payment creation failed", 500);
   }
 };
 
 const getAllPayment = async (req, res) => {
   try {
     const payment = await Payment.find();
-    res.status(200).json(payment);
+    return apiResponse.success(res, "All payments fetched successfully", payments);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return apiResponse.error(res, "Failed to fetch payments", 500);
   }
 };
 
@@ -71,14 +68,11 @@ const paymentByProviderId = async (req, res) => {
   try {
     const Payment = await Payment.findById(req.params.id);
     if (!Payment) {
-      return apiResponse.error(
-        res,
-        "Payment details for this provider is not found!"
-      );
+      return apiResponse.error(res, "Payment details for this provider not found", 404);
     }
-    return apiResponse.success(res, "Payment fetched!", Payment);
+    return apiResponse.success(res, "Payment details fetched successfully", payment);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return apiResponse.error(res, "Failed to fetch payment details", 500);
   }
 };
 

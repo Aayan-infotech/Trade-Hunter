@@ -7,11 +7,8 @@ const addSubscription = async (req, res) => {
     const { amount, title, description, type } = req.body;
 
     // Validate input
-    if (!amount || !title || !description || type) {
-      return res.status(400).json({
-        success: false,
-        message: "All fields are required.",
-      });
+    if (!amount || !title || !description || !type) {
+      return apiResponse.error(res, "All fields are required", 400);
     }
 
     //create subscription
@@ -22,18 +19,18 @@ const addSubscription = async (req, res) => {
       type,
     });
     await newSubscription.save();
-    res.status(201).json(newSubscription);
+    return apiResponse.success(res, "Subscription added successfully", newSubscription);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return apiResponse.error(res, "Subscription not added", 500);
   }
 };
 
 const getAllSubscription = async (req, res) => {
   try {
     const subscriptions = await Subscription.find();
-    res.status(200).json(subscriptions);
+    return apiResponse.success(res, "All subscription fetched", subscriptions);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return apiResponse.error(res, "Subscription not fetched", 500);
   }
 };
 
@@ -42,11 +39,12 @@ const getSubscriptionById = async (req, res) => {
     const subscription = await Subscription.findById(req.params.id);
     console.log(req.params.id);
     if (!subscription) {
-      return res.status(404).json({ message: "Subscrption not found!" });
+      return apiResponse.error(res, "Subscription not fetched", subscription);
     }
-    res.status(200).json(subscription);
+    return apiResponse.success(res, "Subscription fetched by Id", subscription);
   } catch (error) {
     res.status(500).json({ message: error.message });
+    return apiResponse.error(res, "Subscription fetched error",500);
   }
 };
 
