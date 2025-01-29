@@ -199,7 +199,7 @@ const login = async (req, res) => {
     }
     
     if (userType === "provider" && user.subscriptionStatus !== 1) {
-      return res.status(403).json({ message: "You have not subscribed to the service" });
+      return res.status(200).json({ message: "You have not subscribed to the service" });
     }
 
     if (!user.emailVerified) {
@@ -208,7 +208,7 @@ const login = async (req, res) => {
       return apiResponse.error(
         res,
         "You are not verified, Please verify your email.",
-        401
+        200
       );
     }
 

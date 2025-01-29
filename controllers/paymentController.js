@@ -58,7 +58,7 @@ const createPayment = async (req, res) => {
 const getAllPayment = async (req, res) => {
   try {
     const payment = await Payment.find();
-    return apiResponse.success(res, "All payments fetched successfully", payments);
+    return apiResponse.success(res, "All payments fetched successfully", payment);
   } catch (error) {
     return apiResponse.error(res, "Failed to fetch payments", 500);
   }
@@ -66,11 +66,11 @@ const getAllPayment = async (req, res) => {
 
 const paymentByProviderId = async (req, res) => {
   try {
-    const Payment = await Payment.findById(req.params.id);
+    const Payment = await Provider.findById(req.params.id);
     if (!Payment) {
       return apiResponse.error(res, "Payment details for this provider not found", 404);
     }
-    return apiResponse.success(res, "Payment details fetched successfully", payment);
+    return apiResponse.success(res, "Payment details fetched successfully", Payment);
   } catch (error) {
     return apiResponse.error(res, "Failed to fetch payment details", 500);
   }

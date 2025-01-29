@@ -5,6 +5,6 @@ const fileController = require('../controllers/providerController');
 // Route to handle file upload
 router.put('/upload/:providerId', fileController.uploadFile);
 router.post('/getProviderLocation',fileController.getProviderByUserLocation);
-router.post('/getallProviderLocation',fileController.getProviderByLocation);
+router.post('/getServicesForGuestLocation',fileController.getServicesForGuestLocation); // for guest mode
 
 module.exports = router;

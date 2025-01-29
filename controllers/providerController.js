@@ -101,10 +101,11 @@ exports.uploadFile = (req, res) => {
   });
 };
 
+
 exports.getProviderByUserLocation = async (req, res) => {
   try {
     const RADIUS_OF_EARTH = 6371;
-    const { latitude, longitude, businessType, redius } = req.body;
+    const { latitude, longitude, businessType, radius } = req.body;
 
     let aggregation = [];
 
@@ -152,7 +153,7 @@ exports.getProviderByUserLocation = async (req, res) => {
 
     aggregation.push({
       $match: {
-        distance: { $lte: redius },
+        distance: { $lte: radius },
       },
     });
 
@@ -169,19 +170,14 @@ exports.getProviderByUserLocation = async (req, res) => {
   }
 };
 
-exports.getProviderByLocation = async (req, res) => {
+
+// for guest user
+exports.getServicesForGuestLocation = async (req, res) => {
   try {
     const RADIUS_OF_EARTH = 6371;
-    const radiusInKm = 10;
-    const { latitude, longitude } = req.body;
+    const { latitude, longitude, radius } = req.body;
 
     let aggregation = [];
-
-    aggregation.push({
-      $match: {
-        businessType: { $in: [businessType] },
-      },
-    });
 
     aggregation.push({
       $addFields: {
@@ -221,7 +217,7 @@ exports.getProviderByLocation = async (req, res) => {
 
     aggregation.push({
       $match: {
-        distance: { $lte: radiusInKm },
+        distance: { $lte: radius },
       },
     });
 
