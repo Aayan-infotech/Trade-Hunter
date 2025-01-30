@@ -194,18 +194,18 @@ exports.getJobByLocation = async (req, res) => {
                 $add: [
                   {
                     $multiply: [
-                      { $sin: { $degreesToRadians: "$location.latitude" } },
+                      { $sin: { $degreesToRadians: "$location.joblatitude" } },
                       { $sin: { $degreesToRadians: latitude } },
                     ],
                   },
                   {
                     $multiply: [
-                      { $cos: { $degreesToRadians: "$location.latitude" } },
+                      { $cos: { $degreesToRadians: "$location.joblatitude" } },
                       { $cos: { $degreesToRadians: latitude } },
                       {
                         $cos: {
                           $subtract: [
-                            { $degreesToRadians: "$location.longitude" },
+                            { $degreesToRadians: "$location.joblongitude" },
                             { $degreesToRadians: longitude },
                           ],
                         },
