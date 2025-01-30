@@ -180,9 +180,15 @@ exports.getProviderByUserLocation = async (req, res) => {
 exports.getJobByLocation = async (req, res) => {
   try {
     const RADIUS_OF_EARTH = 6371;
-    const { latitude, longitude, radius, offset, limit } = req.body;
+    const { latitude, longitude, radius, businessType, offset, limit } = req.body;
 
     let aggregation = [];
+
+    if (businessType) {
+      aggregation.push({
+        $match: { businessType: businessType },
+      });
+    }
 
     aggregation.push({
       $addFields: {
