@@ -104,7 +104,7 @@ exports.uploadFile = (req, res) => {
 exports.getProviderByUserLocation = async (req, res) => {
   try {
     const RADIUS_OF_EARTH = 6371;
-    const { latitude, longitude, radius,offset, limit } = req.body;
+    const { latitude, longitude, radius, offset, limit } = req.body;
 
     let aggregation = [];
 
@@ -152,24 +152,95 @@ exports.getProviderByUserLocation = async (req, res) => {
 
     aggregation.push({
       $facet: {
-        totalData: [
-          { $skip: offset },
-          { $limit: limit }
-        ],
-        total: [
-          { $count: "total" }
-        ]
-      }
+        totalData: [{ $skip: offset }, { $limit: limit }],
+        total: [{ $count: "total" }],
+      },
     });
-    
+
     aggregation.push({
       $project: {
         totalData: 1,
-        total: { $arrayElemAt: ["$total.total", 0] }
-      }
+        total: { $arrayElemAt: ["$total.total", 0] },
+      },
     });
 
     const result = await providerModel.aggregate(aggregation);
+    res.status(200).json({
+      status: 200,
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+exports.getJobByLocation = async (req, res) => {
+  try {
+    const RADIUS_OF_EARTH = 6371;
+    const { latitude, longitude, radius, offset, limit } = req.body;
+
+    let aggregation = [];
+
+    aggregation.push({
+      $addFields: {
+        distance: {
+          $multiply: [
+            RADIUS_OF_EARTH,
+            {
+              $acos: {
+                $add: [
+                  {
+                    $multiply: [
+                      { $sin: { $degreesToRadians: "$location.latitude" } },
+                      { $sin: { $degreesToRadians: latitude } },
+                    ],
+                  },
+                  {
+                    $multiply: [
+                      { $cos: { $degreesToRadians: "$location.latitude" } },
+                      { $cos: { $degreesToRadians: latitude } },
+                      {
+                        $cos: {
+                          $subtract: [
+                            { $degreesToRadians: "$location.longitude" },
+                            { $degreesToRadians: longitude },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    aggregation.push({
+      $match: {
+        distance: { $lte: radius },
+      },
+    });
+
+    aggregation.push({
+      $facet: {
+        totalData: [{ $skip: offset }, { $limit: limit }],
+        total: [{ $count: "total" }],
+      },
+    });
+
+    aggregation.push({
+      $project: {
+        totalData: 1,
+        total: { $arrayElemAt: ["$total.total", 0] },
+      },
+    });
+
+    const result = await jobpostModel.aggregate(aggregation);
     res.status(200).json({
       status: 200,
       data: result,
@@ -232,7 +303,7 @@ exports.getServicesForGuestLocation = async (req, res) => {
       },
     });
 
-    const result = await providerModel.aggregate(aggregation);
+    const result = await jobpostModel.aggregate(aggregation);
     res.status(200).json({
       status: 200,
       data: result,
@@ -244,7 +315,6 @@ exports.getServicesForGuestLocation = async (req, res) => {
     });
   }
 };
-
 
 // for guest job post
 exports.getServicesForGuestLocation2 = async (req, res) => {
