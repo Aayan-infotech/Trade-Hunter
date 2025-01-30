@@ -63,7 +63,7 @@ const signUp = async (req, res) => {
         !email ||
         !phoneNo ||
         !address ||
-       // !addressText ||
+        // !addressText ||
         !latitude ||
         !longitude ||
         !radius ||
@@ -197,10 +197,12 @@ const login = async (req, res) => {
     if (!user) {
       return apiResponse.error(res, "Invalid credentials or Sub", 400);
     }
-    
-    // if (userType === "provider" && user.subscriptionStatus !== 1) {
-    //   return res.status(200).json({ message: "You have not subscribed to the service" });
-    // }
+
+    if (userType === "provider" && user.subscriptionStatus !== 1) {
+      return res
+        .status(200)
+        .json({ message: "You have not subscribed to the service" });
+    }
 
     if (!user.emailVerified) {
       const verificationOTP = await generateverificationOTP(user);
@@ -220,7 +222,7 @@ const login = async (req, res) => {
     const token = jwt.sign(
       { userId: user._id, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "1m" }
     );
 
     // const token = jwt.sign(
@@ -229,14 +231,14 @@ const login = async (req, res) => {
     //   { expiresIn: "30s" }
     // );
 
-    // const refreshToken = jwt.sign(
-    //   { userid: user._id, email: user.email },
-    //   process.env.REFRESH_TOKEN_SECRET,
-    //   { expiresIn: "1m" }
-    // );
+    const refreshToken = jwt.sign(
+      { userid: user._id, email: user.email },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: "1d" }
+    );
 
-    // user.refreshToken = refreshToken;
-    // await user.save();
+    user.refreshToken = refreshToken;
+    await user.save();
 
     apiResponse.success(res, "Login successful", {
       token: token,
@@ -245,7 +247,7 @@ const login = async (req, res) => {
       user: user,
     });
   } catch (err) {
-    console.log(err.message)
+    console.log(err.message);
     apiResponse.error(res, "Server error", 500);
   }
 };
