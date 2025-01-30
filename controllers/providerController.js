@@ -105,15 +105,9 @@ exports.uploadFile = (req, res) => {
 exports.getProviderByUserLocation = async (req, res) => {
   try {
     const RADIUS_OF_EARTH = 6371;
-    const { latitude, longitude, businessType, radius } = req.body;
+    const { latitude, longitude, radius,offset, limit } = req.body;
 
     let aggregation = [];
-
-    aggregation.push({
-      $match: {
-        businessType: { $in: [businessType] },
-      },
-    });
 
     aggregation.push({
       $addFields: {
@@ -155,6 +149,25 @@ exports.getProviderByUserLocation = async (req, res) => {
       $match: {
         distance: { $lte: radius },
       },
+    });
+
+    aggregation.push({
+      $facet: {
+        totalData: [
+          { $skip: offset },
+          { $limit: limit }
+        ],
+        total: [
+          { $count: "total" }
+        ]
+      }
+    });
+    
+    aggregation.push({
+      $project: {
+        totalData: 1,
+        total: { $arrayElemAt: ["$total.total", 0] }
+      }
     });
 
     const result = await providerModel.aggregate(aggregation);
