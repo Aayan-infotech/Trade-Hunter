@@ -7,7 +7,6 @@ router.put('/upload/:providerId', fileController.uploadFile);
 router.post('/getProviderLocation',fileController.getProviderByUserLocation);
 router.post('/getServicesForGuestLocation',fileController.getServicesForGuestLocation); // for guest mode
 router.post('/getJobByLocation',fileController.getJobByLocation); 
-
 router.post('/getServicesForGuestLocation2',fileController.getServicesForGuestLocation2); 
 
 module.exports = router;

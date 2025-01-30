@@ -303,7 +303,7 @@ exports.getServicesForGuestLocation = async (req, res) => {
       },
     });
 
-    const result = await jobpostModel.aggregate(aggregation);
+    const result = await providerModel.aggregate(aggregation);
     res.status(200).json({
       status: 200,
       data: result,
