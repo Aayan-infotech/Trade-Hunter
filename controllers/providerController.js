@@ -83,7 +83,6 @@ exports.uploadFile = (req, res) => {
       // Combine the existing files with the new ones
       const updatedFiles = [...existingFiles, ...filesData];
 
-      // Update the provider's file details
       const updatedProvider = await User.findByIdAndUpdate(
         providerId,
         { files: updatedFiles },
