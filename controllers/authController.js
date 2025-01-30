@@ -222,19 +222,13 @@ const login = async (req, res) => {
     const token = jwt.sign(
       { userId: user._id, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: "1m" }
+      { expiresIn: "1h" }
     );
-
-    // const token = jwt.sign(
-    //   { userid: user._id, email: user.email },
-    //   process.env.JWT_SECRET,
-    //   { expiresIn: "30s" }
-    // );
 
     const refreshToken = jwt.sign(
       { userid: user._id, email: user.email },
       process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: "1d" }
+      { expiresIn: "7d" }
     );
 
     user.refreshToken = refreshToken;
@@ -242,8 +236,6 @@ const login = async (req, res) => {
 
     apiResponse.success(res, "Login successful", {
       token: token,
-      // accessToken: accessToken,
-      // refreshToken: refreshToken,
       user: user,
     });
   } catch (err) {
@@ -401,13 +393,17 @@ const resetPasswordWithOTP = async (req, res) => {
 
 // change password
 const changePassword = async (req, res) => {
-  const { email, oldPassword, newPassword } = req.body;
+  const { oldPassword, newPassword } = req.body;
 
   try {
-    // Find the user
-    const user = await User.findOne({ email });
-    if (!user) {
-      return apiResponse.error(res, "User not found", 404);
+    let user;
+    user = await User.findById(req.params.id);
+    if(!user) {
+      user = await Provider.findById(req.params.id);
+    }
+
+    if(!user) {
+      return apiResponse.error(res, "Invalid User", 404)
     }
 
     // Check if the old password matches

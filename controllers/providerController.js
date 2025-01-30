@@ -3,6 +3,7 @@ const multer = require("multer");
 const path = require("path");
 const User = require("../models/userModel");
 const providerModel = require("../models/providerModel");
+const jobpostModel = require("../models/jobpostModel");
 
 // Configure multer storage
 const storage = multer.diskStorage({
@@ -101,7 +102,6 @@ exports.uploadFile = (req, res) => {
   });
 };
 
-
 exports.getProviderByUserLocation = async (req, res) => {
   try {
     const RADIUS_OF_EARTH = 6371;
@@ -170,7 +170,6 @@ exports.getProviderByUserLocation = async (req, res) => {
   }
 };
 
-
 // for guest user
 exports.getServicesForGuestLocation = async (req, res) => {
   try {
@@ -222,6 +221,70 @@ exports.getServicesForGuestLocation = async (req, res) => {
     });
 
     const result = await providerModel.aggregate(aggregation);
+    res.status(200).json({
+      status: 200,
+      data: result,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+      status: 500,
+    });
+  }
+};
+
+
+// for guest job post
+exports.getServicesForGuestLocation2 = async (req, res) => {
+  try {
+    const RADIUS_OF_EARTH = 6371;
+    const { latitude, longitude, radius } = req.body;
+
+    let aggregation = [];
+
+    aggregation.push({
+      $addFields: {
+        distance: {
+          $multiply: [
+            RADIUS_OF_EARTH,
+            {
+              $acos: {
+                $add: [
+                  {
+                    $multiply: [
+                      { $sin: { $degreesToRadians: "$address.latitude" } },
+                      { $sin: { $degreesToRadians: latitude } },
+                    ],
+                  },
+                  {
+                    $multiply: [
+                      { $cos: { $degreesToRadians: "$address.latitude" } },
+                      { $cos: { $degreesToRadians: latitude } },
+                      {
+                        $cos: {
+                          $subtract: [
+                            { $degreesToRadians: "$address.longitude" },
+                            { $degreesToRadians: longitude },
+                          ],
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    aggregation.push({
+      $match: {
+        distance: { $lte: radius },
+      },
+    });
+
+    const result = await jobpostModel.aggregate(aggregation);
     res.status(200).json({
       status: 200,
       data: result,

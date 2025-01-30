@@ -21,20 +21,18 @@ const JobPostSchema = new mongoose.Schema({
   businessType: {
     type: String,
     required: true,
-    // enum: ['Cleaning', 'Plumbing', 'Electrician', 'Gardening', 'Others']
   },
   services: {
     type: String,
     required: true,
-    // enum: ['Cleaning', 'Plumbing', 'Electrician', 'Gardening', 'Others']
   },
   timeframe: {
     from: {
-      type: String,
+      type: Number,
       required: true
     },
     to: {
-      type: String,
+      type: Number,
       required: true
     }
   },

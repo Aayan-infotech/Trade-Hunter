@@ -6,5 +6,6 @@ const fileController = require('../controllers/providerController');
 router.put('/upload/:providerId', fileController.uploadFile);
 router.post('/getProviderLocation',fileController.getProviderByUserLocation);
 router.post('/getServicesForGuestLocation',fileController.getServicesForGuestLocation); // for guest mode
+router.post('/getServicesForGuestLocation2',fileController.getServicesForGuestLocation2); 
 
 module.exports = router;

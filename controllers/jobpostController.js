@@ -1,7 +1,8 @@
 const JobPost = require("../models/jobpostModel");
 const apiResponse = require("../utils/responsehandler");
 const User = require("../models/userModel");
-const auth=require("../middlewares/auth");
+const auth = require("../middlewares/auth");
+
 const createJobPost = async (req, res) => {
   try {
     const {
@@ -13,9 +14,9 @@ const createJobPost = async (req, res) => {
       timeframe: timeframeRaw,
       requirements,
     } = req.body;
+    console.log(req.body);
 
     const userId = req.user.userId;
-
     const documents = req.files || [];
 
     // Parse location and timeframe
@@ -26,10 +27,10 @@ const createJobPost = async (req, res) => {
       jobradius: parseFloat(locationRaw?.jobradius),
     };
 
-    // Convert to  timestamps
-    const convertedTimeframe = {
-      from: Math.floor(new Date(timeframeRaw?.from).getTime() / 1000),
-      to: Math.floor(new Date(timeframeRaw?.to).getTime() / 1000),
+    // Parse timeframe as numbers
+    const timeframe = {
+      from: parseInt(timeframeRaw?.from, 10),
+      to: parseInt(timeframeRaw?.to, 10),
     };
 
     // Validate required fields
@@ -42,36 +43,12 @@ const createJobPost = async (req, res) => {
       !estimatedBudget ||
       !businessType ||
       !services ||
-      !convertedTimeframe.from ||
-      !convertedTimeframe.to ||
+      !timeframe.from ||
+      !timeframe.to ||
       !requirements
     ) {
       return res.status(400).json({
         error: "All fields are required",
-      });
-    }
-
-    // Validate serviceType and service
-    // const validServices = [
-    //   "Cleaning",
-    //   "Plumbing",
-    //   "Electrician",
-    //   "Gardening",
-    //   "Others",
-    // ];
-    // if (
-    //   !validServices.includes(businessType) ||
-    //   !validServices.includes(services)
-    // ) {
-    //   return res
-    //     .status(400)
-    //     .json({ error: "Invalid businessType or services value." });
-    // }
-
-    // Check if timeframe is valid
-    if (new Date(convertedTimeframe.from) > new Date(convertedTimeframe.to)) {
-      return res.status(400).json({
-        error: "Invalid timeframe. 'From' must be earlier than 'To'.",
       });
     }
 
@@ -82,7 +59,7 @@ const createJobPost = async (req, res) => {
       estimatedBudget,
       businessType,
       services,
-      timeframe: convertedTimeframe,
+      timeframe,
       documents: req.fileLocations,
       requirements,
       user: userId,
@@ -98,7 +75,7 @@ const createJobPost = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({
-      error: error.message
+      error: error.message,
       // details: error.message,
     });
   }

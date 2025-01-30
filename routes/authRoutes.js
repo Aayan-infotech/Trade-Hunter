@@ -31,7 +31,7 @@ router.post("/verify-email", verifyEmail);
 router.post("/verify-otp", verifyOtp);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password-with-otp", resetPasswordWithOTP);
-router.post("/changePassword", changePassword);
+router.post("/changePassword/:id", changePassword);
 router.post("/refreshtoken", refreshToken);
 
 module.exports = router;

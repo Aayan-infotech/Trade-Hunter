@@ -22,7 +22,7 @@ router.post(
     }
     next();
   },
-  uploadToS3files,
+  // uploadToS3files,
   createJobPost
 );
 router.get("/", verifyUser, getAllJobPosts);
