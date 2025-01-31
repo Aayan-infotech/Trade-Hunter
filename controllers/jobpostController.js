@@ -153,10 +153,37 @@ const deleteJobPost = async (req, res) => {
   }
 };
 
+
+const getAllPendingJobPosts = async (req, res) => {
+  try {
+    const jobPosts = await JobPost.find({ jobStatus: "Pending" });
+    console.log("jobPosts", jobPosts);
+
+    if(!jobPosts || jobPosts.length === 0){
+      return res.status(200).json({
+        success: true,
+        status: 200,
+        message: "Job posts fetched successfully!",
+        data: jobPosts
+      });
+    }
+    return apiResponse.success(
+      res,
+      "All pending Job posts retrieved successfully.",
+      jobPosts
+    );
+  } catch (error) {
+    return apiResponse.error(res, "Internal server error.", 500, {
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createJobPost,
   getAllJobPosts,
   getJobPostById,
   updateJobPost,
   deleteJobPost,
+  getAllPendingJobPosts,
 };

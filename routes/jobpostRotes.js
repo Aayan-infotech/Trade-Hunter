@@ -5,6 +5,7 @@ const {
   getJobPostById,
   updateJobPost,
   deleteJobPost,
+  getAllPendingJobPosts,
 } = require("../controllers/jobpostController");
 const multer = require("multer");
 const upload = multer();
@@ -26,8 +27,9 @@ router.post(
   createJobPost
 );
 router.get("/", verifyUser, getAllJobPosts);
-router.get("/:id", verifyUser, getJobPostById);
+router.get("/jobpost-details/:id", verifyUser, getJobPostById);
 router.put("/:id", updateJobPost);
 router.delete("/:id", deleteJobPost);
+router.get("/getAllPendingJobPosts", getAllPendingJobPosts);
 
 module.exports = router;
