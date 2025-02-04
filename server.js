@@ -15,13 +15,14 @@ const apiRoutes = require("./apiRoutes");
 const authAdmin = require("./AdmRts/authAdmin");
 const userRoutes = require("./AdmRts/userRoutes");
 const providerRts = require("./AdmRts/providerRts");
+const hunterRts = require("./routes/hunterRoute")
 
 
 app.use("/api", apiRoutes);
 app.use("/api/authAdmin", authAdmin);
 app.use("/api/users", userRoutes);
 app.use("/api/Prvdr", providerRts);
-
+app.use("/api/hunter", hunterRts);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
