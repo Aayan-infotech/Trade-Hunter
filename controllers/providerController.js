@@ -177,10 +177,10 @@ exports.getProviderByUserLocation = async (req, res) => {
   }
 };
 
-exports.getJobByLocation = async (req, res) => {
+exports.getJobs = async (req, res) => {
   try {
     const RADIUS_OF_EARTH = 6371;
-    const { latitude, longitude, radius, businessType, offset, limit } = req.body;
+    const { latitude, longitude, radius, businessType, offset = 0, limit = 10 } = req.body;
 
     let aggregation = [];
 
@@ -241,15 +241,25 @@ exports.getJobByLocation = async (req, res) => {
 
     aggregation.push({
       $project: {
-        totalData: 1,
+        data: "$totalData",
         total: { $arrayElemAt: ["$total.total", 0] },
       },
     });
 
     const result = await jobpostModel.aggregate(aggregation);
+    
+    const data = result[0]?.data || [];
+    const total = result[0]?.total || 0;
+    const totalPage = Math.ceil(total / limit);
+    const currentPage = Math.floor(offset / limit) + 1;
+
     res.status(200).json({
       status: 200,
-      data: result,
+      totalPage,
+      currentPage,
+      limit,
+      offset,
+      data,
     });
   } catch (error) {
     res.status(500).json({
@@ -258,6 +268,7 @@ exports.getJobByLocation = async (req, res) => {
     });
   }
 };
+
 
 // for guest user
 exports.getServicesForGuestLocation = async (req, res) => {
