@@ -23,7 +23,7 @@ const providerSchema = new mongoose.Schema(
     address: {
       latitude: { type: Number, required: true },
       longitude: { type: Number, required: true },
-      addressText: { type: String, required: true, trim: true },
+      addressLine: { type: String, required: true, trim: true },
       radius: { type: Number, required: true },
       _id: false,
     },
