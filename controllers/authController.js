@@ -210,8 +210,8 @@ const signUp = async (req, res) => {
 
     // Validate required fields based on userType
     const requiredFields = userType === "hunter" 
-      ? [name, email, phoneNo, latitude, longitude, radius, password]
-      : [name, businessName, email, phoneNo, latitude, longitude, radius, password, ABN_Number, businessType, serviceType];
+      ? [name, email, phoneNo, latitude, longitude, radius, password, addressLine]
+      : [name, businessName, email, phoneNo, latitude, longitude, radius, password, ABN_Number, businessType, serviceType, addressLine];
     
     if (requiredFields.some(field => !field)) {
       return res.status(400).json({ message: `All ${userType} fields are required.` });
@@ -254,7 +254,7 @@ const signUp = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Validate address fields
-    if (!latitude || !longitude || !radius) {
+    if (!latitude || !longitude || !radius || !addressLine) {
       return res.status(400).json({ message: "All hunter fields are required." });
     }
 
