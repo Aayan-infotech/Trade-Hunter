@@ -78,6 +78,9 @@ const userSchema = new mongoose.Schema(
     refreshToken:{
       type: String,
     },
+    token: {
+      type: String,
+    },
     files: [fileSchema],
   },
   { timestamps: true }
