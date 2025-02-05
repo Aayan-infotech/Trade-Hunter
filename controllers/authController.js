@@ -231,11 +231,11 @@ const login = async (req, res) => {
     if (!user.emailVerified) {
       const verificationOTP = await generateverificationOTP(user);
       await sendEmail(email, "Account Verification OTP", verificationOTP);
-      apiResponse.success(res, "You are not verified, Please verify your email");
+      return apiResponse.success(res, "You are not verified, Please verify your email");
     }
 
     if (userType === "provider" && user.subscriptionStatus !== 1) {
-      apiResponse.success(res, "You have not subscribed to the service", {
+      return apiResponse.success(res, "You have not subscribed to the service", {
         token: token,
         user: user,
       });
@@ -243,13 +243,13 @@ const login = async (req, res) => {
 
 
 
-    apiResponse.success(res, "Login successful", {
+    return apiResponse.success(res, "Login successful", {
       token: token,
       user: user,
     });
   } catch (err) {
     console.log(err.message);
-    apiResponse.error(res, "Server error", 500);
+    return apiResponse.error(res, "Server error", 500);
   }
 };
 
