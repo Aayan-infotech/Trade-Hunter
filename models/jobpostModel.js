@@ -7,12 +7,14 @@ const JobPostSchema = new mongoose.Schema({
     trim: true
   },
   location: {
-      joblatitude: { type: Number, required: true },
-      joblongitude: { type: Number, required: true },
-      jobaddress: { type: String, required: true, trim: true },
-      jobradius: { type: Number, required: true },
-      _id:false,
-  },
+    location: {
+      type: { type: String, enum: ['Point'], required: true },
+      coordinates: { type: [Number], required: true }, // [longitude, latitude]
+    },
+    jobaddress: { type: String, required: true, trim: true },
+    jobradius: { type: Number, required: true },
+    _id: false,
+  },  
 
   estimatedBudget: {
     type: Number,
@@ -52,5 +54,8 @@ const JobPostSchema = new mongoose.Schema({
     default: 'Pending' 
   }
 }, { timestamps: true });
+
+// Create 2dsphere index for geospatial queries
+JobPostSchema.index({ "location.location": "2dsphere" });
 
 module.exports = mongoose.model('JobPost', JobPostSchema);

@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const addressSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'User',
   },
   isSelected: {
     type: Number,
@@ -14,15 +14,11 @@ const addressSchema = new mongoose.Schema({
     type: String,
     required: true,
     enum: ["home", "office", "others"],
-    default:"home",
+    default: "home",
   },
-  latitude: {
-    type: Number,
-    required: true,
-  },
-  longitude: {
-    type: Number,
-    required: true,
+  location: {
+    type: { type: String, enum: ['Point'], required: true },
+    coordinates: { type: [Number], required: true }, // [longitude, latitude]
   },
   address: {
     type: String,
@@ -32,12 +28,15 @@ const addressSchema = new mongoose.Schema({
   radius: {
     type: Number,
     required: false,
-    default: 10,
+    default: 10, // Default radius in km
   },
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
+
+// Create 2dsphere index for geospatial queries
+addressSchema.index({ location: '2dsphere' });
 
 module.exports = mongoose.model("Address", addressSchema);

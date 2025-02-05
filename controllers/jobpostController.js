@@ -7,37 +7,41 @@ const createJobPost = async (req, res) => {
   try {
     const {
       title,
-      location: locationRaw,
       estimatedBudget,
       businessType,
       services,
-      timeframe: timeframeRaw,
       requirements,
     } = req.body;
-    console.log(req.body);
+
+    console.log(req.body); // Debugging log
 
     const userId = req.user.userId;
     const documents = req.files || [];
 
-    // Parse location and timeframe
+    // Parse location (GeoJSON format)
+    const locationRaw = req.body.location;
     const location = {
-      joblatitude: parseFloat(locationRaw?.joblatitude),
-      joblongitude: parseFloat(locationRaw?.joblongitude),
+      type: "Point",
+      coordinates: [
+        parseFloat(locationRaw?.coordinates?.[0]), // Longitude
+        parseFloat(locationRaw?.coordinates?.[1])  // Latitude
+      ],
       jobaddress: locationRaw?.jobaddress,
-      jobradius: parseFloat(locationRaw?.jobradius),
+      jobradius: parseFloat(locationRaw?.jobradius)
     };
 
-    // Parse timeframe as numbers
+    // Parse timeframe (Ensure numeric values)
+    const timeframeRaw = req.body.timeframe;
     const timeframe = {
-      from: parseInt(timeframeRaw?.from, 10),
-      to: parseInt(timeframeRaw?.to, 10),
+      from: Number(timeframeRaw?.from),
+      to: Number(timeframeRaw?.to)
     };
 
     // Validate required fields
     if (
       !title ||
-      !location.joblatitude ||
-      !location.joblongitude ||
+      !location.coordinates[0] ||
+      !location.coordinates[1] ||
       !location.jobaddress ||
       !location.jobradius ||
       !estimatedBudget ||
@@ -60,10 +64,10 @@ const createJobPost = async (req, res) => {
       businessType,
       services,
       timeframe,
-      documents: req.fileLocations,
+      documents: req.fileLocations, // Assuming files are stored and referenced here
       requirements,
       user: userId,
-      JobStatus: "pending",
+      jobStatus: "Pending",
     });
 
     // Save the job post in the database
@@ -74,12 +78,13 @@ const createJobPost = async (req, res) => {
       jobPost,
     });
   } catch (error) {
+    console.error("Error creating job post:", error);
     return res.status(500).json({
       error: error.message,
-      // details: error.message,
     });
   }
 };
+
 
 const getAllJobPosts = async (req, res) => {
   try {

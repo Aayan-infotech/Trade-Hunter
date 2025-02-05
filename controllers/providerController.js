@@ -179,59 +179,38 @@ exports.getProviderByUserLocation = async (req, res) => {
 
 exports.getJobs = async (req, res) => {
   try {
-    const RADIUS_OF_EARTH = 6371;
-    const { latitude, longitude, radius, businessType, offset = 0, limit = 10 } = req.body;
+    const { latitude, longitude, radius = 5000, businessType, offset = 0, limit = 10 } = req.body;
 
     let aggregation = [];
 
+    // Use $geoNear as the first stage for geospatial filtering
+    aggregation.push({
+      $geoNear: {
+        near: {
+          type: "Point",
+          coordinates: [longitude, latitude], // MongoDB expects [longitude, latitude]
+        },
+        distanceField: "distance",
+        maxDistance: radius * 1000, // Convert km to meters
+        spherical: true,
+      },
+    });
+
+    // Filter by business type if provided
     if (businessType) {
       aggregation.push({
-        $match: { businessType: businessType },
+        $match: { businessType },
       });
     }
 
-    aggregation.push({
-      $addFields: {
-        distance: {
-          $multiply: [
-            RADIUS_OF_EARTH,
-            {
-              $acos: {
-                $add: [
-                  {
-                    $multiply: [
-                      { $sin: { $degreesToRadians: "$location.joblatitude" } },
-                      { $sin: { $degreesToRadians: latitude } },
-                    ],
-                  },
-                  {
-                    $multiply: [
-                      { $cos: { $degreesToRadians: "$location.joblatitude" } },
-                      { $cos: { $degreesToRadians: latitude } },
-                      {
-                        $cos: {
-                          $subtract: [
-                            { $degreesToRadians: "$location.joblongitude" },
-                            { $degreesToRadians: longitude },
-                          ],
-                        },
-                      },
-                    ],
-                  },
-                ],
-              },
-            },
-          ],
-        },
-      },
-    });
-
+    // Ensure that the job's visibility radius is respected
     aggregation.push({
       $match: {
-        distance: { $lte: radius },
+        "location.jobradius": { $gte: radius }, // Ensure the job's radius includes the requested radius
       },
     });
 
+    // Pagination and total count
     aggregation.push({
       $facet: {
         totalData: [{ $skip: offset }, { $limit: limit }],
@@ -239,6 +218,7 @@ exports.getJobs = async (req, res) => {
       },
     });
 
+    // Reshape response
     aggregation.push({
       $project: {
         data: "$totalData",
@@ -247,7 +227,7 @@ exports.getJobs = async (req, res) => {
     });
 
     const result = await jobpostModel.aggregate(aggregation);
-    
+
     const data = result[0]?.data || [];
     const total = result[0]?.total || 0;
     const totalPage = Math.ceil(total / limit);
@@ -268,6 +248,7 @@ exports.getJobs = async (req, res) => {
     });
   }
 };
+
 
 
 // for guest user
@@ -398,7 +379,6 @@ exports.getServicesForGuestLocation2 = async (req, res) => {
 
 exports.getJobsForGuest = async (req, res) => {
   try {
-    const RADIUS_OF_EARTH = 6371;
     const { latitude, longitude, radius = 5000, offset = 0, limit = 10 } = req.body; // Default radius: 5km
 
     if (!latitude || !longitude) {
@@ -408,67 +388,32 @@ exports.getJobsForGuest = async (req, res) => {
       });
     }
 
-    let aggregation = [];
-
-    // Calculate the distance between the guest's location and the job location
-    aggregation.push({
-      $addFields: {
-        distance: {
-          $multiply: [
-            RADIUS_OF_EARTH,
-            {
-              $acos: {
-                $add: [
-                  {
-                    $multiply: [
-                      { $sin: { $degreesToRadians: "$location.joblatitude" } },
-                      { $sin: { $degreesToRadians: latitude } },
-                    ],
-                  },
-                  {
-                    $multiply: [
-                      { $cos: { $degreesToRadians: "$location.joblatitude" } },
-                      { $cos: { $degreesToRadians: latitude } },
-                      {
-                        $cos: {
-                          $subtract: [
-                            { $degreesToRadians: "$location.joblongitude" },
-                            { $degreesToRadians: longitude },
-                          ],
-                        },
-                      },
-                    ],
-                  },
-                ],
-              },
-            },
-          ],
+    const aggregation = [
+      {
+        $geoNear: {
+          near: {
+            type: "Point",
+            coordinates: [longitude, latitude],  // Longitude first
+          },
+          distanceField: "distance",
+          maxDistance: radius * 1000,  // Convert km to meters
+          spherical: true,
+          key: "location.location",  // Make sure this field is indexed correctly
+        },
+      },      
+      {
+        $facet: {
+          totalData: [{ $skip: offset }, { $limit: limit }],
+          total: [{ $count: "total" }],
         },
       },
-    });
-
-    // Match only jobs within the specified radius
-    aggregation.push({
-      $match: {
-        distance: { $lte: radius },
+      {
+        $project: {
+          data: "$totalData",
+          total: { $arrayElemAt: ["$total.total", 0] },
+        },
       },
-    });
-
-    // Pagination for the results
-    aggregation.push({
-      $facet: {
-        totalData: [{ $skip: offset }, { $limit: limit }],
-        total: [{ $count: "total" }],
-      },
-    });
-
-    // Format the response
-    aggregation.push({
-      $project: {
-        data: "$totalData",
-        total: { $arrayElemAt: ["$total.total", 0] },
-      },
-    });
+    ];
 
     // Execute the aggregation query
     const result = await jobpostModel.aggregate(aggregation);
@@ -487,9 +432,13 @@ exports.getJobsForGuest = async (req, res) => {
       data,
     });
   } catch (error) {
+    console.error("Error fetching jobs:", error);
     res.status(500).json({
       message: error.message,
       status: 500,
     });
   }
 };
+
+
+

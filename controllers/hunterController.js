@@ -1,10 +1,11 @@
-const userModel = require("../models/userModel");
 const providerModel = require("../models/providerModel");
 
 exports.getNearbyServiceProviders = async (req, res) => {
   try {
-    const RADIUS_OF_EARTH = 6371; // Radius of the Earth in kilometers
-    const { latitude, longitude, radius = 5000, offset = 0, limit = 10 } = req.body; // Default radius: 5km
+    const RADIUS_OF_EARTH = 6371; // Radius of Earth in kilometers
+    const { latitude, longitude, radius = 5000, page = 1, limit = 10 } = req.body;
+    const offset = (page - 1) * limit;  // Calculate offset
+    
 
     if (!latitude || !longitude) {
       return res.status(400).json({
@@ -13,53 +14,23 @@ exports.getNearbyServiceProviders = async (req, res) => {
       });
     }
 
+    // Aggregation pipeline
     let aggregation = [];
 
-    // Calculate the distance between the hunter's location and the service provider's location
+    // GeoNear to calculate distance and match service providers within the radius
     aggregation.push({
-      $addFields: {
-        distance: {
-          $multiply: [
-            RADIUS_OF_EARTH,
-            {
-              $acos: {
-                $add: [
-                  {
-                    $multiply: [
-                      { $sin: { $degreesToRadians: "$location.latitude" } },
-                      { $sin: { $degreesToRadians: latitude } },
-                    ],
-                  },
-                  {
-                    $multiply: [
-                      { $cos: { $degreesToRadians: "$location.latitude" } },
-                      { $cos: { $degreesToRadians: latitude } },
-                      {
-                        $cos: {
-                          $subtract: [
-                            { $degreesToRadians: "$location.longitude" },
-                            { $degreesToRadians: longitude },
-                          ],
-                        },
-                      },
-                    ],
-                  },
-                ],
-              },
-            },
-          ],
+      $geoNear: {
+        near: {
+          type: "Point",
+          coordinates: [longitude, latitude], // GeoJSON format: [longitude, latitude]
         },
+        distanceField: "distance", // This will add distance to each provider
+        maxDistance: radius, // Filter providers within the radius
+        spherical: true, // Use spherical geometry (great-circle distance)
       },
     });
 
-    // Match only service providers within the specified radius
-    aggregation.push({
-      $match: {
-        distance: { $lte: radius },
-      },
-    });
-
-    // Pagination for the results
+    // Pagination logic
     aggregation.push({
       $facet: {
         totalData: [{ $skip: offset }, { $limit: limit }],
@@ -67,7 +38,7 @@ exports.getNearbyServiceProviders = async (req, res) => {
       },
     });
 
-    // Format the response
+    // Format response to include pagination data
     aggregation.push({
       $project: {
         data: "$totalData",
@@ -75,8 +46,15 @@ exports.getNearbyServiceProviders = async (req, res) => {
       },
     });
 
-    // Execute the aggregation query to find nearby service providers
-    const result = await providerModel.aggregate(aggregation); // Corrected model usage
+    // Execute the aggregation query
+    const result = await providerModel.aggregate(aggregation);
+
+    if (!result || result.length === 0) {
+      return res.status(404).json({
+        message: "No service providers found within the given radius.",
+        status: 404,
+      });
+    }
 
     const data = result[0]?.data || [];
     const total = result[0]?.total || 0;
@@ -85,15 +63,18 @@ exports.getNearbyServiceProviders = async (req, res) => {
 
     res.status(200).json({
       status: 200,
+      message: "Nearby service providers fetched successfully.",
       totalPage,
       currentPage,
       limit,
-      offset,
+      totalRecords: total,
       data,
     });
   } catch (error) {
+    console.error("Error fetching nearby service providers:", error);
     res.status(500).json({
-      message: error.message,
+      message: "An error occurred while fetching nearby service providers.",
+      error: error.message,
       status: 500,
     });
   }

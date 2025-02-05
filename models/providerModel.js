@@ -21,8 +21,10 @@ const providerSchema = new mongoose.Schema(
       required: true,
     },
     address: {
-      latitude: { type: Number, required: true },
-      longitude: { type: Number, required: true },
+      location: {
+        type: { type: String, enum: ['Point'], required: true },
+        coordinates: { type: [Number], required: true }, // [longitude, latitude]
+      },
       addressLine: { type: String, required: true, trim: true },
       radius: { type: Number, required: true },
       _id: false,
@@ -46,10 +48,9 @@ const providerSchema = new mongoose.Schema(
       required: true,
     },
     businessType: {
-      type: String,
+      type: [String],
       required: true,
     },
-    businessType: [{ type: String }],
     userType: {
       type: String,
       required: true,
@@ -103,7 +104,7 @@ const providerSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    refreshToken:{
+    refreshToken: {
       type: String,
     },
     files: [fileSchema],
@@ -111,4 +112,7 @@ const providerSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("provider", providerSchema);
+// Create 2dsphere index for geospatial queries
+providerSchema.index({ "address.location": '2dsphere' });
+
+module.exports = mongoose.model("Provider", providerSchema);
