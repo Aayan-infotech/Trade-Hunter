@@ -253,54 +253,53 @@ const login = async (req, res) => {
   }
 };
 
-// verifyemail
 const verifyEmail = async (req, res) => {
-  const { email, OTP } = req.body;
+  const { email, OTP, userType } = req.body;
 
   let user;
 
-  // Determine which collection to query based on userType
-  if (req.body.userType === "hunter") {
-    user = await User.findOne({ email: email, userType: req.body.userType });
-  } else {
-    user = await Provider.findOne({
-      email: email,
-      userType: req.body.userType,
-    });
-  }
-
-  if (!user) {
-    return apiResponse.error(res, "User not found, please sign up first", 400);
-  }
-
   try {
+    // Determine which collection to query based on userType
+    if (userType === "hunter") {
+      user = await User.findOne({ email, userType });
+    } else {
+      user = await Provider.findOne({ email, userType });
+    }
+
+    if (!user) {
+      return apiResponse.error(res, "User not found, please sign up first", 400);
+    }
+
     if (user.emailVerified) {
-      return apiResponse.success(res, "User already verified.", 401);
+      return apiResponse.success(res, "User already verified.", {});
+    }
+
+    if (OTP !== user.verificationOTP) {
+      return apiResponse.error(res, "Invalid OTP.", 401);
     }
 
     // Generate JWT Token
     const token = jwt.sign(
       { id: user._id, email: user.email, userType: user.userType },
       process.env.JWT_SECRET, // Ensure you have a secure secret in .env
-      { expiresIn: "7d" } // Token valid for 7 days
-    ); 
+      { expiresIn: "7d" }
+    );
 
-    if (OTP === user.verificationOTP) {
-      // Update the user fields to reflect email verification
-      user.emailVerified = true;
-      user.verificationOTP = null;
-      user.verificationOTPExpires = null;
-      user.token = token;
-      await user.save();
-      return apiResponse.success(res, token, user, "Email verified successfully", 200);
-    }
+    // Update the user fields to reflect email verification
+    user.emailVerified = true;
+    user.verificationOTP = null;
+    user.verificationOTPExpires = null;
+    user.token = token;
+    await user.save();
 
-    return apiResponse.error(res, "Invalid OTP.", 401);
+    return apiResponse.success(res, "Email verified successfully", { token, user });
+
   } catch (err) {
     console.error("Verification error:", err.message);
     return apiResponse.error(res, "Server error", 500);
   }
 };
+
 
 //reset password
 const forgotPassword = async (req, res) => {
