@@ -6,13 +6,13 @@ const JobPostSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  location: {
+  jobLocation: {
     location: {
       type: { type: String, enum: ['Point'], required: true },
       coordinates: { type: [Number], required: true }, // [longitude, latitude]
     },
-    jobaddress: { type: String, required: true, trim: true },
-    jobradius: { type: Number, required: true },
+    jobAddressLine: { type: String, required: true, trim: true },
+    jobRadius: { type: Number, required: true },
     _id: false,
   },  
 

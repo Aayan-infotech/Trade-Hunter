@@ -289,7 +289,7 @@ const verifyEmail = async (req, res) => {
       user.verificationOTPExpires = null;
       user.token = token;
       await user.save();
-      return apiResponse.success(res, token, "Email verified successfully", 200);
+      return apiResponse.success(res, token, user, "Email verified successfully", 200);
     }
 
     return apiResponse.error(res, "Invalid OTP.", 401);

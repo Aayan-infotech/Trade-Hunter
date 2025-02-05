@@ -16,14 +16,14 @@ const { refreshToken } = require("../middlewares/auth");
 
 
 router.post("/signup", 
-  // upload.single("images"),
-  // async (req, res, next) => {
-  //   if (!req.file) {
-  //     return res.status(400).json({ error: "No file uploaded." });
-  //   }
-  //   next();
-  // },
-  // uploadToS3,
+  upload.single("images"),
+  async (req, res, next) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded." });
+    }
+    next();
+  },
+  uploadToS3,
   signUp
 );
 router.post("/login", login);

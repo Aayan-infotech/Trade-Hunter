@@ -7,43 +7,46 @@ const createJobPost = async (req, res) => {
   try {
     const {
       title,
+      longitude,
+      latitude,
+      jobRadius,
+      jobAddressLine,
       estimatedBudget,
       businessType,
       services,
       requirements,
     } = req.body;
 
-    console.log(req.body); // Debugging log
-
     const userId = req.user.userId;
     const documents = req.files || [];
 
-    // Parse location (GeoJSON format)
-    const locationRaw = req.body.location;
-    const location = {
-      type: "Point",
-      coordinates: [
-        parseFloat(locationRaw?.coordinates?.[0]), // Longitude
-        parseFloat(locationRaw?.coordinates?.[1])  // Latitude
-      ],
-      jobaddress: locationRaw?.jobaddress,
-      jobradius: parseFloat(locationRaw?.jobradius)
+    // Correctly structure jobLocation
+    const jobLocation = {
+      location: {
+        type: "Point", // Ensure type is set here
+        coordinates: [
+          parseFloat(longitude), // Longitude
+          parseFloat(latitude),  // Latitude
+        ],
+      },
+      jobAddressLine: jobAddressLine,
+      jobRadius: parseFloat(jobRadius),
     };
 
     // Parse timeframe (Ensure numeric values)
     const timeframeRaw = req.body.timeframe;
     const timeframe = {
       from: Number(timeframeRaw?.from),
-      to: Number(timeframeRaw?.to)
+      to: Number(timeframeRaw?.to),
     };
 
     // Validate required fields
     if (
       !title ||
-      !location.coordinates[0] ||
-      !location.coordinates[1] ||
-      !location.jobaddress ||
-      !location.jobradius ||
+      !jobLocation.location.coordinates[0] ||
+      !jobLocation.location.coordinates[1] ||
+      !jobLocation.jobAddressLine ||
+      !jobLocation.jobRadius ||
       !estimatedBudget ||
       !businessType ||
       !services ||
@@ -59,12 +62,12 @@ const createJobPost = async (req, res) => {
     // Create new job post object
     const jobPost = new JobPost({
       title,
-      location,
+      jobLocation, // Use the corrected jobLocation
       estimatedBudget,
       businessType,
       services,
       timeframe,
-      documents: req.fileLocations, // Assuming files are stored and referenced here
+      documents: req.fileLocations,
       requirements,
       user: userId,
       jobStatus: "Pending",
