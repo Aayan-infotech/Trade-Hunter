@@ -179,7 +179,14 @@ exports.getProviderByUserLocation = async (req, res) => {
 
 exports.getJobs = async (req, res) => {
   try {
-    const { latitude, longitude, radius = 5000, businessType, offset = 0, limit = 10 } = req.body;
+    const {
+      latitude,
+      longitude,
+      radius = 5000,
+      businessType,
+      offset = 0,
+      limit = 10,
+    } = req.body;
 
     let aggregation = [];
 
@@ -377,7 +384,13 @@ exports.getServicesForGuestLocation2 = async (req, res) => {
 
 exports.getJobsForGuest = async (req, res) => {
   try {
-    const { latitude, longitude, radius = 5000, offset = 0, limit = 10 } = req.body; // Default radius: 5km
+    const {
+      latitude,
+      longitude,
+      radius = 5000,
+      offset = 0,
+      limit = 10,
+    } = req.body; // Default radius: 5km
 
     if (!latitude || !longitude) {
       return res.status(400).json({
@@ -391,14 +404,14 @@ exports.getJobsForGuest = async (req, res) => {
         $geoNear: {
           near: {
             type: "Point",
-            coordinates: [longitude, latitude],  // Longitude first
+            coordinates: [longitude, latitude], // Longitude first
           },
           distanceField: "distance",
-          maxDistance: radius * 1000,  // Convert km to meters
+          maxDistance: radius * 1000, // Convert km to meters
           spherical: true,
-          key: "location.location",  // Make sure this field is indexed correctly
+          key: "location.location", // Make sure this field is indexed correctly
         },
-      },      
+      },
       {
         $facet: {
           totalData: [{ $skip: offset }, { $limit: limit }],

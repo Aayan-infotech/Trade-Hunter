@@ -7,8 +7,8 @@ const sendEmail = async (recipient, subject, message) => {
       port: 587, 
       secure: false,
       auth: {
-        user: 'anurag777222111@gmail.com', // Your Gmail address
-        pass: 'urgq fwgv rgla tvec', // Your App Password
+        user: 'development.aayaninfotech@gmail.com', // Your Gmail address
+        pass: 'defe qhhm kgmu ztkf', // Your App Password
       },
       tls: {
         rejectUnauthorized: false, // Allow self-signed certificates (optional for development)
