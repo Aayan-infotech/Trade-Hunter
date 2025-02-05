@@ -201,29 +201,17 @@ const login = async (req, res) => {
       user = await Provider.findOne({ email: email, userType: userType });
     }
     if (!user) {
-      return apiResponse.error(res, "Invalid credentials or Sub", 400);
+      return apiResponse.error(res, "Invalid credentials", 400);
     }
 
-    if (userType === "provider" && user.subscriptionStatus !== 1) {
-      return res
-        .status(200)
-        .json({ message: "You have not subscribed to the service" });
-    }
-
-    if (!user.emailVerified) {
-      const verificationOTP = await generateverificationOTP(user);
-      await sendEmail(email, "Account Verification OTP", verificationOTP);
-      return apiResponse.error(
-        res,
-        "You are not verified, Please verify your email.",
-        200
-      );
-    }
+    
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return apiResponse.error(res, "Invalid credentials", 400);
     }
+
+    
 
     const token = jwt.sign(
       { userId: user._id, email: user.email },
@@ -239,6 +227,21 @@ const login = async (req, res) => {
 
     user.refreshToken = refreshToken;
     await user.save();
+
+    if (!user.emailVerified) {
+      const verificationOTP = await generateverificationOTP(user);
+      await sendEmail(email, "Account Verification OTP", verificationOTP);
+      apiResponse.success(res, "You are not verified, Please verify your email");
+    }
+
+    if (userType === "provider" && user.subscriptionStatus !== 1) {
+      apiResponse.success(res, "You have not subscribed to the service", {
+        token: token,
+        user: user,
+      });
+    }
+
+
 
     apiResponse.success(res, "Login successful", {
       token: token,
