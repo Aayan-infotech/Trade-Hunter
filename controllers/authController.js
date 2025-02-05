@@ -275,13 +275,21 @@ const verifyEmail = async (req, res) => {
       return apiResponse.success(res, "User already verified.", 401);
     }
 
+    // Generate JWT Token
+    const token = jwt.sign(
+      { id: user._id, email: user.email, userType: user.userType },
+      process.env.JWT_SECRET, // Ensure you have a secure secret in .env
+      { expiresIn: "7d" } // Token valid for 7 days
+    ); 
+
     if (OTP === user.verificationOTP) {
       // Update the user fields to reflect email verification
       user.emailVerified = true;
       user.verificationOTP = null;
       user.verificationOTPExpires = null;
+      user.token = token;
       await user.save();
-      return apiResponse.success(res, "Email verified successfully", 200);
+      return apiResponse.success(res, token, "Email verified successfully", 200);
     }
 
     return apiResponse.error(res, "Invalid OTP.", 401);

@@ -249,8 +249,6 @@ exports.getJobs = async (req, res) => {
   }
 };
 
-
-
 // for guest user
 exports.getServicesForGuestLocation = async (req, res) => {
   try {
@@ -439,6 +437,3 @@ exports.getJobsForGuest = async (req, res) => {
     });
   }
 };
-
-
-
