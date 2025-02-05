@@ -195,12 +195,17 @@ exports.getJobs = async (req, res) => {
       $geoNear: {
         near: {
           type: "Point",
-          coordinates: [longitude, latitude], // MongoDB expects [longitude, latitude]
+          coordinates: [longitude, latitude],
         },
         distanceField: "distance",
         maxDistance: radius * 1000, // Convert km to meters
         spherical: true,
       },
+    });
+
+    // Filter by job status 'Pending'
+    aggregation.push({
+      $match: { jobStatus: "Pending" },
     });
 
     // Filter by business type if provided
@@ -210,10 +215,15 @@ exports.getJobs = async (req, res) => {
       });
     }
 
-    // Ensure that the job's visibility radius is respected
+    // Ensure the provider is within the job's visibility radius
     aggregation.push({
       $match: {
-        "location.jobradius": { $gte: radius }, // Ensure the job's radius includes the requested radius
+        $expr: {
+          $lte: [
+            "$distance",
+            { $multiply: ["$jobLocation.jobRadius", 1000] }, // Convert job's radius from km to meters
+          ],
+        },
       },
     });
 
@@ -448,5 +458,133 @@ exports.getJobsForGuest = async (req, res) => {
       message: error.message,
       status: 500,
     });
+  }
+};
+
+exports.getNearbyJobs = async (req, res) => {
+  try {
+    const {
+      businessType,
+      services,
+      latitude,
+      longitude,
+      radius,
+      page = 1,
+      limit = 10,
+    } = req.body;
+
+    if (!businessType || !latitude || !longitude || !radius) {
+      return res
+        .status(400)
+        .json({ status: 400, message: "Missing required fields" });
+    }
+
+    const jobs = await jobpostModel.aggregate([
+      {
+        $geoNear: {
+          near: { type: "Point", coordinates: [longitude, latitude] },
+          distanceField: "distance",
+          maxDistance: radius * 1000, // Convert km to meters
+          spherical: true,
+          key: "jobLocation.location",
+        },
+      },
+      {
+        $match: {
+          businessType: { $regex: new RegExp(`^${businessType}$`, "i") }, // Case-insensitive match
+          jobStatus: "Pending",
+          ...(services ? { services } : {}), // Match services if provided
+        },
+      },
+      {
+        $sort: { distance: 1 }, // Sort by closest jobs first
+      },
+      {
+        $skip: (page - 1) * limit, // Skip previous pages
+      },
+      {
+        $limit: limit, // Limit results per page
+      },
+    ]);
+
+    // Get total job count for pagination metadata
+    const totalJobs = await jobpostModel.countDocuments({
+      businessType: { $regex: new RegExp(`^${businessType}$`, "i") },
+      jobStatus: "Pending",
+    });
+
+    return res.status(200).json({
+      status: 200,
+      message: "Job fetch completed successfully",
+      data: jobs,
+      pagination: {
+        totalJobs,
+        currentPage: page,
+        totalPages: Math.ceil(totalJobs / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching nearby jobs:", error);
+    return res
+      .status(500)
+      .json({ status: 500, message: "Error fetching nearby jobs:" + error });
+  }
+};
+
+exports.getNearbyJobsForGuest = async (req, res) => {
+  try {
+    const { latitude, longitude, page = 1, limit = 10 } = req.body;
+
+    if (!latitude || !longitude) {
+      return res
+        .status(400)
+        .json({ status: 400, message: "Missing required fields" });
+    }
+
+    const jobs = await jobpostModel.aggregate([
+      {
+        $geoNear: {
+          near: { type: "Point", coordinates: [longitude, latitude] },
+          distanceField: "distance",
+          spherical: true,
+          key: "jobLocation.location",
+        },
+      },
+      {
+        $match: {
+          jobStatus: "Pending", // Fetch only pending jobs
+        },
+      },
+      {
+        $sort: { distance: 1 }, // Sort by nearest first
+      },
+      {
+        $skip: (page - 1) * limit, // Pagination: Skip previous pages
+      },
+      {
+        $limit: limit, // Limit results per page
+      },
+    ]);
+
+    // Get total job count for pagination metadata
+    const totalJobs = await jobpostModel.countDocuments({
+      jobStatus: "Pending",
+    });
+
+    return res.status(200).json({
+      status: 200,
+      message: "Jobs fetched successfully",
+      data: jobs,
+      pagination: {
+        totalJobs,
+        currentPage: page,
+        totalPages: Math.ceil(totalJobs / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching jobs for guest:", error);
+    return res
+      .status(500)
+      .json({ status: 500, message: "Error fetching jobs: " + error });
   }
 };
