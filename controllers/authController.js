@@ -254,7 +254,7 @@ const login = async (req, res) => {
 };
 
 const verifyEmail = async (req, res) => {
-  const { email, OTP, userType } = req.body;
+  const { email, verificationOTP, userType } = req.body;
 
   let user;
 
@@ -274,7 +274,7 @@ const verifyEmail = async (req, res) => {
       return apiResponse.success(res, "User already verified.", {});
     }
 
-    if (OTP !== user.verificationOTP) {
+    if (verificationOTP !== user.verificationOTP) {
       return apiResponse.error(res, "Invalid OTP.", 401);
     }
 
@@ -342,7 +342,7 @@ const forgotPassword = async (req, res) => {
 
 // verify otp
 const verifyOtp = async (req, res) => {
-  const { email, OTP } = req.body;
+  const { email, verificationOTP } = req.body;
 
   try {
     let user;
@@ -362,7 +362,7 @@ const verifyOtp = async (req, res) => {
       );
     }
 
-    if (OTP === user.verificationOTP) {
+    if (verificationOTP === user.verificationOTP) {
       user.emailVerified = true; // Use `true` for consistency
       user.verificationOTP = null;
       user.verificationOTPExpires = null;
