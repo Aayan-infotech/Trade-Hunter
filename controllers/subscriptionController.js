@@ -37,7 +37,6 @@ const getAllSubscription = async (req, res) => {
 const getSubscriptionById = async (req, res) => {
   try {
     const subscription = await Subscription.findById(req.params.id);
-    console.log(req.params.id);
     if (!subscription) {
       return apiResponse.error(res, "Subscription not fetched", subscription);
     }

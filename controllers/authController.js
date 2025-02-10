@@ -206,14 +206,10 @@ const login = async (req, res) => {
       return apiResponse.error(res, "Invalid credentials", 400);
     }
 
-    
-
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return apiResponse.error(res, "Invalid credentials", 400);
     }
-
-    
 
     const token = jwt.sign(
       { userId: user._id, email: user.email },
@@ -479,7 +475,6 @@ const getHunterProfile = async (req, res) => {
     }
     
     const hunter = await Hunter.findById(id);
-    
     if (!hunter) {
       return res.status(404).json({ message: "Hunter not found" });
     }
@@ -494,7 +489,6 @@ const getHunterProfile = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
-
 
 module.exports = {
   signUp,

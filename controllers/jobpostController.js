@@ -186,8 +186,18 @@ const getAllPendingJobPosts = async (req, res) => {
 };
 
 const getJobPostByUserId = async (req, res) => {
+  const userId = req.user.userId;
+
+    // Get page & limit from query params, set defaults
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10; 
+    let skip = (page - 1) * limit; 
+
   try {
-    const jobPosts = await JobPost.find({ user: req.params.userId });
+    const totalJobs = await JobPost.countDocuments({ user: userId });
+    const jobPosts = await JobPost.find({ user: userId })
+      .skip(skip)
+      .limit(limit);
     if (!jobPosts || jobPosts.length === 0) {
       return res.status(200).json({
         success: true,
@@ -196,11 +206,17 @@ const getJobPostByUserId = async (req, res) => {
         data: jobPosts,
       });
     }
-    return apiResponse.success(
-      res,
-      "Job posts retrieved successfully.",
-      jobPosts
-    );
+    return res.status(200).json({
+      success: true,
+      status: 200,
+      message: "Job posts retrieved successfully.",
+      data: jobPosts,
+      pagination: {
+        totalJobs,
+        currentPage: page,
+        totalPages: Math.ceil(totalJobs / limit),
+      },
+    });
   } catch (error) {
     return apiResponse.error(res, "Internal server error.", 500, {
       error: error.message,
