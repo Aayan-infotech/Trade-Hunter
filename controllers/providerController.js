@@ -1,7 +1,7 @@
-const File = require("../models/userModel");
+const File = require("../models/hunterModel");
 const multer = require("multer");
 const path = require("path");
-const User = require("../models/userModel");
+const User = require("../models/hunterModel");
 const providerModel = require("../models/providerModel");
 const jobpostModel = require("../models/jobpostModel");
 

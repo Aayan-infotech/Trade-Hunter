@@ -1,6 +1,6 @@
 const Payment = require("../models/paymentModel");
 const Provider = require("../models/providerModel");
-const User = require('../models/userModel');
+const User = require('../models/hunterModel');
 const apiResponse = require("../utils/responsehandler");
 const subscription = require("../models/subscriptionModel");
 

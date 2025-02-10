@@ -1,7 +1,7 @@
-const user = require("../models/userModel");
+const user = require("../models/hunterModel");
 const apiResponse = require("../utils/responsehandler");
 const Address = require("../models/addressModel");
-const User = require("../models/userModel");
+const User = require("../models/hunterModel");
 
 const createAddress = async (req, res) => {
   try {
