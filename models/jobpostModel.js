@@ -47,7 +47,7 @@
       required: true,
       trim: true
     },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "hunter", required: true },
     jobStatus: {
       type: String,
       enum: ['Pending', 'Accepted', 'Completed' ],
