@@ -24,6 +24,8 @@ app.use("/api/users", userRoutes);
 app.use("/api/Prvdr", providerRts);
 app.use("/api/hunter", hunterRts);
 
+
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

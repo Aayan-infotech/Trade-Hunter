@@ -7,13 +7,14 @@ const {
   forgotPassword,
   resetPasswordWithOTP,
   changePassword,
+  getProviderById,
 } = require("../controllers/authController");
 const router = express.Router();
 const multer = require("multer");
 const upload = multer();
 const { uploadToS3 } = require("../common/multerConfig");
 const { refreshToken } = require("../middlewares/auth");
-
+const { verifyUser } = require("../middlewares/auth");
 
 router.post("/signup", 
   upload.single("images"),
@@ -33,5 +34,6 @@ router.post("/forgot-password", forgotPassword);
 router.post("/reset-password-with-otp", resetPasswordWithOTP);
 router.post("/changePassword/:id", changePassword);
 router.post("/refreshtoken", refreshToken);
+router.get("/getProviderById/:id", verifyUser, getProviderById);
 
 module.exports = router;
