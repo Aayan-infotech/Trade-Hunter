@@ -1,5 +1,5 @@
 const bcrypt = require("bcrypt");
-const User = require("../models/userModel");
+const User = require("../models/hunterModel");
 const generateverificationOTP = require("../utils/VerifyOTP");
 const sendEmail = require("../services/sendMail");
 const jwt = require("jsonwebtoken");

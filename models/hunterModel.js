@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const Address = require("./addressModel"); 
 
 // File Schema
 const fileSchema = new mongoose.Schema({
@@ -12,7 +11,7 @@ const fileSchema = new mongoose.Schema({
 
 
 // User Schema
-const userSchema = new mongoose.Schema(
+const hunterSchema = new mongoose.Schema(
   {
     name: {
       type: String,
@@ -86,4 +85,4 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.model("hunter", hunterSchema);

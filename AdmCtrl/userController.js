@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const User = require("../models/userModel");
+const User = require("../models/hunterModel");
 const JobPost = require('../models/jobpostModel'); 
 
 // Get all users
