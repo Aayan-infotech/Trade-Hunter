@@ -7,7 +7,8 @@ const {
   forgotPassword,
   resetPasswordWithOTP,
   changePassword,
-  getProviderById,
+  getProviderProfile,
+  getHunterProfile,
 } = require("../controllers/authController");
 const router = express.Router();
 const multer = require("multer");
@@ -34,6 +35,8 @@ router.post("/forgot-password", forgotPassword);
 router.post("/reset-password-with-otp", resetPasswordWithOTP);
 router.post("/changePassword/:id", changePassword);
 router.post("/refreshtoken", refreshToken);
-router.get("/getProviderById/:id", verifyUser, getProviderById);
+router.get("/getProviderProfile", verifyUser, getProviderProfile);
+router.get("/getHunterProfile", verifyUser, getHunterProfile);
+
 
 module.exports = router;

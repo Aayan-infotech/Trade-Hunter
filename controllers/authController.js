@@ -6,6 +6,7 @@ const sendEmail = require("../services/sendMail");
 const jwt = require("jsonwebtoken");
 const apiResponse = require("../utils/responsehandler");
 const Provider = require("../models/providerModel");
+const Hunter = require("../models/hunterModel");
 const Address = require("../models/addressModel");
 
 const signUp = async (req, res) => {
@@ -440,9 +441,11 @@ const changePassword = async (req, res) => {
 };
 
 // Get Provider by ID
-const getProviderById = async (req, res) => {
+const getProviderProfile = async (req, res) => {
   try {
-    const id = req.params.id;
+    console.log(req.user, "req.user");
+    
+    const id = req.user.userId;
     
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -466,6 +469,33 @@ const getProviderById = async (req, res) => {
   }
 };
 
+const getHunterProfile = async (req, res) => {
+  try {
+    const id = req.user.userId;
+    
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid provider ID" });
+    }
+    
+    const hunter = await Hunter.findById(id);
+    
+    if (!hunter) {
+      return res.status(404).json({ message: "Hunter not found" });
+    }
+    
+    res.status(200).json({
+      success: true,
+      status: 200,
+      data: hunter,
+    });
+  } catch (error) {
+    console.error("Error fetching hunter by ID:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
 module.exports = {
   signUp,
   login,
@@ -474,5 +504,6 @@ module.exports = {
   forgotPassword,
   resetPasswordWithOTP,
   changePassword,
-  getProviderById,
+  getProviderProfile,
+  getHunterProfile
 };
