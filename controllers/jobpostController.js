@@ -1,8 +1,8 @@
 const JobPost = require("../models/jobpostModel");
 const apiResponse = require("../utils/responsehandler");
-const User = require("../models/hunterModel");
+const hunter = require("../models/hunterModel");
 const auth = require("../middlewares/auth");
-const mongoose  =  require('mongoose')
+const mongoose  =  require('mongoose');
 
 const createJobPost = async (req, res) => {
   try {

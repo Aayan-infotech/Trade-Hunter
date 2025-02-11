@@ -75,11 +75,10 @@ const updateAddress = async (req, res) => {
     const updatedAddress = await Address.findByIdAndUpdate(id, updates, {
       new: true,
     });
-
+    
     if (!updatedAddress) {
       return res.status(404).json({ message: "Address not found" });
     }
-
     res.status(200).json(updatedAddress);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -100,7 +99,6 @@ const deleteAddress = async (req, res) => {
 
 const isAddressSelected = async(req, res) => {
   try {
-    // const userId = req.body.userId;
     const { addressId, userId } = req.body;
     const addresses = await Address.find({userId});
     
