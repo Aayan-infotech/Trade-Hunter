@@ -7,7 +7,7 @@ const subscription = require("../models/subscriptionModel");
 const createPayment = async (req, res) => {
   try {
 
-    const userId = req.user.userId;
+    const userId = req.user.id;
 
     const {
       transactionId,
