@@ -18,7 +18,7 @@ const createJobPost = async (req, res) => {
       requirements,
     } = req.body;
 
-    const userId = req.user.id;
+    const userId = req.user.userId;
     const documents = req.files || [];
 
     // Correctly structure jobLocation
