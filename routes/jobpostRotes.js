@@ -34,6 +34,6 @@ router.put("/:id", updateJobPost);
 router.delete("/:id", deleteJobPost);
 router.get("/getAllPendingJobPosts", getAllPendingJobPosts);
 router.get("/getJobPostByUserId", verifyUser ,getJobPostByUserId);
-router.get("/changeJobStatus/:jobId", verifyUser, changeJobStatus);
+router.post("/changeJobStatus/:jobId", verifyUser, changeJobStatus);
 
 module.exports = router;
