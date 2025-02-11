@@ -3,6 +3,7 @@ const apiResponse = require("../utils/responsehandler");
 const hunter = require("../models/hunterModel");
 const auth = require("../middlewares/auth");
 const mongoose  =  require('mongoose');
+const Provider = require('../models/providerModel');
 
 const createJobPost = async (req, res) => {
   try {
@@ -229,6 +230,17 @@ const changeJobStatus = async (req, res) => {
   try {
     const jobId = req.params.jobId;
     const { jobStatus } = req.body;
+    const user = req.user.userId;
+
+
+    const provider = await Provider.findById(user);
+    if(!provider){
+      return res.status(404).json({
+        success: false,
+        status: 404,
+        message: "Provider not found!"
+      });
+    }
 
     const allowedStatuses = ["Pending", "Accepted", "Completed"];
 
@@ -246,7 +258,6 @@ const changeJobStatus = async (req, res) => {
 
     // Find job post by ID
     const jobPost = await JobPost.findById(jobId);
-    
     if (!jobPost) {
       return res.status(404).json({ error: "Job post not found" });
     }
@@ -254,9 +265,16 @@ const changeJobStatus = async (req, res) => {
     // Update job status
     jobPost.jobStatus = jobStatus;
 
-    // Save changes
     await jobPost.save();
 
+        // If job is accepted, store jobId in user's acceptedJobs array
+        if (jobStatus === "Accepted") {
+          if (!provider.myServices.includes(jobId)) {
+            provider.myServices.push(jobId);
+            await provider.save();
+          }
+        }
+    
     return res.status(200).json({
       message: "Job status changed successfully",
       status: 200,

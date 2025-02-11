@@ -110,6 +110,13 @@ const providerSchema = new mongoose.Schema(
     token:{
       type: String,
     },
+    myServices: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "jobPost",
+      },
+    ],
+    
     files: [fileSchema],
   },
   { timestamps: true }
