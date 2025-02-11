@@ -2,8 +2,8 @@ const JobPost = require("../models/jobpostModel");
 const apiResponse = require("../utils/responsehandler");
 const hunter = require("../models/hunterModel");
 const auth = require("../middlewares/auth");
-const mongoose  =  require('mongoose');
-const Provider = require('../models/providerModel');
+const mongoose = require("mongoose");
+const Provider = require("../models/providerModel");
 
 const createJobPost = async (req, res) => {
   try {
@@ -64,7 +64,7 @@ const createJobPost = async (req, res) => {
     // Create new job post object
     const jobPost = new JobPost({
       title,
-      jobLocation, 
+      jobLocation,
       estimatedBudget,
       businessType,
       services,
@@ -190,10 +190,10 @@ const getAllPendingJobPosts = async (req, res) => {
 const getJobPostByUserId = async (req, res) => {
   const userId = req.user.userId;
 
-    // Get page & limit from query params, set defaults
-    let page = parseInt(req.query.page) || 1;
-    let limit = parseInt(req.query.limit) || 10; 
-    let skip = (page - 1) * limit; 
+  // Get page & limit from query params, set defaults
+  let page = parseInt(req.query.page) || 1;
+  let limit = parseInt(req.query.limit) || 10;
+  let skip = (page - 1) * limit;
 
   try {
     const totalJobs = await JobPost.countDocuments({ user: userId });
@@ -232,13 +232,12 @@ const changeJobStatus = async (req, res) => {
     const { jobStatus } = req.body;
     const user = req.user.userId;
 
-
     const provider = await Provider.findById(user);
-    if(!provider){
+    if (!provider) {
       return res.status(404).json({
         success: false,
         status: 404,
-        message: "Provider not found!"
+        message: "Provider not found!",
       });
     }
 
@@ -252,7 +251,8 @@ const changeJobStatus = async (req, res) => {
     // Validate jobStatus
     if (!allowedStatuses.includes(jobStatus)) {
       return res.status(400).json({
-        error: "Invalid job status. Allowed values: Pending, Accepted, Completed",
+        error:
+          "Invalid job status. Allowed values: Pending, Accepted, Completed",
       });
     }
 
@@ -267,14 +267,14 @@ const changeJobStatus = async (req, res) => {
 
     await jobPost.save();
 
-        // If job is accepted, store jobId in user's acceptedJobs array
-        if (jobStatus === "Accepted") {
-          if (!provider.myServices.includes(jobId)) {
-            provider.myServices.push(jobId);
-            await provider.save();
-          }
-        }
-    
+    // If job is accepted, store jobId in user's acceptedJobs array
+    if (jobStatus === "Accepted") {
+      if (!provider.myServices.includes(jobId)) {
+        provider.myServices.push(jobId);
+        await provider.save();
+      }
+    }
+
     return res.status(200).json({
       message: "Job status changed successfully",
       status: 200,
@@ -286,6 +286,49 @@ const changeJobStatus = async (req, res) => {
   }
 };
 
+const myAcceptedJobs = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+
+    // Fetch only required fields from the Provider model
+    const user = await Provider.findById(req.user.userId)
+      .select("myServices")
+      .lean();
+
+    if (!user?.myServices?.length) {
+      return res.status(404).json({ message: "No jobs found" });
+    }
+
+    // Extract unique job IDs
+    const jobIds = [...new Set(user.myServices.map((s) => s.toString()))];
+
+    // Fetch total job count and paginated jobs in parallel
+    const [totalJobs, jobs] = await Promise.all([
+      JobPost.countDocuments({ _id: { $in: jobIds } }),
+      JobPost.find({ _id: { $in: jobIds } })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+    ]);
+
+    return res.status(200).json({
+      status: 200,
+      message: "Jobs fetched successfully",
+      jobs,
+      pagination: {
+        totalJobs,
+        totalPages: Math.ceil(totalJobs / limit),
+        currentPage: page,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching jobs:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
 module.exports = {
   createJobPost,
   getAllJobPosts,
@@ -295,4 +338,5 @@ module.exports = {
   getAllPendingJobPosts,
   getJobPostByUserId,
   changeJobStatus,
+  myAcceptedJobs,
 };
