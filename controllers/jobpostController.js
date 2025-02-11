@@ -2,6 +2,7 @@ const JobPost = require("../models/jobpostModel");
 const apiResponse = require("../utils/responsehandler");
 const User = require("../models/hunterModel");
 const auth = require("../middlewares/auth");
+const mongoose  =  require('mongoose')
 
 const createJobPost = async (req, res) => {
   try {
@@ -62,7 +63,7 @@ const createJobPost = async (req, res) => {
     // Create new job post object
     const jobPost = new JobPost({
       title,
-      jobLocation, // Use the corrected jobLocation
+      jobLocation, 
       estimatedBudget,
       businessType,
       services,
@@ -224,6 +225,49 @@ const getJobPostByUserId = async (req, res) => {
   }
 };
 
+const changeJobStatus = async (req, res) => {
+  try {
+    const jobId = req.params.jobId;
+    const { jobStatus } = req.body;
+
+    const allowedStatuses = ["Pending", "Accepted", "Completed"];
+
+    // Validate if jobId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(jobId)) {
+      return res.status(400).json({ error: "Invalid Job ID format" });
+    }
+
+    // Validate jobStatus
+    if (!allowedStatuses.includes(jobStatus)) {
+      return res.status(400).json({
+        error: "Invalid job status. Allowed values: Pending, Accepted, Completed",
+      });
+    }
+
+    // Find job post by ID
+    const jobPost = await JobPost.findById(jobId);
+    
+    if (!jobPost) {
+      return res.status(404).json({ error: "Job post not found" });
+    }
+
+    // Update job status
+    jobPost.jobStatus = jobStatus;
+
+    // Save changes
+    await jobPost.save();
+
+    return res.status(200).json({
+      message: "Job status changed successfully",
+      status: 200,
+      jobPost,
+    });
+  } catch (error) {
+    console.error("Error updating job status:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   createJobPost,
   getAllJobPosts,
@@ -232,4 +276,5 @@ module.exports = {
   deleteJobPost,
   getAllPendingJobPosts,
   getJobPostByUserId,
+  changeJobStatus,
 };
