@@ -38,13 +38,13 @@ const getSubscriptionById = async (req, res) => {
   try {
     const subscription = await Subscription.findById(req.params.id);
     if (!subscription) {
-      return apiResponse.error(res, "Subscription not fetched", subscription);
+      return apiResponse.error(res, "Subscription not found", 404);
     }
     return apiResponse.success(res, "Subscription fetched by Id", subscription);
   } catch (error) {
-    res.status(500).json({ message: error.message });
-    return apiResponse.error(res, "Subscription fetched error",500);
+    return apiResponse.error(res, "Subscription fetch error", 500);
   }
 };
+
 
 module.exports = { addSubscription, getAllSubscription, getSubscriptionById };
