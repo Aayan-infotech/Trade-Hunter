@@ -28,7 +28,7 @@ router.post(
   // uploadToS3files,
   createJobPost
 );
-router.get("/", verifyUser, getAllJobPosts);
+router.get("/", getAllJobPosts);
 router.get("/jobpost-details/:id", verifyUser, getJobPostById);
 router.put("/:id", updateJobPost);
 router.delete("/:id", deleteJobPost);

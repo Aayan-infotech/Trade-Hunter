@@ -160,7 +160,6 @@ exports.getJobPostsByUser = async (req, res) => {
     // Send matching job posts
     return res.status(200).json({ data: jobPosts });
   } catch (error) {
-    console.error('Error fetching job posts:', error.message);
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };

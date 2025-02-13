@@ -6,7 +6,6 @@ exports.getNearbyServiceProviders = async (req, res) => {
     const { latitude, longitude, radius = 5000, page = 1, limit = 10 } = req.body;
     const offset = (page - 1) * limit;  // Calculate offset
     
-
     if (!latitude || !longitude) {
       return res.status(400).json({
         message: "Latitude and Longitude are required.",
@@ -71,7 +70,6 @@ exports.getNearbyServiceProviders = async (req, res) => {
       data,
     });
   } catch (error) {
-    console.error("Error fetching nearby service providers:", error);
     res.status(500).json({
       message: "An error occurred while fetching nearby service providers.",
       error: error.message,

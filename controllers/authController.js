@@ -28,8 +28,6 @@ const signUp = async (req, res) => {
       userType,
     } = req.body;
 
-    console.log(req.body);
-
     // Validate userType
     if (!["hunter", "provider"].includes(userType)) {
       return res.status(400).json({ message: "Invalid user type." });
@@ -246,7 +244,6 @@ const login = async (req, res) => {
       user: user,
     });
   } catch (err) {
-    console.log(err.message);
     return apiResponse.error(res, "Server error", 500);
   }
 };
@@ -293,7 +290,6 @@ const verifyEmail = async (req, res) => {
     return apiResponse.success(res, "Email verified successfully", { token, user });
 
   } catch (err) {
-    console.error("Verification error:", err.message);
     return apiResponse.error(res, "Server error", 500);
   }
 };
@@ -332,7 +328,6 @@ const forgotPassword = async (req, res) => {
       "OTP sent to your email. Please check your inbox."
     );
   } catch (err) {
-    console.error("Forgot Password Error:", err.message);
     return apiResponse.error(res, "Server error", 500);
   }
 };
@@ -369,7 +364,6 @@ const verifyOtp = async (req, res) => {
 
     return apiResponse.error(res, "Invalid OTP", 401);
   } catch (err) {
-    console.error("Verify OTP Error:", err.message);
     return apiResponse.error(res, "Server error", 500);
   }
 };
@@ -399,7 +393,6 @@ const resetPasswordWithOTP = async (req, res) => {
 
     return apiResponse.success(res, "Password reset successfully", 200);
   } catch (err) {
-    console.error("Reset Password Error:", err.message);
     return apiResponse.error(res, "Server error", 500);
   }
 };
@@ -438,9 +431,7 @@ const changePassword = async (req, res) => {
 
 // Get Provider by ID
 const getProviderProfile = async (req, res) => {
-  try {
-    console.log(req.user, "req.user");
-    
+  try {    
     const id = req.user.userId;
     
     // Validate ObjectId
@@ -460,7 +451,6 @@ const getProviderProfile = async (req, res) => {
       data: provider,
     });
   } catch (error) {
-    console.error("Error fetching provider by ID:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -485,7 +475,6 @@ const getHunterProfile = async (req, res) => {
       data: hunter,
     });
   } catch (error) {
-    console.error("Error fetching hunter by ID:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

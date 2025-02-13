@@ -83,7 +83,7 @@ const createJobPost = async (req, res) => {
       jobPost,
     });
   } catch (error) {
-    console.error("Error creating job post:", error);
+
     return res.status(500).json({
       error: error.message,
     });
@@ -91,19 +91,33 @@ const createJobPost = async (req, res) => {
 };
 
 const getAllJobPosts = async (req, res) => {
+  // Get page & limit from query params, set defaults
+  let page = parseInt(req.query.page) || 1;
+  let limit = parseInt(req.query.limit) || 10;
+  let skip = (page - 1) * limit;
+
   try {
-    const jobPosts = await JobPost.find();
-    return apiResponse.success(
-      res,
-      "Job posts retrieved successfully.",
-      jobPosts
-    );
+    // Get total job count for pagination
+    const totalJobs = await JobPost.countDocuments();
+
+    // Fetch job posts with pagination
+    const jobPosts = await JobPost.find().skip(skip).limit(limit);
+
+    return apiResponse.success(res, "Job posts retrieved successfully.", {
+      jobPosts,
+      pagination: {
+        totalJobs,
+        currentPage: page,
+        totalPages: Math.ceil(totalJobs / limit),
+      },
+    });
   } catch (error) {
     return apiResponse.error(res, "Internal server error.", 500, {
       error: error.message,
     });
   }
 };
+
 
 const getJobPostById = async (req, res) => {
   try {
@@ -165,7 +179,6 @@ const deleteJobPost = async (req, res) => {
 const getAllPendingJobPosts = async (req, res) => {
   try {
     const jobPosts = await JobPost.find({ jobStatus: "Pending" });
-    console.log("jobPosts", jobPosts);
 
     if (!jobPosts || jobPosts.length === 0) {
       return res.status(200).json({
@@ -232,7 +245,6 @@ const changeJobStatus = async (req, res) => {
     const { jobStatus } = req.body;
     const user = req.user.userId;
 
-
     const provider = await Provider.findById(user);
     if(!provider){
       return res.status(404).json({
@@ -281,7 +293,6 @@ const changeJobStatus = async (req, res) => {
       jobPost,
     });
   } catch (error) {
-    console.error("Error updating job status:", error);
     return res.status(500).json({ error: error.message });
   }
 };

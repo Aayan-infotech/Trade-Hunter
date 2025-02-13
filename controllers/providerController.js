@@ -453,7 +453,6 @@ exports.getJobsForGuest = async (req, res) => {
       data,
     });
   } catch (error) {
-    console.error("Error fetching jobs:", error);
     res.status(500).json({
       message: error.message,
       status: 500,
@@ -524,7 +523,6 @@ exports.getNearbyJobs = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching nearby jobs:", error);
     return res
       .status(500)
       .json({ status: 500, message: "Error fetching nearby jobs:" + error });
@@ -582,7 +580,6 @@ exports.getNearbyJobsForGuest = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching jobs for guest:", error);
     return res
       .status(500)
       .json({ status: 500, message: "Error fetching jobs: " + error });
