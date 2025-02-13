@@ -94,7 +94,7 @@ const deleteSubscription = async (req, res) => {
       });
     }
 
-    await subscription.findByIdAndDelete(id)
+    await Subscription.findByIdAndDelete(id)
       ;
 
     res.status(200).json({
