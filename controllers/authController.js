@@ -216,7 +216,7 @@ const login = async (req, res) => {
     );
 
     const refreshToken = jwt.sign(
-      { userid: user._id, email: user.email },
+      { userId: user._id, email: user.email },
       process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: "7d" }
     );
@@ -236,8 +236,6 @@ const login = async (req, res) => {
         user: user,
       });
     }
-
-
 
     return apiResponse.success(res, "Login successful", {
       token: token,
@@ -275,7 +273,7 @@ const verifyEmail = async (req, res) => {
 
     // Generate JWT Token
     const token = jwt.sign(
-      { id: user._id, email: user.email, userType: user.userType },
+      { userId: user._id, email: user.email, userType: user.userType },
       process.env.JWT_SECRET, // Ensure you have a secure secret in .env
       { expiresIn: "7d" }
     );

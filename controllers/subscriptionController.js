@@ -38,13 +38,76 @@ const getSubscriptionById = async (req, res) => {
   try {
     const subscription = await Subscription.findById(req.params.id);
     if (!subscription) {
-      return apiResponse.error(res, "Subscription not fetched", subscription);
+      return apiResponse.error(res, "Subscription not found", 404);
     }
     return apiResponse.success(res, "Subscription fetched by Id", subscription);
   } catch (error) {
-    res.status(500).json({ message: error.message });
-    return apiResponse.error(res, "Subscription fetched error",500);
+    return apiResponse.error(res, "Subscription fetch error", 500);
   }
 };
 
-module.exports = { addSubscription, getAllSubscription, getSubscriptionById };
+const updateSubscription = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount, title, description, type } = req.body;
+
+
+    const subscription = await Subscription.findById(id)
+      ;
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: "Susbscription not founf",
+      })
+    }
+    const updatedSubscription = await Subscription.findByIdAndUpdate(
+      id,
+      { amount, title, description, type },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Subscription updated successfully.",
+      data: updatedSubscription,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+      error: error.message,
+    });
+  }
+};
+
+
+const deleteSubscription = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const subscription = await Subscription.findById(id)
+      ;
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: "Subscription not found.",
+      });
+    }
+
+    await Subscription.findByIdAndDelete(id)
+      ;
+
+    res.status(200).json({
+      success: true,
+      message: "Subscription deleted successfully.",
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+      error: error.message,
+    });
+  }
+};
+
+module.exports = { addSubscription, getAllSubscription, getSubscriptionById, updateSubscription, deleteSubscription };

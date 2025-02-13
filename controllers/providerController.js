@@ -585,3 +585,25 @@ exports.getNearbyJobsForGuest = async (req, res) => {
       .json({ status: 500, message: "Error fetching jobs: " + error });
   }
 };
+
+
+exports.getJobByIdForGuest = async (req, res) => {
+  try {
+    const { jobId } = req.params;
+
+    if (!jobId) {
+      return res.status(400).json({ status: 400, message: "Job ID is required" });
+    }
+
+    const job = await jobpostModel.findById(jobId);
+
+    if (!job) {
+      return res.status(404).json({ status: 404, message: "Job not found" });
+    }
+
+    return res.status(200).json({ status: 200, message: "Job fetched successfully", data: job });
+  } catch (error) {
+    console.error("Error fetching job by ID:", error);
+    return res.status(500).json({ status: 500, message: "Error fetching job: " + error });
+  }
+};
