@@ -1,6 +1,6 @@
 const JobPost = require("../models/jobpostModel");
 const apiResponse = require("../utils/responsehandler");
-const hunter = require("../models/hunterModel");
+const Hunter = require("../models/hunterModel");
 const auth = require("../middlewares/auth");
 const mongoose = require("mongoose");
 const Provider = require("../models/providerModel");
@@ -90,28 +90,37 @@ const createJobPost = async (req, res) => {
   }
 };
 
+
 const getAllJobPosts = async (req, res) => {
-  // Get page & limit from query params, set defaults
   let page = parseInt(req.query.page) || 1;
   let limit = parseInt(req.query.limit) || 10;
   let skip = (page - 1) * limit;
 
   try {
-    // Get total job count for pagination
     const totalJobs = await JobPost.countDocuments();
 
-    // Fetch job posts with pagination
-    const jobPosts = await JobPost.find().skip(skip).limit(limit);
+    const jobPosts = await JobPost.find()
+      .skip(skip)
+      .limit(limit)
+      .populate({
+        path: "user",
+        model: "hunter", // Use lowercase since your model is registered as "hunter"
+        select: "name email",
+      })
+      .lean();
+
+    // console.log(jobPosts); // Debugging step
 
     return apiResponse.success(res, "Job posts retrieved successfully.", {
       pagination: {
         totalJobs,
         currentPage: page,
         totalPages: Math.ceil(totalJobs / limit),
-      },jobPosts,
-      
+      },
+      jobPosts,
     });
   } catch (error) {
+    console.error(error);
     return apiResponse.error(res, "Internal server error.", 500, {
       error: error.message,
     });

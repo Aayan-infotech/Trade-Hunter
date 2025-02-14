@@ -9,7 +9,7 @@ const {
   getJobPostByUserId,
   changeJobStatus,
   myAcceptedJobs
-} = require("../controllers/jobpostController");
+} = require("../AdmCtrl/jobCtrl");
 const multer = require("multer");
 const upload = multer();
 const { uploadToS3files } = require("../common/multerconfig2");
