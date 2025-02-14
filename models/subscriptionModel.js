@@ -16,7 +16,7 @@ const SubscriptionSchema = new mongoose.Schema({
     type: {
         type: String,
         required: true,
-        enum: ["advertising", "pay per load", "subscription"],
+        enum: ["advertising", "pay per lead", "subscription"],
     }
 }, {timestamp: true});
 
