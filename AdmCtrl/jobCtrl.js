@@ -95,21 +95,24 @@ const getAllJobPosts = async (req, res) => {
   let page = parseInt(req.query.page) || 1;
   let limit = parseInt(req.query.limit) || 10;
   let skip = (page - 1) * limit;
+  let search = req.query.search || ""; 
 
   try {
-    const totalJobs = await JobPost.countDocuments();
+    let query = {};
+    if (search.trim()) {
+      query.title = { $regex: search, $options: "i" };
+    }
 
-    const jobPosts = await JobPost.find()
+    const totalJobs = await JobPost.countDocuments(query);
+    const jobPosts = await JobPost.find(query)
       .skip(skip)
       .limit(limit)
       .populate({
         path: "user",
-        model: "hunter", // Use lowercase since your model is registered as "hunter"
+        model: "hunter", 
         select: "name email",
       })
       .lean();
-
-    // console.log(jobPosts); // Debugging step
 
     return apiResponse.success(res, "Job posts retrieved successfully.", {
       pagination: {
