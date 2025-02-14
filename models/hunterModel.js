@@ -44,6 +44,7 @@ const hunterSchema = new mongoose.Schema(
       required: true,
       enum: ["hunter"],
     },
+   
     userStatus: {
       type: Boolean,
       default: false,
