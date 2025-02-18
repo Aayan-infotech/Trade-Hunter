@@ -65,8 +65,9 @@ const providerSchema = new mongoose.Schema(
       required: false,
     },
     userStatus: {
-      type: Boolean,
-      default: false,
+      type: String,
+      enum: ['Active', 'Suspended', 'Pending'],
+      default: 'Pending'
     },
     emailVerified: {
       type: Number,
@@ -82,6 +83,11 @@ const providerSchema = new mongoose.Schema(
       type: Number,
       default: 0,
       required: true,
+    },
+    adminVerified:{
+      type: String,
+      enum: ['Verified','Not-Verified'],
+      default: 'Verified'
     },
     insBy: {
       type: String,
@@ -103,6 +109,12 @@ const providerSchema = new mongoose.Schema(
     termsAndCondition: {
       type: Boolean,
       default: false,
+    },
+    accountStatus:{
+        type: String,
+        enum: ['Suspend', 'Deactivate', 'Reactivate'],
+        default: 'Reactivate'
+      
     },
     refreshToken: {
       type: String,

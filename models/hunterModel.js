@@ -46,8 +46,9 @@ const hunterSchema = new mongoose.Schema(
     },
    
     userStatus: {
-      type: Boolean,
-      default: false,
+      type: String,
+      enum: ['Active', 'Suspended', 'Pending'],
+      default: 'Pending'
     },
     emailVerified: {
       type: Number,
@@ -74,6 +75,21 @@ const hunterSchema = new mongoose.Schema(
     termsAndCondition: {
       type: Boolean,
       default: false,
+    },
+    accountStatus:{
+      type: String,
+      enum: ['Suspend', 'Deactivate', 'Reactivate'],
+      default: 'Reactivate'
+    
+  },
+    address: {
+      location: {
+        type: { type: String, enum: ['Point'], required: false },
+        coordinates: { type: [Number], required: false }, // [longitude, latitude]
+      },
+      addressLine: { type: String, required: false, trim: true },
+      radius: { type: Number, required: false },
+      _id: false,
     },
     refreshToken:{
       type: String,
