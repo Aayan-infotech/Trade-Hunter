@@ -17,6 +17,7 @@ const userRoutes = require("./AdmRts/userRoutes");
 const providerRts = require("./AdmRts/providerRts");
 const hunterRts = require("./routes/hunterRoute")
 const jobRts = require("./AdmRts/jobRts")
+const notificationRts = require("./AdmRts/notificationRts")
 
 
 app.use("/api", apiRoutes);
@@ -25,6 +26,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/Prvdr", providerRts);
 app.use("/api/hunter", hunterRts);
 app.use("/api/jobs", jobRts)
+app.use("/api/notification",notificationRts);
 
 
 
