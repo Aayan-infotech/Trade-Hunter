@@ -104,23 +104,17 @@ exports.getUsersByType = async (req, res) => {
     const limit = parseInt(req.params.limit) || 10; // Extract limit from params
     const page = parseInt(req.query.page) || 1; // Extract page number from query
     const search = req.query.search || ""; // Extract search query from query
-    const userStatusFilter = req.query.userStatus; // Extract userStatus from query
 
     const userType = hunte.toLowerCase(); // Extracted userType without validation
 
     // Construct query with search
-    let query = {
+    const query = {
       userType,
       $or: [
         { name: { $regex: search, $options: "i" } }, // Search by name (case-insensitive)
         { email: { $regex: search, $options: "i" } }, // Search by email (case-insensitive)
       ],
     };
-
-    // If a valid userStatus filter is provided, add it to the query.
-    if (userStatusFilter) {
-      query.userStatus = userStatusFilter;
-    }
 
     // Fetch users with pagination
     const users = await User.find(query)
@@ -142,7 +136,6 @@ exports.getUsersByType = async (req, res) => {
     res.status(500).json({ message: "Error retrieving users", error });
   }
 };
-
 
 
 // GET Job Posts By User Id
