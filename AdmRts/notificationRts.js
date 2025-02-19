@@ -8,3 +8,4 @@ router.get('/getById/:userType/:userId/:id', notificationController.getNotificat
 router.delete('/delete/:userType/:userId/:id', notificationController.deleteNotification);
 
 module.exports = router;
+  
