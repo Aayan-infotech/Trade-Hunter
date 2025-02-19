@@ -52,7 +52,12 @@
       type: String,
       enum: ['Pending','Assigned','InProgress','Completed'],
       default: 'Pending' 
-    }
+    },
+    jobAssigned:{
+      type: String,
+      enum: ['Cancel', 'ReAssign','Assigned'],
+      default:'Assigned'
+    },
   }, { timestamps: true });
 
   // Create 2dsphere index for geospatial queries
