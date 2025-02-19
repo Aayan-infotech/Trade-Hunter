@@ -1,15 +1,20 @@
 const Provider = require("../models/providerModel"); 
 
-// Get All Providers with Pagination and Search
 exports.getAllProviders = async (req, res) => {
   try {
-    const { limit = 10, page = 1, search = "" } = req.query;
-    const query = {
+    const { limit = 10, page = 1, search = "", userStatus } = req.query;
+
+    let query = {
       $or: [
         { contactName: { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
       ],
     };
+
+    const validStatuses = ["Active", "Suspended", "Pending"];
+    if (userStatus && validStatuses.includes(userStatus)) {
+      query.userStatus = userStatus;
+    }
 
     const providers = await Provider.find(query)
       .skip((page - 1) * parseInt(limit))
@@ -34,6 +39,7 @@ exports.getAllProviders = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error", error });
   }
 };
+
 
 // Delete a Provider
 exports.deleteProvider = async (req, res) => {
