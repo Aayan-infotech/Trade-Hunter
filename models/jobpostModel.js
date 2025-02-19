@@ -50,7 +50,7 @@
     user: { type: mongoose.Schema.Types.ObjectId, ref: "hunter", required: true },
     jobStatus: {
       type: String,
-      enum: ['Pending', 'Accepted', 'Completed' ],
+      enum: ['Pending','Assigned','InProgress','Completed'],
       default: 'Pending' 
     }
   }, { timestamps: true });
