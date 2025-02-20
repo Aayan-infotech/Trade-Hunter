@@ -24,7 +24,6 @@ const signUp = async (req, res) => {
       password,
       ABN_Number,
       businessType,
-      serviceType,
       userType,
     } = req.body;
 
@@ -57,7 +56,6 @@ const signUp = async (req, res) => {
             password,
             ABN_Number,
             businessType,
-            serviceType,
             addressLine,
           ];
 
@@ -149,7 +147,6 @@ const signUp = async (req, res) => {
             phoneNo,
             ABN_Number,
             businessType,
-            serviceType,
             password: hashedPassword,
             userType,
             insBy: req.headers["x-client-type"],
