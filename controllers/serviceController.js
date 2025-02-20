@@ -15,7 +15,7 @@ const createService = async (req, res) => {
     const newService = await Service.create({ name });
 
     res.status(201).json({
-      success: true,
+      status :201,
       message: "Service created successfully.",
       data: newService,
     });
@@ -33,7 +33,7 @@ const getAllServices = async (req, res) => {
     const services = await Service.find({}); 
 
     res.status(200).json({
-      success: true,
+      status: 200,
       message: "Services fetched successfully.",
       data: services,
     });
@@ -73,7 +73,7 @@ const updateService = async (req, res) => {
     );
 
     res.status(200).json({
-      success: true,
+      status: 200,
       message: "Service updated successfully.",
       data: updatedService,
     });
@@ -101,7 +101,7 @@ const deleteService = async (req, res) => {
     await Service.findByIdAndDelete(id);
 
     res.status(200).json({
-      success: true,
+      status: 200,
       message: "Service deleted successfully.",
     });
   } catch (error) {
