@@ -1,24 +1,25 @@
+const { ServiceCatalogAppRegistry } = require("aws-sdk");
 const Service = require("../models/serviceModel");
 
 const createService = async (req, res) => {
   try {
-    const { name, services } = req.body;
+    const { name } = req.body;
 
     // Validate input
-    if (!name || !Array.isArray(services)) {
+    if (  !Array.isArray(name)) {
       return res.status(400).json({
         success: false,
-        message: "Name and services array are required.",
+        message: "name array are required.",
       });
     }
 
     // Insert the new service group
-    const newService = await Service.create({ name, services });
+    const newName = await Service.create({ name });
 
     res.status(201).json({
       success: true,
       message: "Service group created successfully.",
-      data: newService,
+      data: newName,
     });
   } catch (error) {
     res.status(500).json({
@@ -31,12 +32,12 @@ const createService = async (req, res) => {
 
 const getAllServices = async (req, res) => {
   try {
-    const Services = await Service.find({});
+    const Name = await Service.find({});
 
     res.status(201).json({
       success: true,
-      message: "Services fetched successfully.",
-      data: Services,
+      message: "names fetched successfully.",
+      data: Name,
     });
   } catch (error) {
     res.status(500).json({
@@ -51,34 +52,34 @@ const getAllServices = async (req, res) => {
 const updateService = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, services } = req.body;
+    const { name } = req.body;
 
-    if (!name || !Array.isArray(services)) {
+    if (!Array.isArray(name)) {
       return res.status(400).json({
         success: false,
-        message: "Name and services array are required.",
+        message: "Name array are required.",
       });
     }
 
-    const service = await Service.findById(id)
+    const Names = await Service.findById(id)
       ;
-    if (!service) {
+    if (!name) {
       return res.status(404).json({
         success: false,
-        message: "Service not found.",
+        message: "Service names not found.",
       });
     }
 
-    const updatedService = await Service.findByIdAndUpdate(
+    const updatedName = await name.findByIdAndUpdate(
       id,
-      { name, services },
+      { name},
       { new: true, runValidators: true }
     );
 
     res.status(200).json({
       success: true,
       message: "Service updated successfully.",
-      data: updatedService,
+      data: updatedName,
     });
   } catch (error) {
     res.status(500).json({
@@ -93,8 +94,8 @@ const deleteService = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const service = await Service.findById(id);
-    if (!service) {
+    const name = await Service.findById(id);
+    if (!name) {
       return res.status(404).json({
         success: false,
         message: "Service not found.",
