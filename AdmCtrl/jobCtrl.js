@@ -388,6 +388,27 @@ const getJobStatusCounts = async (req, res) => {
   }
 };
 
+const getRecentJobPosts = async (req, res) => {
+  try {
+    const recentJobs = await JobPost.find()
+      .sort({ createdAt: -1 }) // Sort by most recent
+      .limit(4) // Get only the latest 4
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      message: "Recent job posts fetched successfully",
+      data: recentJobs,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
 
 module.exports = {
   createJobPost,
@@ -399,5 +420,6 @@ module.exports = {
   getJobPostByUserId,
   changeJobStatus,
   myAcceptedJobs,
-  getJobStatusCounts
+  getJobStatusCounts,
+  getRecentJobPosts
 };
