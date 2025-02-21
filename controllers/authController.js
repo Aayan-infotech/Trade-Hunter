@@ -128,8 +128,6 @@ const signUp = async (req, res) => {
       },
     };
 
-    const guestMode = typeof isGuestMode === "boolean" ? isGuestMode : false;
-
     // Create new user or provider
     const newUser =
       userType === "hunter"
@@ -155,7 +153,7 @@ const signUp = async (req, res) => {
             insBy: req.headers["x-client-type"],
             images: req.fileLocations?.[0],
             address,
-            isGuestMode: guestMode,
+            isGuestMode,
           });
 
     // Send verification email
@@ -223,6 +221,8 @@ const login = async (req, res) => {
     );
 
     user.refreshToken = refreshToken;
+    user.token = token;
+
     await user.save();
 
     if (!user.emailVerified) {
