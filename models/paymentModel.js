@@ -37,6 +37,11 @@ const PaymentSchema = new mongoose.Schema(
             required: true,
             ref: "User", 
         },
+        type: {
+            type: String,
+            required: true,
+            enum: ["advertising", "pay per lead", "subscription"],
+        }
     },
     { timestamps: true }
 );

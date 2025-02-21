@@ -76,4 +76,31 @@ const paymentByProviderId = async (req, res) => {
   }
 };
 
-module.exports = { createPayment, getAllPayment, paymentByProviderId };
+
+const getTotalSubscriptionRevenue = async (req, res) => {
+  try {
+    const totalRevenue = await Payment.aggregate([
+      {
+        $match: {
+          transactionStatus: "Successful",
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: "$transactionAmount" },
+        },
+      },
+    ]);
+
+    return apiResponse.success(res, "Total subscription revenue fetched", {
+      totalRevenue: totalRevenue.length > 0 ? totalRevenue[0].totalAmount : 0,
+    });
+  } catch (error) {
+    return apiResponse.error(res, "Failed to fetch subscription revenue", 500);
+  }
+};
+
+
+
+module.exports = { createPayment, getAllPayment, paymentByProviderId,getTotalSubscriptionRevenue};
