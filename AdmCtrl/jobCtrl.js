@@ -351,6 +351,42 @@ const myAcceptedJobs = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+const getJobStatusCounts = async (req, res) => {
+  try {
+    const statusCounts = await JobPost.aggregate([
+      {
+        $group: {
+          _id: "$jobStatus",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // Format the response to include all possible statuses
+    const statusMap = {
+      Pending: 0,
+      Assigned: 0,
+      InProgress: 0,
+      Completed: 0,
+    };
+
+    statusCounts.forEach((status) => {
+      statusMap[status._id] = status.count;
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Job status counts fetched successfully",
+      data: statusMap,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
 
 
 module.exports = {
@@ -363,4 +399,5 @@ module.exports = {
   getJobPostByUserId,
   changeJobStatus,
   myAcceptedJobs,
+  getJobStatusCounts
 };

@@ -8,7 +8,8 @@ const {
   getAllPendingJobPosts,
   getJobPostByUserId,
   changeJobStatus,
-  myAcceptedJobs
+  myAcceptedJobs,
+  getJobStatusCounts
 } = require("../AdmCtrl/jobCtrl");
 const multer = require("multer");
 const upload = multer();
@@ -35,5 +36,5 @@ router.get("/getAllPendingJobPosts", getAllPendingJobPosts);
 router.get("/getJobPostByUserId", getJobPostByUserId);
 router.post("/changeJobStatus/:jobId",  changeJobStatus);
 router.get("/myAcceptedJobs", myAcceptedJobs);
-
+router.get("/getCount", getJobStatusCounts);
 module.exports = router;
