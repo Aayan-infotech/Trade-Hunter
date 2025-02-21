@@ -243,6 +243,29 @@ const login = async (req, res) => {
   }
 };
 
+// logout
+const logout = async (req, res) => {
+  try {
+    const { userId } = req.user; // Extract userId from decoded token
+
+    let user = await User.findById(userId);
+    if (!user) {
+      user = await Provider.findById(userId);
+    }
+
+    if (!user) {
+      return apiResponse.error(res, "User not found", 404);
+    }
+
+    user.refreshToken = null; // Clear refresh token
+    await user.save();
+
+    return apiResponse.success(res, "Logout successful");
+  } catch (err) {
+    return apiResponse.error(res, "Server error", 500);
+  }
+};
+
 const verifyEmail = async (req, res) => {
   const { email, verificationOTP, userType } = req.body;
 
@@ -477,11 +500,13 @@ const getHunterProfile = async (req, res) => {
 module.exports = {
   signUp,
   login,
+  logout,
   verifyEmail,
   verifyOtp,
   forgotPassword,
   resetPasswordWithOTP,
   changePassword,
   getProviderProfile,
-  getHunterProfile
+  getHunterProfile,
+
 };

@@ -2,6 +2,7 @@ const express = require("express");
 const {
   signUp,
   login,
+  logout,
   verifyEmail,
   verifyOtp,
   forgotPassword,
@@ -29,6 +30,7 @@ router.post("/signup",
   signUp
 );
 router.post("/login", login);
+router.post("/logout", authenticateToken, logout);
 router.post("/verify-email", verifyEmail);
 router.post("/verify-otp", verifyOtp);
 router.post("/forgot-password", forgotPassword);
