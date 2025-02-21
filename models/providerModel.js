@@ -123,6 +123,7 @@ const providerSchema = new mongoose.Schema(
       type: String,
     },
     isGuestMode: {
+      required: false,
       type: Boolean,
       default: false,
     },
