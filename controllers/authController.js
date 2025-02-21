@@ -243,26 +243,45 @@ const login = async (req, res) => {
   }
 };
 
-// logout
 const logout = async (req, res) => {
   try {
-    const { userId } = req.user; // Extract userId from decoded token
+    const { userType } = req.body;
 
-    let user = await User.findById(userId);
-    if (!user) {
-      user = await Provider.findById(userId);
+    if (!req.user || !req.user.userId) {
+      return res.status(401).json({
+        status: 401,
+        message: "Unauthorized access. User not found."
+      });
+    }
+
+    let user;
+    if (userType === "hunter") {
+      user = await User.findById(req.user.userId);
+    } else if (userType === "provider") {
+      user = await Provider.findById(req.user.userId);
     }
 
     if (!user) {
-      return apiResponse.error(res, "User not found", 404);
+      return res.status(404).json({
+        status: 404,
+        message: "User not found."
+      });
     }
 
-    user.refreshToken = null; // Clear refresh token
+    // Remove refresh token from database
+    user.refreshToken = "";
     await user.save();
 
-    return apiResponse.success(res, "Logout successful");
-  } catch (err) {
-    return apiResponse.error(res, "Server error", 500);
+    return res.status(200).json({
+      status: 200,
+      message: "Logout successful."
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: 500,
+      message: "Server error",
+      error: error.message
+    });
   }
 };
 

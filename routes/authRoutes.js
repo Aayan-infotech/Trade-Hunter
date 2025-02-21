@@ -18,6 +18,7 @@ const { uploadToS3 } = require("../common/multerConfig");
 const { refreshToken } = require("../middlewares/auth");
 const { verifyUser } = require("../middlewares/auth");
 
+
 router.post("/signup", 
   upload.single("images"),
   async (req, res, next) => {
@@ -30,7 +31,7 @@ router.post("/signup",
   signUp
 );
 router.post("/login", login);
-router.post("/logout", refreshToken, logout);
+router.post("/logout", verifyUser, logout);
 router.post("/verify-email", verifyEmail);
 router.post("/verify-otp", verifyOtp);
 router.post("/forgot-password", forgotPassword);
