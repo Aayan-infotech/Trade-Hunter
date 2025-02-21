@@ -25,6 +25,7 @@ const signUp = async (req, res) => {
       ABN_Number,
       businessType,
       userType,
+      isGuestMode,
     } = req.body;
 
     // Validate userType
@@ -127,6 +128,8 @@ const signUp = async (req, res) => {
       },
     };
 
+    const guestMode = typeof isGuestMode === "boolean" ? isGuestMode : false;
+
     // Create new user or provider
     const newUser =
       userType === "hunter"
@@ -152,6 +155,7 @@ const signUp = async (req, res) => {
             insBy: req.headers["x-client-type"],
             images: req.fileLocations?.[0],
             address,
+            isGuestMode: guestMode,
           });
 
     // Send verification email

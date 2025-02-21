@@ -84,9 +84,9 @@ const providerSchema = new mongoose.Schema(
       default: 0,
       required: true,
     },
-    adminVerified:{
+    adminVerified: {
       type: String,
-      enum: ['Verified','Not-Verified'],
+      enum: ['Verified', 'Not-Verified'],
       default: 'Verified'
     },
     insBy: {
@@ -110,25 +110,30 @@ const providerSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    accountStatus:{
-        type: String,
-        enum: ['Suspend', 'Deactivate', 'Reactivate'],
-        default: 'Reactivate'
-      
+    accountStatus: {
+      type: String,
+      enum: ['Suspend', 'Deactivate', 'Reactivate'],
+      default: 'Reactivate'
+
     },
     refreshToken: {
       type: String,
     },
-    token:{
+    token: {
       type: String,
     },
+    isGuestMode: {
+      type: Boolean,
+      default: false,
+    },
+
     myServices: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "jobPost",
       },
     ],
-    
+
     files: [fileSchema],
   },
   { timestamps: true }
