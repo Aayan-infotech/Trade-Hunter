@@ -88,6 +88,7 @@ const getTotalSubscriptionRevenue = async (req, res) => {
       },
     ]);
 
+    
     return apiResponse.success(res, "Total subscription revenue fetched", {
       totalRevenue: totalRevenue.length > 0 ? totalRevenue[0].totalAmount : 0,
     });
