@@ -44,6 +44,9 @@ pipeline {
                         -Dsonar.sources=/usr/src \
                         -Dsonar.host.url=http://54.236.98.193:9000 \
                         -Dsonar.login=${SONARTOKEN}
+
+                         AWS_ACCESS_KEY_ID=AKIAW5WU5ELL2I3XGJOV
+AWS_SECRET_ACCESS_KEY=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
                     '''
                 }
             }
