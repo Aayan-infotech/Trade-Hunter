@@ -140,6 +140,6 @@ const providerSchema = new mongoose.Schema(
 );
 
 // Create 2dsphere index for geospatial queries
-providerSchema.index({ "address.location": '2dsphere' });
+providerSchema.index({ "address.location": '2dsphere' }); 
 
 module.exports = mongoose.model("Provider", providerSchema);
