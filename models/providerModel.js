@@ -122,11 +122,11 @@ const providerSchema = new mongoose.Schema(
     token: {
       type: String,
     },
-    isGuestMode: {
-      required: false,
-      type: Boolean,
-      default: false,
-    },
+    // isGuestMode: {
+    //   required: false,
+    //   type: Boolean,
+    //   default: false,
+    // },
 
     myServices: [
       {

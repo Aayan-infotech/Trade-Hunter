@@ -25,7 +25,7 @@ const signUp = async (req, res) => {
       ABN_Number,
       businessType,
       userType,
-      isGuestMode,
+      // isGuestMode,
     } = req.body;
 
     // Validate userType
@@ -153,7 +153,7 @@ const signUp = async (req, res) => {
             insBy: req.headers["x-client-type"],
             images: req.fileLocations?.[0],
             address,
-            isGuestMode,
+            // isGuestMode,
           });
 
     // Send verification email
