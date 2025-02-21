@@ -18,7 +18,7 @@ const { uploadToS3 } = require("../common/multerConfig");
 const { refreshToken } = require("../middlewares/auth");
 const { verifyUser } = require("../middlewares/auth");
 
-
+// Authentication Routes
 router.post("/signup", 
   upload.single("images"),
   async (req, res, next) => {
@@ -32,14 +32,21 @@ router.post("/signup",
 );
 router.post("/login", login);
 router.post("/logout", verifyUser, logout);
+router.post("/refresh-token", refreshToken);
+
+// Email & OTP Verification Routes
 router.post("/verify-email", verifyEmail);
 router.post("/verify-otp", verifyOtp);
-router.post("/forgot-password", forgotPassword);
-router.post("/reset-password-with-otp", resetPasswordWithOTP);
-router.post("/changePassword/:id", changePassword);
-router.post("/refreshtoken", refreshToken);
-router.get("/getProviderProfile", verifyUser, getProviderProfile);
-router.get("/getHunterProfile", verifyUser, getHunterProfile);
+
+// Password Management Routes
+router.post("/password/forgot", forgotPassword);
+// router.post("/reset-password-with-otp", resetPasswordWithOTP);
+router.post("/password/reset", resetPasswordWithOTP);
+router.post("/password/change/:id", changePassword);
+
+// Profile Routes
+router.get("/profiles/provider", verifyUser, getProviderProfile);
+router.get("/profiles/hunter", verifyUser, getHunterProfile);
 
 
 module.exports = router;
