@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const User = require("../models/hunterModel");
-const JobPost = require('../models/jobpostModel'); 
-
+const JobPost = require('../models/jobpostModel');  // Ensure correct path
+const Provider = require("../models/providerModel");  // Ensure correct path
 // Get all users
 exports.getAllUsers = async (req, res) => {
   try {
