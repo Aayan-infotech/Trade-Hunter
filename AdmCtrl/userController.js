@@ -59,72 +59,27 @@ exports.deleteUser = async (req, res) => {
 };
 
 
-// exports.getUsersByType = async (req, res) => {
-//   try {
-//     const { hunte } = req.params; // Extract userType from params
-//     const limit = parseInt(req.params.limit) || 10; // Extract limit from params
-//     const page = parseInt(req.query.page) || 1; // Extract page number from query
-//     const search = req.query.search || ""; // Extract search query from query
-
-//     // Validate userType
-//     const userType = hunte.toLowerCase();
-//     if (!["provider", "hunter"].includes(userType)) {
-//       return res.status(400).json({ message: "Invalid or missing userType" });
-//     }
-
-//     // Construct query with search
-//     const query = {
-//       userType,
-//       $or: [
-//         { name: { $regex: search, $options: "i" } }, // Search by name (case-insensitive)
-//         { email: { $regex: search, $options: "i" } }, // Search by email (case-insensitive)
-//       ],
-//     };
-
-//     // Fetch users with pagination
-//     const users = await User.find(query)
-//       .skip((page - 1) * limit)
-//       .limit(limit)
-//       .select("name email phoneNo userType userStatus emailVerified documentStatus subscriptionStatus");
-
-//     // Count total users for pagination metadata
-//     const totalUsers = await User.countDocuments(query);
-
-//     res.status(200).json({
-//       page,
-//       limit,
-//       totalUsers,
-//       totalPages: Math.ceil(totalUsers / limit),
-//       users,
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: "Error retrieving users", error });
-//   }
-// };
-
 exports.getUsersByType = async (req, res) => {
   try {
     const { hunte } = req.params; // Extract userType from params
     const limit = parseInt(req.params.limit) || 10; // Extract limit from params
     const page = parseInt(req.query.page) || 1; // Extract page number from query
     const search = req.query.search || ""; // Extract search query from query
-    const userStatusFilter = req.query.userStatus; // Extract userStatus filter from query
 
-    const userType = hunte.toLowerCase(); // Convert userType to lowercase
+    // Validate userType
+    const userType = hunte.toLowerCase();
+    if (!["provider", "hunter"].includes(userType)) {
+      return res.status(400).json({ message: "Invalid or missing userType" });
+    }
 
-    // Construct base query with search filters
-    let query = {
+    // Construct query with search
+    const query = {
       userType,
       $or: [
-        { name: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
+        { name: { $regex: search, $options: "i" } }, // Search by name (case-insensitive)
+        { email: { $regex: search, $options: "i" } }, // Search by email (case-insensitive)
       ],
     };
-
-    // Apply userStatus filter if provided
-    if (userStatusFilter) {
-      query.userStatus = userStatusFilter;
-    }
 
     // Fetch users with pagination
     const users = await User.find(query)
@@ -146,6 +101,51 @@ exports.getUsersByType = async (req, res) => {
     res.status(500).json({ message: "Error retrieving users", error });
   }
 };
+
+// exports.getUsersByType = async (req, res) => {
+//   try {
+//     const { hunte } = req.params; // Extract userType from params
+//     const limit = parseInt(req.params.limit) || 10; // Extract limit from params
+//     const page = parseInt(req.query.page) || 1; // Extract page number from query
+//     const search = req.query.search || ""; // Extract search query from query
+//     const userStatusFilter = req.query.userStatus; // Extract userStatus filter from query
+
+//     const userType = hunte.toLowerCase(); // Convert userType to lowercase
+
+//     // Construct base query with search filters
+//     let query = {
+//       userType,
+//       $or: [
+//         { name: { $regex: search, $options: "i" } },
+//         { email: { $regex: search, $options: "i" } },
+//       ],
+//     };
+
+//     // Apply userStatus filter if provided
+//     if (userStatusFilter) {
+//       query.userStatus = userStatusFilter;
+//     }
+
+//     // Fetch users with pagination
+//     const users = await User.find(query)
+//       .skip((page - 1) * limit)
+//       .limit(limit)
+//       .select("name email phoneNo userType userStatus emailVerified documentStatus subscriptionStatus");
+
+//     // Count total users for pagination metadata
+//     const totalUsers = await User.countDocuments(query);
+
+//     res.status(200).json({
+//       page,
+//       limit,
+//       totalUsers,
+//       totalPages: Math.ceil(totalUsers / limit),
+//       users,
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: "Error retrieving users", error });
+//   }
+// };
 
 // exports.getUsersByType = async (req, res) => {
 //   try {
