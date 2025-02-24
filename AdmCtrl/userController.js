@@ -149,6 +149,7 @@ exports.getUsersByType = async (req, res) => {
     res.status(500).json({ message: "Error retrieving users", error });
   }
 };
+;
 
 
 
