@@ -3,16 +3,18 @@ const mongoose = require('mongoose');
 const User = require("../models/hunterModel"); // Ensure correct path
 const Provider = require("../models/providerModel");
 
-exports.getTotalCount= async (req, res) => {
+exports.getTotalCount = async (req, res) => {
   try {
     const huntersCount = await User.countDocuments();
-    const providersCount = await Provider.countDocuments();
-    const totalUsers = huntersCount + providersCount;
+    const providersCount = await Provider.countDocuments({ isGuestMode: false });
+    const guestModeProvidersCount = await Provider.countDocuments({ isGuestMode: true });
+    const totalUsers = huntersCount + providersCount + guestModeProvidersCount;
 
     return res.status(200).json({
       totalUsers,
       huntersCount,
-      providersCount,
+      providers: providersCount,
+      guestModeProviders: guestModeProvidersCount,
     });
   } catch (error) {
     console.error("Error retrieving user counts:", error);

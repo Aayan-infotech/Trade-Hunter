@@ -7,7 +7,7 @@ const notificationSchema = new mongoose.Schema({
   },
   userType: {
     type: String,
-    enum: ['hunter', 'Provider'],
+    enum: ['hunter', 'provider'],
     required: true,
   },
   type: {
