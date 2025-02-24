@@ -1,7 +1,11 @@
 const mongoose = require('mongoose');
 const User = require("../models/hunterModel");
-const JobPost = require('../models/jobpostModel');  // Ensure correct path
-const Provider = require("../models/providerModel");  // Ensure correct path
+const JobPost = require('../models/jobpostModel');  
+const Provider = require("../models/providerModel");
+const Hunter = require("../models/hunterModel");
+// const Provider = require("../models/providerModel");
+
+
 // Get all users
 exports.getAllUsers = async (req, res) => {
   try {
@@ -98,50 +102,75 @@ exports.deleteUser = async (req, res) => {
 //   }
 // };
 
+// exports.getUsersByType = async (req, res) => {
+//   try {
+//     const { hunte } = req.params; // Extract userType from params
+//     const limit = parseInt(req.params.limit) || 10; // Extract limit from params
+//     const page = parseInt(req.query.page) || 1; // Extract page number from query
+//     const search = req.query.search || ""; // Extract search query from query
+//     const userStatusFilter = req.query.userStatus; // Extract userStatus filter from query
+
+//     const userType = hunte.toLowerCase(); // Convert userType to lowercase
+
+//     // Construct base query with search filters
+//     let query = {
+//       userType,
+//       $or: [
+//         { name: { $regex: search, $options: "i" } },
+//         { email: { $regex: search, $options: "i" } },
+//       ],
+//     };
+
+//     // Apply userStatus filter if provided
+//     if (userStatusFilter) {
+//       query.userStatus = userStatusFilter;
+//     }
+
+//     // Fetch users with pagination
+//     const users = await User.find(query)
+//       .skip((page - 1) * limit)
+//       .limit(limit)
+//       .select("name email phoneNo userType userStatus emailVerified documentStatus subscriptionStatus");
+
+//     // Count total users for pagination metadata
+//     const totalUsers = await User.countDocuments(query);
+
+//     res.status(200).json({
+//       page,
+//       limit,
+//       totalUsers,
+//       totalPages: Math.ceil(totalUsers / limit),
+//       users,
+//     });
+//   } catch (error) {
+//     res.status(500).json({ message: "Error retrieving users", error });
+//   }
+// };
+
 exports.getUsersByType = async (req, res) => {
   try {
-    const { hunte } = req.params; // Extract userType from params
-    const limit = parseInt(req.params.limit) || 10; // Extract limit from params
-    const page = parseInt(req.query.page) || 1; // Extract page number from query
-    const search = req.query.search || ""; // Extract search query from query
-    const userStatusFilter = req.query.userStatus; // Extract userStatus filter from query
-
-    const userType = hunte.toLowerCase(); // Convert userType to lowercase
-
-    // Construct base query with search filters
-    let query = {
-      userType,
-      $or: [
-        { name: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-      ],
-    };
-
-    // Apply userStatus filter if provided
-    if (userStatusFilter) {
-      query.userStatus = userStatusFilter;
+    const { type, pagelimit } = req.params;
+    const limit = parseInt(pagelimit) || 10;
+    
+    let users;
+    if (type === "hunter") {
+      users = await Hunter.find().limit(limit);
+    } else if (type === "provider") {
+      users = await Provider.find().limit(limit);
+    } else {
+      return res.status(400).json({ message: "Invalid user type." });
     }
-
-    // Fetch users with pagination
-    const users = await User.find(query)
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .select("name email phoneNo userType userStatus emailVerified documentStatus subscriptionStatus");
-
-    // Count total users for pagination metadata
-    const totalUsers = await User.countDocuments(query);
-
-    res.status(200).json({
-      page,
-      limit,
-      totalUsers,
-      totalPages: Math.ceil(totalUsers / limit),
-      users,
-    });
+    
+    res.status(200).json({ success: true, data: users });
   } catch (error) {
-    res.status(500).json({ message: "Error retrieving users", error });
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error." });
   }
 };
+
+
+
+
 
 
 
