@@ -152,7 +152,6 @@ exports.getUsersByType = async (req, res) => {
 
 
 
-
 // GET Job Posts By User Id
 exports.getJobPostsByUser = async (req, res) => {
   try {
