@@ -1,4 +1,6 @@
+const mongoose = require("mongoose");
 const providerModel = require("../models/providerModel");
+const Hunter = require("../models/hunterModel"); 
 
 exports.getNearbyServiceProviders = async (req, res) => {
   try {
@@ -75,5 +77,31 @@ exports.getNearbyServiceProviders = async (req, res) => {
       error: error.message,
       status: 500,
     });
+  }
+};
+
+
+
+exports.updateHunterById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    const updatedHunter = await Hunter.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!updatedHunter) {
+      return res.status(404).json({ message: "Hunter not found" });
+    }
+
+    res.status(200).json({ message: "Hunter updated successfully", updatedHunter });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
