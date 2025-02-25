@@ -24,9 +24,13 @@
       type: String,
       required: true,
     },
-    services: {
-      type: String,
-      required: true,
+    // services: {
+    //   type: String,
+    //   required: true,
+    // },
+    date: {
+      type: Date,
+      required: true
     },
     timeframe: {
       from: {

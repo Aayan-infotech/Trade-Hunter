@@ -15,8 +15,9 @@ const createJobPost = async (req, res) => {
       jobAddressLine,
       estimatedBudget,
       businessType,
-      services,
+      // services,
       requirements,
+      date,
     } = req.body;
 
     const userId = req.user.userId;
@@ -29,11 +30,9 @@ const createJobPost = async (req, res) => {
     if (!hunter) {
       return res.status(404).json({ error: "Hunter not found" });
     }
-
     if (hunter.userType !== "hunter") {
       return res.status(403).json({ error: "Unauthorized: User is not a hunter" });
     }
-
     if (hunter.userStatus !== "Active") {
       return res.status(403).json({ error: "Unauthorized: Hunter status is not Active" });
     }
@@ -67,7 +66,8 @@ const createJobPost = async (req, res) => {
       !jobLocation.jobRadius ||
       !estimatedBudget ||
       !businessType ||
-      !services ||
+      // !services ||
+      !date||
       !timeframe.from ||
       !timeframe.to ||
       !requirements
@@ -83,12 +83,13 @@ const createJobPost = async (req, res) => {
       jobLocation,
       estimatedBudget,
       businessType,
-      services,
+      // services,
       timeframe,
       documents: req.fileLocations,
       requirements,
       user: userId,
       jobStatus: "Pending",
+      date: new Date(date),
     });
 
     // Save the job post in the database
