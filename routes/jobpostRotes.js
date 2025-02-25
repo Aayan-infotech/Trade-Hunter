@@ -19,13 +19,13 @@ const router = express.Router();
 router.post(
   "/jobpost",
   verifyUser,
-  upload.array("documents"),
-  async (req, res, next) => {
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ error: "No files uploaded." });
-    }
-    next();
-  },
+  // upload.array("documents"),
+  // async (req, res, next) => {
+  //   if (!req.files || req.files.length === 0) {
+  //     return res.status(400).json({ error: "No files uploaded." });
+  //   }
+  //   next();
+  // },
   // uploadToS3files,
   createJobPost
 );
