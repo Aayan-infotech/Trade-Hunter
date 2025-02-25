@@ -1,6 +1,6 @@
 const JobPost = require("../models/jobpostModel");
 const apiResponse = require("../utils/responsehandler");
-const hunter = require("../models/hunterModel");
+const Hunter = require("../models/hunterModel");
 const auth = require("../middlewares/auth");
 const mongoose = require("mongoose");
 const Provider = require("../models/providerModel");
@@ -21,6 +21,22 @@ const createJobPost = async (req, res) => {
 
     const userId = req.user.userId;
     const documents = req.files || [];
+
+    // Fetch the hunter user
+    const hunter = await Hunter.findById(userId);
+
+    // Check if user exists and is of type 'hunter' and is Active
+    if (!hunter) {
+      return res.status(404).json({ error: "Hunter not found" });
+    }
+
+    if (hunter.userType !== "hunter") {
+      return res.status(403).json({ error: "Unauthorized: User is not a hunter" });
+    }
+
+    if (hunter.userStatus !== "Active") {
+      return res.status(403).json({ error: "Unauthorized: Hunter status is not Active" });
+    }
 
     // Correctly structure jobLocation
     const jobLocation = {
@@ -83,12 +99,14 @@ const createJobPost = async (req, res) => {
       jobPost,
     });
   } catch (error) {
-
     return res.status(500).json({
       error: error.message,
     });
   }
 };
+
+module.exports = { createJobPost };
+
 
 const getAllJobPosts = async (req, res) => {
   // Get page & limit from query params, set defaults
