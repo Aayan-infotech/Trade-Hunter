@@ -16,19 +16,31 @@ const { uploadToS3files } = require("../common/multerconfig2");
 const { verifyUser } = require("../middlewares/auth");
 const router = express.Router();
 
+// router.post(
+//   "/jobpost",
+//   verifyUser,
+//   upload.array("documents"),
+//   async (req, res, next) => {
+//     if (!req.files || req.files.length === 0) {
+//       return res.status(400).json({ error: "No files uploaded." });
+//     }
+//     next();
+//   },
+//   // uploadToS3files,
+//   createJobPost
+// );
+
 router.post(
   "/jobpost",
   verifyUser,
-  // upload.array("documents"),
-  // async (req, res, next) => {
-  //   if (!req.files || req.files.length === 0) {
-  //     return res.status(400).json({ error: "No files uploaded." });
-  //   }
-  //   next();
-  // },
-  // uploadToS3files,
+  upload.array("documents"),
+  async (req, res, next) => {
+    next(); // Remove file check to allow optional uploads
+  },
   createJobPost
 );
+
+
 router.get("/", getAllJobPosts);
 router.get("/jobpost-details/:id", verifyUser, getJobPostById);
 router.put("/:id", updateJobPost);

@@ -21,9 +21,7 @@ const createJobPost = async (req, res) => {
     } = req.body;
 
     const userId = req.user.userId;
-    // const documents = req.files || [];
-    const documents = req.files ? req.files.map(file => file.path) : [];
-
+    const documents = req.files || [];
 
     // Fetch the hunter user
     const hunter = await Hunter.findById(userId);
@@ -87,8 +85,7 @@ const createJobPost = async (req, res) => {
       businessType,
       // services,
       timeframe,
-      // documents: req.fileLocations,
-      documents,
+      documents: req.fileLocations,
       requirements,
       user: userId,
       jobStatus: "Pending",
