@@ -19,6 +19,7 @@ const hunterRts = require("./routes/hunterRoute")
 const jobRts = require("./AdmRts/jobRts")
 const notificationRts = require("./AdmRts/notificationRts")
 const dashboardRts = require("./AdmRts/dashboardRts")
+const softDeleteRoute = require("./routes/softDeleteRoute")
 
 
 app.use("/api", apiRoutes);
@@ -29,6 +30,7 @@ app.use("/api/hunter", hunterRts);
 app.use("/api/jobs", jobRts)
 app.use("/api/notification",notificationRts);
 app.use("/api/count",dashboardRts)
+app.use("/api/DeleteAccount",softDeleteRoute)
 
  
 app.listen(PORT, () => {

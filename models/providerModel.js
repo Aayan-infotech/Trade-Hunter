@@ -79,6 +79,10 @@ const providerSchema = new mongoose.Schema(
       default: 0,
       required: true,
     },
+    // isDeleted: {
+    //   type: Boolean,
+    //   default: false,
+    // },
     subscriptionStatus: {
       type: Number,
       default: 0,

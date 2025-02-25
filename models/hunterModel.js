@@ -23,7 +23,7 @@ const hunterSchema = new mongoose.Schema(
       unique: true,
     },
     images: {
-      type:String,
+      type: String,
       required: false,
     },
     password: {
@@ -44,7 +44,7 @@ const hunterSchema = new mongoose.Schema(
       required: true,
       enum: ["hunter"],
     },
-   
+
     userStatus: {
       type: String,
       enum: ['Active', 'Suspended', 'Pending'],
@@ -76,12 +76,15 @@ const hunterSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    accountStatus:{
+    accountStatus: {
       type: String,
       enum: ['Suspend', 'Deactivate', 'Reactivate'],
       default: 'Reactivate'
-    
-  },
+    },
+    // isDeleted: {
+    //   type: Boolean,
+    //   default: false,
+    // },
     address: {
       location: {
         type: { type: String, enum: ['Point'], required: false },
@@ -91,7 +94,7 @@ const hunterSchema = new mongoose.Schema(
       radius: { type: Number, required: false },
       _id: false,
     },
-    refreshToken:{
+    refreshToken: {
       type: String,
     },
     token: {
