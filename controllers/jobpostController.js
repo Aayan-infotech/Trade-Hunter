@@ -105,8 +105,6 @@ const createJobPost = async (req, res) => {
   }
 };
 
-module.exports = { createJobPost };
-
 
 const getAllJobPosts = async (req, res) => {
   // Get page & limit from query params, set defaults
