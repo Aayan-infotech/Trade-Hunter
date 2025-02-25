@@ -92,8 +92,12 @@ const signUp = async (req, res) => {
 
     // Check if the email is already in use
     const existingUser = await (userType === "hunter"
-      ? User.findOne({ email })
-      : Provider.findOne({ email }));
+      ? User.findOne({ email, isDeleted: { $ne: true } })
+      : Provider.findOne({ email, isDeleted: { $ne: true } }));
+
+    // const existingUser = await (userType === "hunter"
+    //   ? User.findOne({ email })
+    //   : Provider.findOne({ email }));
     if (existingUser) {
       if (!existingUser.emailVerified) {
         const verificationOTP = await generateverificationOTP(existingUser);
@@ -195,9 +199,9 @@ const login = async (req, res) => {
     let user;
 
     if (userType == "hunter") {
-      user = await User.findOne({ email: email, userType: userType });
+      user = await User.findOne({ email: email, userType: userType, isDeleted: { $ne: true } });
     } else {
-      user = await Provider.findOne({ email: email, userType: userType });
+      user = await Provider.findOne({ email: email, userType: userType, isDeleted: { $ne: true } });
     }
     if (!user) {
       return apiResponse.error(res, "Invalid credentials", 400);

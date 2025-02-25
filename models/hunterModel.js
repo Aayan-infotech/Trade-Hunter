@@ -81,10 +81,10 @@ const hunterSchema = new mongoose.Schema(
       enum: ['Suspend', 'Deactivate', 'Reactivate'],
       default: 'Reactivate'
     },
-    // isDeleted: {
-    //   type: Boolean,
-    //   default: false,
-    // },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
     address: {
       location: {
         type: { type: String, enum: ['Point'], required: false },
