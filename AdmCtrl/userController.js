@@ -100,17 +100,21 @@ exports.deleteUser = async (req, res) => {
 
 exports.getUsersByType = async (req, res) => {
   try {
-    const { hunte } = req.params; // Extract userType from params
-    const limit = parseInt(req.params.limit) || 10; // Extract limit from params
-    const page = parseInt(req.query.page) || 1; // Extract page number from query
-    const search = req.query.search || ""; // Extract search query from query
-    const userStatusFilter = req.query.userStatus; // Extract userStatus filter from query
+    const { type } = req.params; // Extract user type from params
+    const limit = parseInt(req.params.pagelimit) || 10; // Extract pagelimit from params
+    const page = Math.max(1, parseInt(req.query.page) || 1); // Extract page from query
+    const search = req.query.search || ""; // Extract search query
+    const userStatusFilter = req.query.userStatus; // Extract userStatus filter
 
-    const userType = hunte.toLowerCase(); // Convert userType to lowercase
+    if (!type) {
+      return res.status(400).json({ message: "User type is required" });
+    }
 
-    // Construct base query with search filters
+    const lowerUserType = type.toLowerCase(); // Convert type to lowercase
+
+    // Construct query with search filters
     let query = {
-      userType,
+      userType: lowerUserType,
       $or: [
         { name: { $regex: search, $options: "i" } },
         { email: { $regex: search, $options: "i" } },
@@ -121,6 +125,8 @@ exports.getUsersByType = async (req, res) => {
     if (userStatusFilter) {
       query.userStatus = userStatusFilter;
     }
+
+    console.log("Query:", query);
 
     // Fetch users with pagination
     const users = await User.find(query)
@@ -139,9 +145,11 @@ exports.getUsersByType = async (req, res) => {
       users,
     });
   } catch (error) {
+    console.error("Error retrieving users:", error);
     res.status(500).json({ message: "Error retrieving users", error });
   }
 };
+;
 
 
 
