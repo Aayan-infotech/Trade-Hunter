@@ -364,6 +364,13 @@ const getJobCountByBusinessType = async (req, res) => {
         },
       },
       { $sort: { count: -1 } },
+      {
+        $project: {
+          name: "$_id",
+          count: 1,
+          _id: 0,
+        },
+      },
     ]);
 
     return res.status(200).json({
