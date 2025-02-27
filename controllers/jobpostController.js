@@ -7,7 +7,7 @@ const Provider = require("../models/providerModel");
 
 const createJobPost = async (req, res) => {
   try {
-    const {
+    let {
       title,
       longitude,
       latitude,
@@ -15,18 +15,17 @@ const createJobPost = async (req, res) => {
       jobAddressLine,
       estimatedBudget,
       businessType,
-      // services,
       requirements,
       date,
     } = req.body;
 
+    businessType = Array.isArray(businessType) ? businessType : [businessType];
+
     const userId = req.user.userId;
     const documents = req.files || [];
 
-    // Fetch the hunter user
     const hunter = await Hunter.findById(userId);
 
-    // Check if user exists and is of type 'hunter' and is Active
     if (!hunter) {
       return res.status(404).json({ error: "Hunter not found" });
     }
@@ -37,27 +36,24 @@ const createJobPost = async (req, res) => {
       return res.status(403).json({ error: "Unauthorized: Hunter status is not Active" });
     }
 
-    // Correctly structure jobLocation
     const jobLocation = {
       location: {
-        type: "Point", // Ensure type is set here
+        type: "Point",
         coordinates: [
-          parseFloat(longitude), // Longitude
-          parseFloat(latitude), // Latitude
+          parseFloat(longitude), 
+          parseFloat(latitude),  
         ],
       },
       jobAddressLine: jobAddressLine,
       jobRadius: parseFloat(jobRadius),
     };
 
-    // Parse timeframe (Ensure numeric values)
     const timeframeRaw = req.body.timeframe;
     const timeframe = {
       from: Number(timeframeRaw?.from),
       to: Number(timeframeRaw?.to),
     };
 
-    // Validate required fields
     if (
       !title ||
       !jobLocation.location.coordinates[0] ||
@@ -66,8 +62,7 @@ const createJobPost = async (req, res) => {
       !jobLocation.jobRadius ||
       !estimatedBudget ||
       !businessType ||
-      // !services ||
-      !date||
+      !date ||
       !timeframe.from ||
       !timeframe.to ||
       !requirements
@@ -77,13 +72,11 @@ const createJobPost = async (req, res) => {
       });
     }
 
-    // Create new job post object
     const jobPost = new JobPost({
       title,
       jobLocation,
       estimatedBudget,
-      businessType,
-      // services,
+      businessType, 
       timeframe,
       documents: req.fileLocations,
       requirements,
@@ -92,7 +85,6 @@ const createJobPost = async (req, res) => {
       date: new Date(date),
     });
 
-    // Save the job post in the database
     await jobPost.save();
 
     return res.status(201).json({
@@ -106,18 +98,14 @@ const createJobPost = async (req, res) => {
   }
 };
 
-
 const getAllJobPosts = async (req, res) => {
-  // Get page & limit from query params, set defaults
   let page = parseInt(req.query.page) || 1;
   let limit = parseInt(req.query.limit) || 10;
   let skip = (page - 1) * limit;
 
   try {
-    // Get total job count for pagination
     const totalJobs = await JobPost.countDocuments();
 
-    // Fetch job posts with pagination
     const jobPosts = await JobPost.find().skip(skip).limit(limit);
 
     return apiResponse.success(res, "Job posts retrieved successfully.", {
@@ -134,7 +122,6 @@ const getAllJobPosts = async (req, res) => {
     });
   }
 };
-
 
 const getJobPostById = async (req, res) => {
   try {
@@ -158,7 +145,6 @@ const updateJobPost = async (req, res) => {
   try {
     const updates = req.body;
 
-    // Update images if new files are uploaded
     if (req.fileLocations) {
       updates.images = req.fileLocations;
     }
@@ -220,7 +206,6 @@ const getAllPendingJobPosts = async (req, res) => {
 const getJobPostByUserId = async (req, res) => {
   const userId = req.user.userId;
 
-  // Get page & limit from query params, set defaults
   let page = parseInt(req.query.page) || 1;
   let limit = parseInt(req.query.limit) || 10;
   let skip = (page - 1) * limit;
@@ -297,7 +282,7 @@ const changeJobStatus = async (req, res) => {
 
     await jobPost.save();
 
-    // If job is accepted, store jobId in user's acceptedJobs array
+    // If job is accepted, store jobId in provider's accepted jobs array
     if (jobStatus === "Accepted") {
       if (!provider.myServices.includes(jobId)) {
         provider.myServices.push(jobId);
@@ -357,6 +342,39 @@ const myAcceptedJobs = async (req, res) => {
   }
 };
 
+const getJobCountByBusinessType = async (req, res) => {
+  try {
+    const counts = await JobPost.aggregate([
+      {
+        $addFields: {
+          businessTypeArray: {
+            $cond: {
+              if: { $isArray: "$businessType" },
+              then: "$businessType",
+              else: ["$businessType"],
+            },
+          },
+        },
+      },
+      { $unwind: "$businessTypeArray" },
+      {
+        $group: {
+          _id: "$businessTypeArray",
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { count: -1 } },
+    ]);
+
+    return res.status(200).json({
+      status: 200,
+      message: "Job counts by business type retrieved successfully.",
+      data: counts,
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
 
 module.exports = {
   createJobPost,
@@ -368,4 +386,5 @@ module.exports = {
   getJobPostByUserId,
   changeJobStatus,
   myAcceptedJobs,
+  getJobCountByBusinessType,  
 };

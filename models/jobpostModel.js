@@ -21,7 +21,7 @@
       required: true
     },
     businessType: {
-      type: String,
+      type: [String],
       required: true,
     },
     // services: {
