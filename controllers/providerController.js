@@ -1,3 +1,5 @@
+require('dotenv').config(); // Load environment variables
+
 const File = require("../models/hunterModel");
 const multer = require("multer");
 const path = require("path");
@@ -5,30 +7,42 @@ const User = require("../models/hunterModel");
 const providerModel = require("../models/providerModel");
 const jobpostModel = require("../models/jobpostModel");
 
-// Configure multer storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
-  },
-  filename: function (req, file, cb) {
-    cb(
-      null,
-      file.fieldname + "-" + Date.now() + path.extname(file.originalname)
-    );
+// ------------------------------
+// S3 Upload API Setup
+// ------------------------------
+const AWS = require('aws-sdk');
+const multerS3 = require('multer-s3');
+
+// Configure AWS using .env variables
+AWS.config.update({
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID, 
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY, 
+  region: process.env.AWS_REGION,
+});
+
+const s3 = new AWS.S3();
+
+// Set up multer-s3 storage engine
+const s3Storage = multerS3({
+  s3: s3,
+  bucket: process.env.AWS_S3_BUCKET_NAME, // your bucket name from .env
+  acl: 'public-read', // Adjust ACL if needed
+  contentType: multerS3.AUTO_CONTENT_TYPE,
+  key: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    // Generate a unique file name using fieldname and timestamp
+    cb(null, file.fieldname + '-' + Date.now() + ext);
   },
 });
 
-// Configure multer
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 1024 * 1024 * 5 }, // 5MB limit
+// Configure multer to accept up to 10 files (5MB each) using S3 storage
+const s3Upload = multer({
+  storage: s3Storage,
+  limits: { fileSize: 1024 * 1024 * 5 }, // 5MB per file
   fileFilter: function (req, file, cb) {
     const filetypes = /jpeg|jpg|png|gif|webp|jfif|pdf/;
     const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(
-      path.extname(file.originalname).toLowerCase()
-    );
-
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
     if (mimetype && extname) {
       return cb(null, true);
     } else {
@@ -37,9 +51,8 @@ const upload = multer({
   },
 }).array("file", 10);
 
-// Handle file upload and save to database
 exports.uploadFile = (req, res) => {
-  upload(req, res, async function (err) {
+  s3Upload(req, res, async function (err) {
     if (err instanceof multer.MulterError) {
       return res.status(400).json({ message: err.message });
     } else if (err) {
@@ -49,38 +62,26 @@ exports.uploadFile = (req, res) => {
     const { description } = req.body;
     const { providerId } = req.params;
 
-    //added
-    // Check if providerId exists and belongs to a user with the role 'provider'
     const provider = await User.findById(providerId).exec();
     if (!provider) {
       return res.status(404).json({ message: "Provider not found." });
     }
-
     if (provider.userType !== "provider") {
       return res.status(403).json({ message: "Unauthorized: Not a provider." });
     }
-
-    // Handling multiple file uploads
     if (!req.files || req.files.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "Please upload at least one file." });
+      return res.status(400).json({ message: "Please upload at least one file." });
     }
-    // .......................
 
     try {
-      // Assuming multiple files are allowed and we want to save them all
-      const filesData = req.files.map((file) => ({
-        filename: file.filename,
-        path: file.path,
+      const filesData = req.files.map(file => ({
+        filename: file.key,       
+        url: file.location,      
         size: file.size,
         description: description || " ",
       }));
 
-      // Check if there are existing files associated with this provider
       const existingFiles = provider.files || [];
-
-      // Combine the existing files with the new ones
       const updatedFiles = [...existingFiles, ...filesData];
 
       const updatedProvider = await User.findByIdAndUpdate(
@@ -94,12 +95,11 @@ exports.uploadFile = (req, res) => {
         provider: updatedProvider,
       });
     } catch (error) {
-      res
-        .status(500)
-        .json({ message: "Error saving file to the database.", error });
+      res.status(500).json({ message: "Error saving file to the database.", error });
     }
   });
 };
+
 
 exports.getProviderByUserLocation = async (req, res) => {
   try {
@@ -190,7 +190,6 @@ exports.getJobs = async (req, res) => {
 
     let aggregation = [];
 
-    // Use $geoNear as the first stage for geospatial filtering
     aggregation.push({
       $geoNear: {
         near: {
@@ -198,36 +197,32 @@ exports.getJobs = async (req, res) => {
           coordinates: [longitude, latitude],
         },
         distanceField: "distance",
-        maxDistance: radius * 1000, // Convert km to meters
+        maxDistance: radius * 1000,
         spherical: true,
       },
     });
 
-    // Filter by job status 'Pending'
     aggregation.push({
       $match: { jobStatus: "Pending" },
     });
 
-    // Filter by business type if provided
     if (businessType) {
       aggregation.push({
         $match: { businessType },
       });
     }
 
-    // Ensure the provider is within the job's visibility radius
     aggregation.push({
       $match: {
         $expr: {
           $lte: [
             "$distance",
-            { $multiply: ["$jobLocation.jobRadius", 1000] }, // Convert job's radius from km to meters
+            { $multiply: ["$jobLocation.jobRadius", 1000] },
           ],
         },
       },
     });
 
-    // Pagination and total count
     aggregation.push({
       $facet: {
         totalData: [{ $skip: offset }, { $limit: limit }],
@@ -235,7 +230,6 @@ exports.getJobs = async (req, res) => {
       },
     });
 
-    // Reshape response
     aggregation.push({
       $project: {
         data: "$totalData",
@@ -419,7 +413,7 @@ exports.getJobsForGuest = async (req, res) => {
           distanceField: "distance",
           maxDistance: radius * 1000, // Convert km to meters
           spherical: true,
-          key: "location.location", // Make sure this field is indexed correctly
+          key: "location.location", // Ensure this field is indexed correctly
         },
       },
       {
@@ -490,23 +484,22 @@ exports.getNearbyJobs = async (req, res) => {
       },
       {
         $match: {
-          businessType: { $regex: new RegExp(`^${businessType}$`, "i") }, // Case-insensitive match
+          businessType: { $regex: new RegExp(`^${businessType}$`, "i") },
           jobStatus: "Pending",
-          ...(services ? { services } : {}), // Match services if provided
+          ...(services ? { services } : {}),
         },
       },
       {
-        $sort: { distance: 1 }, // Sort by closest jobs first
+        $sort: { distance: 1 },
       },
       {
-        $skip: (page - 1) * limit, // Skip previous pages
+        $skip: (page - 1) * limit,
       },
       {
-        $limit: limit, // Limit results per page
+        $limit: limit,
       },
     ]);
 
-    // Get total job count for pagination metadata
     const totalJobs = await jobpostModel.countDocuments({
       businessType: { $regex: new RegExp(`^${businessType}$`, "i") },
       jobStatus: "Pending",
@@ -550,21 +543,20 @@ exports.getNearbyJobsForGuest = async (req, res) => {
       },
       {
         $match: {
-          jobStatus: "Pending", // Fetch only pending jobs
+          jobStatus: "Pending",
         },
       },
       {
-        $sort: { distance: 1 }, // Sort by nearest first
+        $sort: { distance: 1 },
       },
       {
-        $skip: (page - 1) * limit, // Pagination: Skip previous pages
+        $skip: (page - 1) * limit,
       },
       {
-        $limit: limit, // Limit results per page
+        $limit: limit,
       },
     ]);
 
-    // Get total job count for pagination metadata
     const totalJobs = await jobpostModel.countDocuments({
       jobStatus: "Pending",
     });
@@ -585,7 +577,6 @@ exports.getNearbyJobsForGuest = async (req, res) => {
       .json({ status: 500, message: "Error fetching jobs: " + error });
   }
 };
-
 
 exports.getJobByIdForGuest = async (req, res) => {
   try {
