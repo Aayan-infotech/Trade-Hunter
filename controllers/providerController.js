@@ -1,14 +1,12 @@
-const File = require("../models/hunterModel");
+const mongoose = require("mongoose");
 const multer = require("multer");
 const path = require("path");
-const User = require("../models/hunterModel");
 const providerModel = require("../models/providerModel");
 const jobpostModel = require("../models/jobpostModel");
 
-// Configure multer storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/");
+    cb(null, "uploads/"); 
   },
   filename: function (req, file, cb) {
     cb(
@@ -18,17 +16,13 @@ const storage = multer.diskStorage({
   },
 });
 
-// Configure multer
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 1024 * 1024 * 5 }, // 5MB limit
+  limits: { fileSize: 1024 * 1024 * 5 }, 
   fileFilter: function (req, file, cb) {
     const filetypes = /jpeg|jpg|png|gif|webp|jfif|pdf/;
     const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(
-      path.extname(file.originalname).toLowerCase()
-    );
-
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
     if (mimetype && extname) {
       return cb(null, true);
     } else {
@@ -37,7 +31,6 @@ const upload = multer({
   },
 }).array("file", 10);
 
-// Handle file upload and save to database
 exports.uploadFile = (req, res) => {
   upload(req, res, async function (err) {
     if (err instanceof multer.MulterError) {
@@ -49,27 +42,25 @@ exports.uploadFile = (req, res) => {
     const { description } = req.body;
     const { providerId } = req.params;
 
-    //added
-    // Check if providerId exists and belongs to a user with the role 'provider'
-    const provider = await User.findById(providerId).exec();
-    if (!provider) {
-      return res.status(404).json({ message: "Provider not found." });
+    console.log("Received providerId:", providerId);
+    if (!mongoose.Types.ObjectId.isValid(providerId)) {
+      return res.status(400).json({ message: "Invalid provider id." });
     }
-
-    if (provider.userType !== "provider") {
-      return res.status(403).json({ message: "Unauthorized: Not a provider." });
-    }
-
-    // Handling multiple file uploads
-    if (!req.files || req.files.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "Please upload at least one file." });
-    }
-    // .......................
 
     try {
-      // Assuming multiple files are allowed and we want to save them all
+      const provider = await providerModel.findById(providerId).exec();
+      if (!provider) {
+        return res.status(404).json({ message: "Provider not found." });
+      }
+
+      if (!provider.userType || provider.userType.toLowerCase() !== "provider") {
+        return res.status(403).json({ message: "Unauthorized: Not a provider." });
+      }
+
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ message: "Please upload at least one file." });
+      }
+
       const filesData = req.files.map((file) => ({
         filename: file.filename,
         path: file.path,
@@ -77,29 +68,26 @@ exports.uploadFile = (req, res) => {
         description: description || " ",
       }));
 
-      // Check if there are existing files associated with this provider
       const existingFiles = provider.files || [];
-
-      // Combine the existing files with the new ones
       const updatedFiles = [...existingFiles, ...filesData];
 
-      const updatedProvider = await User.findByIdAndUpdate(
+      const updatedProvider = await providerModel.findByIdAndUpdate(
         providerId,
         { files: updatedFiles },
         { new: true, runValidators: true }
       );
 
-      res.status(200).json({
+      return res.status(200).json({
         message: "Files uploaded successfully!",
         provider: updatedProvider,
       });
     } catch (error) {
-      res
-        .status(500)
-        .json({ message: "Error saving file to the database.", error });
+      return res.status(500).json({ message: "Error saving file to the database.", error });
     }
   });
 };
+
+
 
 exports.getProviderByUserLocation = async (req, res) => {
   try {
