@@ -345,8 +345,6 @@ const myAcceptedJobs = async (req, res) => {
 
 const getJobCountByBusinessType = async (req, res) => {
   try {
-    // Aggregate job counts from the JobPost collection:
-    // Ensure that if the "businessType" field is an array, we unwind it; otherwise, wrap it in an array.
     const jobCounts = await JobPost.aggregate([
       {
         $addFields: {
@@ -374,23 +372,17 @@ const getJobCountByBusinessType = async (req, res) => {
         },
       },
     ]);
-
-    // Fetch all business types from the reference collection
     const allBusinessTypes = await BusinessType.find({}, { _id: 0, name: 1 }).lean();
 
-    // Create a mapping from business type name to its job count
     const jobCountMap = {};
     for (const jc of jobCounts) {
       jobCountMap[jc.name] = jc.count;
     }
-
-    // For each business type from the reference, add the count (defaulting to 0 if not found)
     const result = allBusinessTypes.map((bt) => ({
       name: bt.name,
       count: jobCountMap[bt.name] || 0,
     }));
 
-    // Optionally, sort results by count descending
     result.sort((a, b) => b.count - a.count);
 
     return res.status(200).json({
