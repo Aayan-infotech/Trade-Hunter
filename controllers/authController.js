@@ -526,7 +526,7 @@ const getHunterProfile = async (req, res) => {
 const updateUserById = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    let updateData = { ...req.body };
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid ID format" });
@@ -537,34 +537,89 @@ const updateUserById = async (req, res) => {
       return res.status(400).json({ message: "Invalid or missing user type." });
     }
 
+    // For providers, if 'name' is provided, map it to 'contactName'
+    if (userType === "provider" && updateData.name) {
+      updateData.contactName = updateData.name;
+      delete updateData.name;
+    }
+
     const Model = userType === "hunter" ? Hunter : Provider;
     const existingUser = await Model.findById(id);
     if (!existingUser) {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // Hash password if provided
     if (updateData.password) {
       updateData.password = await bcrypt.hash(updateData.password, 10);
     }
 
-    if (updateData.address) {
-      const mergedAddress = {
-        ...existingUser.address.toObject(),
-        ...updateData.address,
+    // Check if any address-related fields are provided (either nested or flat)
+    if (
+      updateData.address ||
+      updateData.addressLine ||
+      updateData.latitude ||
+      updateData.longitude ||
+      updateData.radius ||
+      updateData.addressType
+    ) {
+      const existingAddress = existingUser.address ? existingUser.address.toObject() : {};
+
+      const newAddress = {
+        ...existingAddress,
+        addressLine:
+          updateData.address && updateData.address.addressLine
+            ? updateData.address.addressLine
+            : updateData.addressLine || existingAddress.addressLine,
+        latitude:
+          updateData.address && updateData.address.latitude
+            ? updateData.address.latitude
+            : updateData.latitude || existingAddress.latitude,
+        longitude:
+          updateData.address && updateData.address.longitude
+            ? updateData.address.longitude
+            : updateData.longitude || existingAddress.longitude,
+        radius:
+          updateData.address && updateData.address.radius
+            ? updateData.address.radius
+            : updateData.radius || existingAddress.radius,
+        addressType:
+          updateData.address && updateData.address.addressType
+            ? updateData.address.addressType
+            : updateData.addressType || existingAddress.addressType || (userType === "hunter" ? "home" : "office"),
       };
-      existingUser.address = mergedAddress;
-      existingUser.markModified("address"); 
+
+      if (newAddress.latitude) newAddress.latitude = parseFloat(newAddress.latitude);
+      if (newAddress.longitude) newAddress.longitude = parseFloat(newAddress.longitude);
+      if (newAddress.radius) newAddress.radius = parseFloat(newAddress.radius);
+
+      if (newAddress.latitude && newAddress.longitude) {
+        newAddress.location = {
+          type: "Point",
+          coordinates: [newAddress.longitude, newAddress.latitude],
+        };
+      }
+
+      updateData.address = newAddress;
+
+      delete updateData.addressLine;
+      delete updateData.latitude;
+      delete updateData.longitude;
+      delete updateData.radius;
+      delete updateData.addressType;
     }
 
+    // Update all fields from updateData to the existing user
     Object.keys(updateData).forEach((field) => {
-      if (field !== "address") {
-        existingUser[field] = updateData[field];
-      }
+      existingUser[field] = updateData[field];
     });
+
+    if (updateData.address) {
+      existingUser.markModified("address");
+    }
 
     const updatedUser = await existingUser.save();
 
-    // Optionally update a separate Address collection for hunters
     if (userType === "hunter" && updateData.address) {
       await Address.findOneAndUpdate(
         { userId: id },
@@ -583,7 +638,6 @@ const updateUserById = async (req, res) => {
       .json({ message: "Internal server error", error: error.message });
   }
 };
-
 
 
 
