@@ -616,7 +616,7 @@ exports.updateProviderById = async (req, res) => {
       return res.status(404).json({ message: "Provider not found" });
     }
 
-    res.status(200).json({ message: "Provider updated successfully", updatedHunter });
+    res.status(200).json({ message: "Provider updated successfully", updatedProvider });
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
