@@ -12,5 +12,6 @@ router.post('/getNearbyJobs',fileController.getNearbyJobs);
 router.post('/getNearbyJobsForGuest',fileController.getNearbyJobsForGuest);
 router.post('/getServicesForGuestLocation2',fileController.getServicesForGuestLocation2);      
 router.get('/getJobByIdForGuest/:jobId',fileController.getJobByIdForGuest);
+router.put('/updateById/:id', fileController.updateProviderById);
 
 module.exports = router;
