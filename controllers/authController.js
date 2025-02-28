@@ -523,6 +523,62 @@ const getHunterProfile = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+const updateUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    const { userType } = updateData;
+    if (!userType || !["hunter", "provider"].includes(userType)) {
+      return res.status(400).json({ message: "Invalid or missing user type." });
+    }
+
+    if (updateData.password) {
+      updateData.password = await bcrypt.hash(updateData.password, 10);
+    }
+
+    let updatedUser;
+
+    if (userType === "hunter") {
+      updatedUser = await Hunter.findByIdAndUpdate(id, updateData, {
+        new: true,
+        runValidators: true,
+      });
+
+      if (updateData.address) {
+        await Address.findOneAndUpdate(
+          { userId: id },
+          { $set: updateData.address },
+          { new: true, runValidators: true }
+        );
+      }
+    } else if (userType === "provider") {
+      updatedUser = await Provider.findByIdAndUpdate(id, updateData, {
+        new: true,
+        runValidators: true,
+      });
+    }
+
+    // 5. Check if user was found and return result
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json({
+      message: "User updated successfully",
+      updatedUser,
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+};
+
 
 module.exports = {
   signUp,
@@ -535,5 +591,5 @@ module.exports = {
   changePassword,
   getProviderProfile,
   getHunterProfile,
-
+  updateUserById
 };

@@ -65,6 +65,7 @@ const {
   changePassword,
   getProviderProfile,
   getHunterProfile,
+  updateUserById,
 } = require("../controllers/authController");
 const router = express.Router();
 const multer = require("multer");
@@ -93,5 +94,6 @@ router.post("/changePassword/:id", changePassword);
 router.post("/refreshtoken", refreshToken);
 router.get("/getProviderProfile", verifyUser, getProviderProfile);
 router.get("/getHunterProfile", verifyUser, getHunterProfile);
+router.put("/update/:id", verifyUser, updateUserById)
 module.exports = router;
    
