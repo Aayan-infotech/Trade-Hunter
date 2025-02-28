@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const fileController = require('../controllers/providerController');
-const { uploadToS3 } = require("../common/multerConfig");
+const { uploadToS3 } = require("../common/multerConfig3");
 
 // Route to handle file upload
 router.post('/upload/:providerId',uploadToS3, fileController.uploadFile);
