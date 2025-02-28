@@ -523,6 +523,8 @@ const getHunterProfile = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+
 const updateUserById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -537,7 +539,6 @@ const updateUserById = async (req, res) => {
       return res.status(400).json({ message: "Invalid or missing user type." });
     }
 
-    // For providers, if 'name' is provided, map it to 'contactName'
     if (userType === "provider" && updateData.name) {
       updateData.contactName = updateData.name;
       delete updateData.name;
@@ -548,13 +549,10 @@ const updateUserById = async (req, res) => {
     if (!existingUser) {
       return res.status(404).json({ message: "User not found" });
     }
-
-    // Hash password if provided
     if (updateData.password) {
       updateData.password = await bcrypt.hash(updateData.password, 10);
     }
 
-    // Check if any address-related fields are provided (either nested or flat)
     if (
       updateData.address ||
       updateData.addressLine ||
@@ -609,7 +607,6 @@ const updateUserById = async (req, res) => {
       delete updateData.addressType;
     }
 
-    // Update all fields from updateData to the existing user
     Object.keys(updateData).forEach((field) => {
       existingUser[field] = updateData[field];
     });
