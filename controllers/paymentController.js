@@ -1,14 +1,12 @@
 const Payment = require("../models/paymentModel");
 const Provider = require("../models/providerModel");
-const User = require('../models/hunterModel');
+const Subscription = require("../models/subscriptionModel");
 const apiResponse = require("../utils/responsehandler");
-const subscription = require("../models/subscriptionModel");
 
 const createPayment = async (req, res) => {
   try {
-
-    const userId = req.user.userId;
-
+    // The provider id is assumed to be in req.user.userId
+    const providerId = req.user.userId;
     const {
       transactionId,
       transactionDate,
@@ -16,10 +14,10 @@ const createPayment = async (req, res) => {
       transactionAmount,
       transactionMode,
       SubscriptionId,
-      SubscriptionAmount
+      SubscriptionAmount,
+      type,
     } = req.body;
 
-    // Validate input
     if (
       !transactionId ||
       !transactionDate ||
@@ -27,14 +25,17 @@ const createPayment = async (req, res) => {
       !transactionAmount ||
       !transactionMode ||
       !SubscriptionId ||
-      !SubscriptionAmount
+      !SubscriptionAmount ||
+      !type
     ) {
       return apiResponse.error(res, "All fields are required", 400);
     }
 
-    const provider =  await Provider.findById(userId);
+    const provider = await Provider.findById(providerId);
+    if (!provider) {
+      return apiResponse.error(res, "Provider not found", 404);
+    }
 
-    // create payment
     const newPayment = new Payment({
       transactionId,
       transactionDate,
@@ -43,43 +44,66 @@ const createPayment = async (req, res) => {
       transactionMode,
       SubscriptionId,
       SubscriptionAmount,
-      userId
+      userId: providerId,
+      type,
     });
 
-    provider.subscriptionStatus = 1;
+    provider.subscriptionStatus = 1; 
     await provider.save();
     await newPayment.save();
+
     return apiResponse.success(res, "Payment created successfully", newPayment);
   } catch (error) {
+    console.error("Error in createPayment:", error);
     return apiResponse.error(res, "Payment creation failed", 500);
   }
 };
 
 const getAllPayment = async (req, res) => {
   try {
-    const payment = await Payment.find();
-    return apiResponse.success(res, "All payments fetched successfully", payment);
+    // Populate userId with the provider's contactName field (adjust if you use a different key)
+    const payments = await Payment.find().populate("userId", "contactName");
+    console.log(payments)
+    return apiResponse.success(
+      res,
+      "All payments fetched successfully",
+      payments
+    );
   } catch (error) {
+    console.error("Error in getAllPayment:", error);
     return apiResponse.error(res, "Failed to fetch payments", 500);
   }
 };
 
 const paymentByProviderId = async (req, res) => {
   try {
-    const Payment = await Provider.findById(req.params.id);
-    if (!Payment) {
-      return apiResponse.error(res, "Payment details for this provider not found", 404);
+    const providerId = req.params.id;
+    // Populate userId with the provider's contactName field
+    const payments = await Payment.find({ userId: providerId }).populate("userId", "contactName");
+    if (!payments || payments.length === 0) {
+      return apiResponse.error(
+        res,
+        "Payment details for this provider not found",
+        404
+      );
     }
-    return apiResponse.success(res, "Payment details fetched successfully", Payment);
+    return apiResponse.success(
+      res,
+      "Payment details fetched successfully",
+      payments
+    );
   } catch (error) {
+    console.error("Error in paymentByProviderId:", error);
     return apiResponse.error(res, "Failed to fetch payment details", 500);
   }
 };
 
-
 const getTotalSubscriptionRevenue = async (req, res) => {
   try {
     const totalRevenue = await Payment.aggregate([
+      {
+        $match: { type: "subscription" },
+      },
       {
         $group: {
           _id: null,
@@ -88,15 +112,18 @@ const getTotalSubscriptionRevenue = async (req, res) => {
       },
     ]);
 
-    
     return apiResponse.success(res, "Total subscription revenue fetched", {
       totalRevenue: totalRevenue.length > 0 ? totalRevenue[0].totalAmount : 0,
     });
   } catch (error) {
+    console.error("Error in getTotalSubscriptionRevenue:", error);
     return apiResponse.error(res, "Failed to fetch subscription revenue", 500);
   }
 };
 
-
-
-module.exports = { createPayment, getAllPayment, paymentByProviderId,getTotalSubscriptionRevenue};
+module.exports = {
+  createPayment,
+  getAllPayment,
+  paymentByProviderId,
+  getTotalSubscriptionRevenue,
+};
