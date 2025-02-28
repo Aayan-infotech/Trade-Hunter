@@ -528,44 +528,53 @@ const updateUserById = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
+    // 1. Validate the ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid ID format" });
     }
 
+    // 2. Validate user type from updateData
     const { userType } = updateData;
     if (!userType || !["hunter", "provider"].includes(userType)) {
       return res.status(400).json({ message: "Invalid or missing user type." });
     }
 
+    // 3. Fetch the existing user document from the appropriate model
+    const Model = userType === "hunter" ? Hunter : Provider;
+    const existingUser = await Model.findById(id);
+    if (!existingUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // 4. If a password is being updated, hash it
     if (updateData.password) {
       updateData.password = await bcrypt.hash(updateData.password, 10);
     }
 
-    let updatedUser;
-
-    if (userType === "hunter") {
-      updatedUser = await Hunter.findByIdAndUpdate(id, updateData, {
-        new: true,
-        runValidators: true,
-      });
-
-      if (updateData.address) {
-        await Address.findOneAndUpdate(
-          { userId: id },
-          { $set: updateData.address },
-          { new: true, runValidators: true }
-        );
-      }
-    } else if (userType === "provider") {
-      updatedUser = await Provider.findByIdAndUpdate(id, updateData, {
-        new: true,
-        runValidators: true,
-      });
+    // 5. Merge address data if provided
+    if (updateData.address) {
+      // Merge existing address with new data to ensure required fields remain
+      updateData.address = {
+        ...existingUser.address.toObject(), // keep current address fields
+        ...updateData.address,              // override with new provided fields
+      };
     }
 
-    // 5. Check if user was found and return result
-    if (!updatedUser) {
-      return res.status(404).json({ message: "User not found" });
+    // 6. Update the user document with new data (you can either use findByIdAndUpdate or set fields then save)
+    // Here we manually update fields and save to avoid overwriting unspecified subdocuments.
+    Object.keys(updateData).forEach((field) => {
+      existingUser[field] = updateData[field];
+    });
+
+    const updatedUser = await existingUser.save();
+
+    // 7. If you need to update a separate Address model for hunters, do that here
+    if (userType === "hunter" && updateData.address) {
+      await Address.findOneAndUpdate(
+        { userId: id },
+        { $set: updateData.address },
+        { new: true, runValidators: true }
+      );
     }
 
     return res.status(200).json({
@@ -578,6 +587,7 @@ const updateUserById = async (req, res) => {
       .json({ message: "Internal server error", error: error.message });
   }
 };
+
 
 
 module.exports = {
