@@ -4,11 +4,10 @@ const path = require("path");
 const providerModel = require("../models/providerModel");
 const jobpostModel = require("../models/jobpostModel");
 
-// Configure multer storage (using local disk)
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     console.log("Destination callback called. File received:", file);
-    cb(null, "uploads/"); // Ensure the "uploads" folder exists and is writable
+    cb(null, "uploads/"); 
   },
   filename: function (req, file, cb) {
     console.log("Filename callback called. File received:", file);
@@ -19,10 +18,9 @@ const storage = multer.diskStorage({
   },
 });
 
-// Configure multer with a 5MB file limit and allowed file types
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 1024 * 1024 * 5 }, // 5MB per file
+  limits: { fileSize: 1024 * 1024 * 5 },
   fileFilter: function (req, file, cb) {
     console.log("File filter invoked. File received:", file);
     if (!file) {
@@ -39,7 +37,6 @@ const upload = multer({
   },
 }).array("file", 10);
 
-
 exports.uploadFile = async (req, res) => {
   console.log("Request params:", req.params);
   console.log("Request body:", req.body);
@@ -48,40 +45,33 @@ exports.uploadFile = async (req, res) => {
   const { description } = req.body;
   const { providerId } = req.params;
 
-  // Validate providerId format
   if (!mongoose.Types.ObjectId.isValid(providerId)) {
-    return res.status(400).json({ message: "Invalid provider id." });
+    return res.status(400).json({ status: 400, message: "Invalid provider id." });
   }
 
   try {
-    // Look up provider in the Provider collection
     const provider = await providerModel.findById(providerId).exec();
     console.log("Provider fetched:", provider);
     if (!provider) {
-      return res.status(404).json({ message: "Provider not found." });
+      return res.status(404).json({ status: 404, message: "Provider not found." });
     }
     if (!provider.userType || provider.userType.toLowerCase() !== "provider") {
-      return res.status(403).json({ message: "Unauthorized: Not a provider." });
+      return res.status(403).json({ status: 403, message: "Unauthorized: Not a provider." });
     }
     if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ message: "Please upload at least one file." });
+      return res.status(400).json({ status: 400, message: "Please upload at least one file." });
     }
-
-    // Map uploaded files to metadata
     const filesData = req.files.map((file) => ({
-      // For S3 uploads, file.key holds the S3 object key and file.location the public URL
-      filename: file.key,
-      path: file.location,
+      filename: file.key || file.filename,
+      path: file.location || file.path,
       size: file.size,
       description: description || " ",
       uploadedAt: new Date(),
     }));
 
-    // Combine new files with existing ones
     const existingFiles = provider.files || [];
     const updatedFiles = [...existingFiles, ...filesData];
 
-    // Update the provider document with the new files array
     const updatedProvider = await providerModel.findByIdAndUpdate(
       providerId,
       { files: updatedFiles },
@@ -89,14 +79,16 @@ exports.uploadFile = async (req, res) => {
     );
 
     return res.status(200).json({
+      status: 200,
       message: "Files uploaded successfully!",
       provider: updatedProvider,
     });
   } catch (error) {
     console.error("Error in uploadFile:", error);
-    return res.status(500).json({ message: "Error saving file to the database.", error });
+    return res.status(500).json({ status: 500, message: "Error saving file to the database.", error });
   }
 };
+
 
 
 
