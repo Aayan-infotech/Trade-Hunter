@@ -101,9 +101,9 @@ const paymentByProviderId = async (req, res) => {
 const getTotalSubscriptionRevenue = async (req, res) => {
   try {
     const totalRevenue = await Payment.aggregate([
-      {
-        $match: { type: "subscription" },
-      },
+      // {
+      //   $match: { type: "subscription" },
+      // },
       {
         $group: {
           _id: null,
