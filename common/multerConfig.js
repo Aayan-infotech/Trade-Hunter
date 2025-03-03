@@ -50,7 +50,7 @@ const uploadToS3 = async (req, res, next) => {
     if (!req.file) {
       req.fileLocations = []; // No image uploaded, set empty array
       return next();
-    }
+    }  
     console.log(req.file)
     const file = req.file;
 
