@@ -87,7 +87,14 @@ const { verifyUser } = require("../middlewares/auth");
 
 router.post(
   "/signup",
-  upload.single("images"),
+  (req, res, next) => {
+    upload.single("images")(req, res, (err) => {
+      if (err) {
+        return res.status(400).json({ message: "File upload error", error: err.message });
+      }
+      next();
+    });
+  },
   uploadToS3,
   signUp
 );
