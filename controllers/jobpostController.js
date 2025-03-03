@@ -57,17 +57,13 @@ const createJobPost = async (req, res) => {
 
     if (
       !title ||
-      !jobLocation.location.coordinates[0] ||
-      !jobLocation.location.coordinates[1] ||
-      !jobLocation.jobAddressLine ||
-      !jobLocation.jobRadius ||
-      !estimatedBudget ||
-      !businessType ||
-      !date ||
-      !timeframe.from ||
-      !timeframe.to ||
-      !requirements
-    ) {
+       !jobLocation.location.coordinates[0] || 
+       !jobLocation.location.coordinates[1] || 
+       !jobLocation.jobAddressLine || 
+       !jobLocation.jobRadius || 
+       !businessType || 
+       !date || 
+       !requirements) {
       return res.status(400).json({
         error: "All fields are required",
       });
@@ -76,10 +72,10 @@ const createJobPost = async (req, res) => {
     const jobPost = new JobPost({
       title,
       jobLocation,
-      estimatedBudget,
+      estimatedBudget: estimatedBudget || null,
       businessType, 
-      timeframe,
-      documents: req.fileLocations,
+      timeframe: timeframe.from && timeframe.to ? timeframe : null,
+      documents: req.fileLocations || [],
       requirements,
       user: userId,
       jobStatus: "Pending",
