@@ -89,10 +89,7 @@ const { verifyUser } = require("../middlewares/auth");
 router.post(
   "/signup",
   upload.single("images"), 
-  async (req, res, next) => {
-    next(); 
-  },
-  uploadToS3,
+  uploadToS3, 
   signUp
 );
 router.post("/login", login);
