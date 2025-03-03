@@ -43,38 +43,6 @@ const getS3Client = async () => {
   }
 };
 
-// const uploadToS3 = async (req, res, next) => {
-//   const s3 = await getS3Client();
-
-//   try {
-//     console.log(req.file)
-//     const file = req.file;
-
-//     const files = Array.isArray(file) ? file : [file];
-//     const fileLocations = [];
-//     console.log(file)
-
-//     for (const file of files) {
-
-//       const params = {
-//         Bucket: process.env.AWS_S3_BUCKET_NAME,
-//         Key: `${Date.now()}-${file.originalname}`,
-//         Body: file.buffer,
-//         ContentType: file.mimetype,
-//       };
-
-//       await s3.putObject(params);
-//       const fileUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
-//       fileLocations.push(fileUrl);
-//     }
-
-//     req.fileLocations = fileLocations;
-//     next();
-//   } catch (uploadError) {
-//     return res.status(500).send(uploadError.message);
-//   }
-// };
-
 const uploadToS3 = async (req, res, next) => {
   const s3 = await getS3Client();
 
@@ -83,25 +51,61 @@ const uploadToS3 = async (req, res, next) => {
       req.fileLocations = []; // No image uploaded, set empty array
       return next();
     }
+    console.log(req.file)
+    const file = req.file;
 
-    const file = req.file; // Only process if a file exists
-    const params = {
-      Bucket: process.env.AWS_S3_BUCKET_NAME,
-      Key: `${Date.now()}-${file.originalname}`,
-      Body: file.buffer,
-      ContentType: file.mimetype,
-    };
+    const files = Array.isArray(file) ? file : [file];
+    const fileLocations = [];
+    console.log(file)
 
-    await s3.putObject(params);
-    req.fileLocations = [
-      `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`,
-    ];
+    for (const file of files) {
 
+      const params = {
+        Bucket: process.env.AWS_S3_BUCKET_NAME,
+        Key: `${Date.now()}-${file.originalname}`,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+      };
+
+      await s3.putObject(params);
+      const fileUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
+      fileLocations.push(fileUrl);
+    }
+
+    req.fileLocations = fileLocations;
     next();
   } catch (uploadError) {
-    return res.status(500).json({ message: "Image upload failed", error: uploadError.message });
+    return res.status(500).send(uploadError.message);
   }
 };
+
+// const uploadToS3 = async (req, res, next) => {
+//   const s3 = await getS3Client();
+
+//   try {  
+//     if (!req.file) {
+//       req.fileLocations = []; // No image uploaded, set empty array
+//       return next();
+//     }
+
+//     const file = req.file; // Only process if a file exists
+//     const params = {
+//       Bucket: process.env.AWS_S3_BUCKET_NAME,
+//       Key: `${Date.now()}-${file.originalname}`,
+//       Body: file.buffer,
+//       ContentType: file.mimetype,
+//     };
+
+//     await s3.putObject(params);
+//     req.fileLocations = [
+//       `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`,
+//     ];
+
+//     next();
+//   } catch (uploadError) {
+//     return res.status(500).json({ message: "Image upload failed", error: uploadError.message });
+//   }
+// };
 
 
 module.exports = { uploadToS3 };
