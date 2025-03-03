@@ -44,6 +44,10 @@ const getS3Client = async () => {
 };
 
 const uploadToS3 = async (req, res, next) => {
+  if (!req.file) {
+    req.fileLocations = [];
+    return next();
+  }
   const s3 = await getS3Client();
 
   try {

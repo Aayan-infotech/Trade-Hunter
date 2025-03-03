@@ -73,14 +73,21 @@ const upload = multer();
 const { uploadToS3 } = require("../common/multerConfig");
 const { refreshToken } = require("../middlewares/auth");
 const { verifyUser } = require("../middlewares/auth");
-router.post("/signup", 
+// router.post("/signup", 
+//   upload.single("images"),
+//   async (req, res, next) => {
+//     if (!req.file) {
+//       return res.status(400).json({ error: "No file uploaded." });
+//     }
+//     next();
+//   },
+//   uploadToS3,
+//   signUp
+// );
+
+router.post(
+  "/signup",
   upload.single("images"),
-  async (req, res, next) => {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded." });
-    }
-    next();
-  },
   uploadToS3,
   signUp
 );
