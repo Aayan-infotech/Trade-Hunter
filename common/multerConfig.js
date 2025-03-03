@@ -43,12 +43,48 @@ const getS3Client = async () => {
   }
 };
 
+// const uploadToS3 = async (req, res, next) => {
+//   const s3 = await getS3Client();
+
+//   try {
+//     console.log(req.file)
+//     const file = req.file;
+
+//     const files = Array.isArray(file) ? file : [file];
+//     const fileLocations = [];
+//     console.log(file)
+
+//     for (const file of files) {
+
+//       const params = {
+//         Bucket: process.env.AWS_S3_BUCKET_NAME,
+//         Key: `${Date.now()}-${file.originalname}`,
+//         Body: file.buffer,
+//         ContentType: file.mimetype,
+//       };
+
+//       await s3.putObject(params);
+//       const fileUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
+//       fileLocations.push(fileUrl);
+//     }
+
+//     req.fileLocations = fileLocations;
+//     next();
+//   } catch (uploadError) {
+//     return res.status(500).send(uploadError.message);
+//   }
+// };
+
 const uploadToS3 = async (req, res, next) => {
   const s3 = await getS3Client();
 
   try {
-    console.log(req.file)
-    const file = req.file;
+    if (!req.file) {
+      req.fileLocations = []; 
+      return next();
+    }
+
+    const file = req.file; 
 
     const files = Array.isArray(file) ? file : [file];
     const fileLocations = [];
@@ -56,16 +92,16 @@ const uploadToS3 = async (req, res, next) => {
 
     for (const file of files) {
 
-      const params = {
-        Bucket: process.env.AWS_S3_BUCKET_NAME,
-        Key: `${Date.now()}-${file.originalname}`,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-      };
+    const params = {
+      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Key: `${Date.now()}-${file.originalname}`,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+    };
 
-      await s3.putObject(params);
-      const fileUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
-      fileLocations.push(fileUrl);
+    await s3.putObject(params);
+    const fileUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`;
+    fileLocations.push(fileUrl);
     }
 
     req.fileLocations = fileLocations;
