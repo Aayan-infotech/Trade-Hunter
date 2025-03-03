@@ -142,7 +142,7 @@ const signUp = async (req, res) => {
             password: hashedPassword,
             userType,
             insBy: req.headers["x-client-type"],
-            images: req.fileLocations?.[0] || null,
+            images: req.fileLocations?.[0],
             address,
           })
         : new Provider({
@@ -155,7 +155,7 @@ const signUp = async (req, res) => {
             password: hashedPassword,
             userType,
             insBy: req.headers["x-client-type"],
-            images: req.fileLocations?.[0] || null,
+            images: req.fileLocations?.[0],
             address,
             isGuestMode,
           });
