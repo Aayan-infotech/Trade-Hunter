@@ -132,12 +132,7 @@ const providerSchema = new mongoose.Schema(
       default: false,
     },
 
-    myServices: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "jobPost",
-      },
-    ],
+  
 
     files: [fileSchema],
   },

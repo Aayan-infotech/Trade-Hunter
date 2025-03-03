@@ -49,12 +49,17 @@ const uploadToS3files = async (req, res, next) => {
   try {
     const file = req.files;
 
+    // If no file is provided, simply assign an empty array and proceed.
+    if (!file) {
+      req.fileLocations = [];
+      return next();
+    }
+
     const files = Array.isArray(file) ? file : [file];
     const fileLocations = [];
-    console.log(files)
+    console.log(files);
 
     for (const file of files) {
-
       const params = {
         Bucket: process.env.AWS_S3_BUCKET_NAME,
         Key: `${Date.now()}-${file.originalname}`,

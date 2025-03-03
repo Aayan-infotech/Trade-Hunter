@@ -4,6 +4,7 @@ const Hunter = require("../models/hunterModel");
 const auth = require("../middlewares/auth");
 const mongoose = require("mongoose");
 const Provider = require("../models/providerModel");
+const BusinessType = require("../models/serviceModel");
 
 const createJobPost = async (req, res) => {
   try {
@@ -344,7 +345,7 @@ const myAcceptedJobs = async (req, res) => {
 
 const getJobCountByBusinessType = async (req, res) => {
   try {
-    const counts = await JobPost.aggregate([
+    const jobCounts = await JobPost.aggregate([
       {
         $addFields: {
           businessTypeArray: {
@@ -363,7 +364,6 @@ const getJobCountByBusinessType = async (req, res) => {
           count: { $sum: 1 },
         },
       },
-      { $sort: { count: -1 } },
       {
         $project: {
           name: "$_id",
@@ -372,16 +372,30 @@ const getJobCountByBusinessType = async (req, res) => {
         },
       },
     ]);
+    const allBusinessTypes = await BusinessType.find({}, { _id: 0, name: 1 }).lean();
+
+    const jobCountMap = {};
+    for (const jc of jobCounts) {
+      jobCountMap[jc.name] = jc.count;
+    }
+    const result = allBusinessTypes.map((bt) => ({
+      name: bt.name,
+      count: jobCountMap[bt.name] || 0,
+    }));
+
+    result.sort((a, b) => b.count - a.count);
 
     return res.status(200).json({
       status: 200,
       message: "Job counts by business type retrieved successfully.",
-      data: counts,
+      data: result,
     });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ status: 500, error: error.message });
   }
 };
+
+
 
 module.exports = {
   createJobPost,

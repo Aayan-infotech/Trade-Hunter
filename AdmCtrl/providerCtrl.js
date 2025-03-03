@@ -20,9 +20,6 @@ exports.getAllProviders = async (req, res) => {
     const providers = await Provider.find(query)
       .skip((page - 1) * parseInt(limit))
       .limit(parseInt(limit))
-      .select(
-        "businessName contactName email phoneNo userType userStatus emailVerified documentStatus subscriptionStatus"
-      );
 
     const totalProviders = await Provider.countDocuments(query);
 
@@ -103,9 +100,6 @@ exports.getAllProvidersGuestMode = async (req, res) => {
     const providers = await Provider.find(query)
       .skip((page - 1) * parseInt(limit))
       .limit(parseInt(limit))
-      .select(
-        "businessName contactName email phoneNo userType userStatus emailVerified documentStatus subscriptionStatus"
-      );
 
     const totalProviders = await Provider.countDocuments(query);
 

@@ -132,9 +132,7 @@ exports.getUsersByType = async (req, res) => {
     const users = await User.find(query)
       .skip((page - 1) * limit)
       .limit(limit)
-      .select("name email phoneNo userType userStatus emailVerified documentStatus subscriptionStatus");
 
-    // Count total users for pagination metadata
     const totalUsers = await User.countDocuments(query);
 
     res.status(200).json({

@@ -524,6 +524,121 @@ const getHunterProfile = async (req, res) => {
   }
 };
 
+
+const updateUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let updateData = { ...req.body };
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    const { userType } = updateData;
+    if (!userType || !["hunter", "provider"].includes(userType)) {
+      return res.status(400).json({ message: "Invalid or missing user type." });
+    }
+
+    if (userType === "provider" && updateData.name) {
+      updateData.contactName = updateData.name;
+      delete updateData.name;
+    }
+
+    const Model = userType === "hunter" ? Hunter : Provider;
+    const existingUser = await Model.findById(id);
+    if (!existingUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    if (updateData.password) {
+      updateData.password = await bcrypt.hash(updateData.password, 10);
+    }
+
+    if (
+      updateData.address ||
+      updateData.addressLine ||
+      updateData.latitude ||
+      updateData.longitude ||
+      updateData.radius ||
+      updateData.addressType
+    ) {
+      const existingAddress = existingUser.address ? existingUser.address.toObject() : {};
+
+      const newAddress = {
+        ...existingAddress,
+        addressLine:
+          updateData.address && updateData.address.addressLine
+            ? updateData.address.addressLine
+            : updateData.addressLine || existingAddress.addressLine,
+        latitude:
+          updateData.address && updateData.address.latitude
+            ? updateData.address.latitude
+            : updateData.latitude || existingAddress.latitude,
+        longitude:
+          updateData.address && updateData.address.longitude
+            ? updateData.address.longitude
+            : updateData.longitude || existingAddress.longitude,
+        radius:
+          updateData.address && updateData.address.radius
+            ? updateData.address.radius
+            : updateData.radius || existingAddress.radius,
+        addressType:
+          updateData.address && updateData.address.addressType
+            ? updateData.address.addressType
+            : updateData.addressType || existingAddress.addressType || (userType === "hunter" ? "home" : "office"),
+      };
+
+      if (newAddress.latitude) newAddress.latitude = parseFloat(newAddress.latitude);
+      if (newAddress.longitude) newAddress.longitude = parseFloat(newAddress.longitude);
+      if (newAddress.radius) newAddress.radius = parseFloat(newAddress.radius);
+
+      if (newAddress.latitude && newAddress.longitude) {
+        newAddress.location = {
+          type: "Point",
+          coordinates: [newAddress.longitude, newAddress.latitude],
+        };
+      }
+
+      updateData.address = newAddress;
+
+      delete updateData.addressLine;
+      delete updateData.latitude;
+      delete updateData.longitude;
+      delete updateData.radius;
+      delete updateData.addressType;
+    }
+
+    Object.keys(updateData).forEach((field) => {
+      existingUser[field] = updateData[field];
+    });
+
+    if (updateData.address) {
+      existingUser.markModified("address");
+    }
+
+    const updatedUser = await existingUser.save();
+
+    if (userType === "hunter" && updateData.address) {
+      await Address.findOneAndUpdate(
+        { userId: id },
+        { $set: updateData.address },
+        { new: true, runValidators: true }
+      );
+    }
+
+    return res.status(200).json({
+      status: 200,
+      message: "User updated successfully",
+      updatedUser,
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+};
+
+
+
 module.exports = {
   signUp,
   login,
@@ -535,5 +650,5 @@ module.exports = {
   changePassword,
   getProviderProfile,
   getHunterProfile,
-
+  updateUserById
 };
