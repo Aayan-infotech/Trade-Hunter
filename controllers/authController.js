@@ -24,7 +24,7 @@ const signUp = async (req, res) => {
       password,
       ABN_Number,
       businessType,
-      userType,
+      userType, 
       isGuestMode,
     } = req.body;
 
