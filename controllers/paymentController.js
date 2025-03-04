@@ -5,7 +5,6 @@ const apiResponse = require("../utils/responsehandler");
 
 const createPayment = async (req, res) => {
   try {
-    // The provider id is assumed to be in req.user.userId
     const providerId = req.user.userId;
     const {
       transactionId,
@@ -61,7 +60,6 @@ const createPayment = async (req, res) => {
 
 const getAllPayment = async (req, res) => {
   try {
-    // Populate userId with the provider's contactName field (adjust if you use a different key)
     const payments = await Payment.find().populate("userId", "contactName");
     console.log(payments)
     return apiResponse.success(
@@ -78,7 +76,6 @@ const getAllPayment = async (req, res) => {
 const paymentByProviderId = async (req, res) => {
   try {
     const providerId = req.params.id;
-    // Populate userId with the provider's contactName field
     const payments = await Payment.find({ userId: providerId }).populate("userId", "contactName");
     if (!payments || payments.length === 0) {
       return apiResponse.error(
@@ -101,9 +98,7 @@ const paymentByProviderId = async (req, res) => {
 const getTotalSubscriptionRevenue = async (req, res) => {
   try {
     const totalRevenue = await Payment.aggregate([
-      {
-        $match: { type: "subscription" },
-      },
+     
       {
         $group: {
           _id: null,
@@ -120,6 +115,7 @@ const getTotalSubscriptionRevenue = async (req, res) => {
     return apiResponse.error(res, "Failed to fetch subscription revenue", 500);
   }
 };
+
 
 module.exports = {
   createPayment,

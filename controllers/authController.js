@@ -637,6 +637,32 @@ const updateUserById = async (req, res) => {
   }
 };
 
+const getNewSignups = async (req, res) => {
+  try {
+    const tenDaysAgo = new Date();
+    tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+
+    const newHuntersCount = await Hunter.countDocuments({ createdAt: { $gte: tenDaysAgo } });
+    
+    const newProvidersCount = await Provider.countDocuments({ createdAt: { $gte: tenDaysAgo } });
+    
+    const totalNewSignups = newHuntersCount + newProvidersCount;
+
+    return res.status(200).json({
+      totalNewSignups,
+    });
+  } catch (error) {
+    console.error("Error retrieving new signups for the last 10 days:", error);
+    return res.status(500).json({
+      message: "Error retrieving new signups",
+      error: error.message,
+    });
+  }
+};
+
+
+
+
 
 
 module.exports = {
@@ -650,5 +676,6 @@ module.exports = {
   changePassword,
   getProviderProfile,
   getHunterProfile,
-  updateUserById
+  updateUserById,
+  getNewSignups 
 };

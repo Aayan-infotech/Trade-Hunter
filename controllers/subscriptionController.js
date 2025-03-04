@@ -110,4 +110,41 @@ const deleteSubscription = async (req, res) => {
   }
 };
 
-module.exports = { addSubscription, getAllSubscription, getSubscriptionById, updateSubscription, deleteSubscription };
+const getRetentionRate = async (req, res) => {
+  try {
+    const currentDate = new Date();
+    
+    const startOfThisMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    
+    const startOfLastMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
+    
+    const lastMonthCount = await Subscription.countDocuments({
+      createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth }
+    });
+    
+    const newSubscribersThisMonth = await Subscription.countDocuments({
+      createdAt: { $gte: startOfThisMonth }
+    });
+    
+    const totalSubscribers = await Subscription.countDocuments();
+    
+    const retainedSubscribers = totalSubscribers - newSubscribersThisMonth;
+    const retentionRate = lastMonthCount > 0 
+      ? (retainedSubscribers / lastMonthCount) * 100 
+      : 0;
+    
+    return apiResponse.success(res, "Retention rate calculated successfully", {
+      lastMonthCount,
+      newSubscribersThisMonth,
+      totalSubscribers,
+      retainedSubscribers,
+      retentionRate: retentionRate.toFixed(2) 
+    });
+  } catch (error) {
+    console.error("Error calculating retention rate:", error);
+    return apiResponse.error(res, "Error calculating retention rate", 500);
+  }
+};
+
+module.exports = { addSubscription, getAllSubscription, getSubscriptionById, updateSubscription, deleteSubscription ,getRetentionRate};

@@ -21,3 +21,21 @@ exports.getTotalCount = async (req, res) => {
     return res.status(500).json({ message: "Error retrieving user counts", error });
   }
 };
+
+
+exports.getActiveUsersCount = async (req, res) => {
+  try {
+    const activeHuntersCount = await User.countDocuments({ userStatus: "Active" });
+    
+    const activeProvidersCount = await Provider.countDocuments({ userStatus: "Active", isGuestMode: false });
+    
+    const totalActiveUsers = activeHuntersCount + activeProvidersCount;
+
+    return res.status(200).json({
+      totalActiveUsers
+    });
+  } catch (error) {
+    console.error("Error retrieving active user counts:", error);
+    return res.status(500).json({ message: "Error retrieving active user counts", error });
+  }
+};
