@@ -131,7 +131,7 @@ const getRetentionRate = async (req, res) => {
     
     const retainedSubscribers = totalSubscribers - newSubscribersThisMonth;
     const retentionRate = lastMonthCount > 0 
-      ? (retainedSubscribers / lastMonthCount) * 100 
+      ? (retainedSubscribers / totalSubscribers) * 100 
       : 0;
     
     return apiResponse.success(res, "Retention rate calculated successfully", {
