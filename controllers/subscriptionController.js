@@ -139,7 +139,7 @@ const getRetentionRate = async (req, res) => {
       newSubscribersThisMonth,
       totalSubscribers,
       retainedSubscribers,
-      retentionRate: retentionRate.toFixed(2) 
+      retentionRate: retentionRate 
     });
   } catch (error) {
     console.error("Error calculating retention rate:", error);
