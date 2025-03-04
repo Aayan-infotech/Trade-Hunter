@@ -474,6 +474,47 @@ const getTopBusinessTypes = async (req, res) => {
   }
 };
 
+const getTopDemandedCities = async (req, res) => {
+  try {
+    const topCities = await JobPost.aggregate([
+      {
+        $project: {
+          normalizedCity: {
+            $trim: {
+              input: { $toLower: "$jobLocation.city" },
+              chars: " "
+            }
+          }
+        }
+      },
+      {
+        $group: {
+          _id: "$normalizedCity",
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { count: -1 }
+      },
+      {
+        $limit: 3
+      },
+      {
+        $project: {
+          _id: 0,
+          city: "$_id",
+          count: 1
+        }
+      }
+    ]);
+
+    return apiResponse.success(res, "Top 3 high demand cities", topCities);
+  } catch (error) {
+    return apiResponse.error(res, "Error retrieving top demanded cities.", 500, { error: error.message });
+  }
+};
+
+
 
 
 module.exports = {
@@ -488,5 +529,6 @@ module.exports = {
   myAcceptedJobs,
   getJobCountByBusinessType,  
   getJobPostingTrends,
-  getTopBusinessTypes
+  getTopBusinessTypes,
+  getTopDemandedCities
 };
