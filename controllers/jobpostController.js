@@ -391,6 +391,47 @@ const getJobCountByBusinessType = async (req, res) => {
   }
 };
 
+const getJobPostingTrends = async (req, res) => {
+  try {
+    const now = new Date();
+
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+    const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay());
+    const startOfNextWeek = new Date(startOfWeek);
+    startOfNextWeek.setDate(startOfWeek.getDate() + 7);
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    const dailyCount = await JobPost.countDocuments({
+      createdAt: { $gte: startOfToday, $lt: startOfTomorrow }
+    });
+
+    const weeklyCount = await JobPost.countDocuments({
+      createdAt: { $gte: startOfWeek, $lt: startOfNextWeek }
+    });
+
+    const monthlyCount = await JobPost.countDocuments({
+      createdAt: { $gte: startOfMonth, $lt: startOfNextMonth }
+    });
+
+    return apiResponse.success(res, "Job posting trends retrieved successfully.", {
+      dailyCount,
+      weeklyCount,
+      monthlyCount
+    });
+  } catch (error) {
+    return apiResponse.error(
+      res,
+      "Error retrieving job posting trends.",
+      500,
+      { error: error.message }
+    );
+  }
+};
+
 
 
 module.exports = {
@@ -404,4 +445,5 @@ module.exports = {
   changeJobStatus,
   myAcceptedJobs,
   getJobCountByBusinessType,  
+  getJobPostingTrends
 };

@@ -10,6 +10,7 @@ const {
   changeJobStatus,
   myAcceptedJobs,
   getJobCountByBusinessType,
+  getJobPostingTrends
 } = require("../controllers/jobpostController");
 const multer = require("multer");
 const upload = multer();
@@ -51,5 +52,5 @@ router.get("/getJobPostByUserId", verifyUser ,getJobPostByUserId);
 router.post("/changeJobStatus/:jobId", verifyUser, changeJobStatus);
 router.get("/myAcceptedJobs",verifyUser, myAcceptedJobs);
 router.get("/business-type-count", getJobCountByBusinessType);
-
+router.get("/getJobTrends"  ,getJobPostingTrends)
 module.exports = router;
