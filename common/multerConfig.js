@@ -12,7 +12,7 @@ const secretsManagerClient = new SecretsManagerClient({
 
 const getAwsCredentials = async () => {
   try {
-    const command = new GetSecretValueCommand({ SecretId: "aws-7jan" });
+    const command = new GetSecretValueCommand({ SecretId: "aayan-config" });
     const data = await secretsManagerClient.send(command);
 
     if (data.SecretString) {
