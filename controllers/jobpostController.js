@@ -13,6 +13,7 @@ const createJobPost = async (req, res) => {
       longitude,
       latitude,
       jobRadius,
+      city,
       jobAddressLine,
       estimatedBudget,
       businessType,
@@ -38,11 +39,12 @@ const createJobPost = async (req, res) => {
     }
 
     const jobLocation = {
+      city: city,
       location: {
         type: "Point",
         coordinates: [
           parseFloat(longitude), 
-          parseFloat(latitude),  
+          parseFloat(latitude)
         ],
       },
       jobAddressLine: jobAddressLine,
@@ -57,13 +59,15 @@ const createJobPost = async (req, res) => {
 
     if (
       !title ||
-       !jobLocation.location.coordinates[0] || 
-       !jobLocation.location.coordinates[1] || 
-       !jobLocation.jobAddressLine || 
-       !jobLocation.jobRadius || 
-       !businessType || 
-       !date || 
-       !requirements) {
+      !jobLocation.location.coordinates[0] || 
+      !jobLocation.location.coordinates[1] || 
+      !jobLocation.jobAddressLine || 
+      !jobLocation.jobRadius || 
+      !businessType || 
+      !city ||
+      !date || 
+      !requirements
+    ) {
       return res.status(400).json({
         error: "All fields are required",
       });
@@ -94,6 +98,7 @@ const createJobPost = async (req, res) => {
     });
   }
 };
+
 
 const getAllJobPosts = async (req, res) => {
   let page = parseInt(req.query.page) || 1;

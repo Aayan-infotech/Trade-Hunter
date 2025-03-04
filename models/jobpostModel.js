@@ -11,6 +11,7 @@
         type: { type: String, enum: ['Point'], required: true },
         coordinates: { type: [Number], required: true }, // [longitude, latitude]
       },
+      city:{type:String, required: true},
       jobAddressLine: { type: String, required: true, trim: true },
       jobRadius: { type: Number, required: true },
       _id: false,
