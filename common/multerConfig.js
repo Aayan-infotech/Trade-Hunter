@@ -10,48 +10,23 @@ const secretsManagerClient = new SecretsManagerClient({
   region: process.env.AWS_REGION,
 });
 
-// const getAwsCredentials = async () => {
-//   try {
-//     const command = new GetSecretValueCommand({ SecretId: "aayan-config" });
-//     const data = await secretsManagerClient.send(command);
-
-//     if (data.SecretString) {
-//       const secret = JSON.parse(data.SecretString);
-//       return {
-//         accessKeyId: secret.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID,
-//         secretAccessKey:
-//           secret.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY,
-//       };
-//     }
-//   } catch (error) {
-//     throw new Error("Failed to retrieve AWS credentials");
-//   }
-// };
-
 const getAwsCredentials = async () => {
   try {
-    console.log("Fetching AWS credentials from Secrets Manager...");
-
     const command = new GetSecretValueCommand({ SecretId: "aayan-config" });
     const data = await secretsManagerClient.send(command);
 
     if (data.SecretString) {
-      console.log("AWS credentials retrieved successfully.");
       const secret = JSON.parse(data.SecretString);
       return {
         accessKeyId: secret.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID,
         secretAccessKey:
           secret.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY,
       };
-    } else {
-      console.warn("AWS SecretString is empty.");
     }
   } catch (error) {
-    console.error("Failed to retrieve AWS credentials:", error);
     throw new Error("Failed to retrieve AWS credentials");
   }
 };
-
 
 const getS3Client = async () => {
   try {
