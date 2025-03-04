@@ -431,6 +431,43 @@ const getJobPostingTrends = async (req, res) => {
     );
   }
 };
+const getTopBusinessTypes = async (req, res) => {
+  try {
+    const topBusinessTypes = await JobPost.aggregate([
+      {
+        $addFields: {
+          businessTypeArray: {
+            $cond: {
+              if: { $isArray: "$businessType" },
+              then: "$businessType",
+              else: ["$businessType"]
+            }
+          }
+        }
+      },
+      { $unwind: "$businessTypeArray" },
+      {
+        $group: {
+          _id: "$businessTypeArray",
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { count: -1 } },
+      { $limit: 4 },
+      {
+        $project: {
+          _id: 0,
+          businessType: "$_id",
+          count: 1
+        }
+      }
+    ]);
+    
+    return apiResponse.success(res, "Top four business types retrieved successfully.", topBusinessTypes);
+  } catch (error) {
+    return apiResponse.error(res, "Error retrieving top business types.", 500, { error: error.message });
+  }
+};
 
 
 
@@ -445,5 +482,6 @@ module.exports = {
   changeJobStatus,
   myAcceptedJobs,
   getJobCountByBusinessType,  
-  getJobPostingTrends
+  getJobPostingTrends,
+  getTopBusinessTypes
 };

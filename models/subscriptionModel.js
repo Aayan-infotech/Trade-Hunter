@@ -18,6 +18,7 @@ const SubscriptionSchema = new mongoose.Schema({
         required: true,
         enum: ["advertising", "pay per lead", "subscription"],
     }
-}, {timestamp: true});
+}, {timestamps: true}
+);
 
 module.exports = mongoose.model('Subscription', SubscriptionSchema);
