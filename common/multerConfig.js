@@ -34,7 +34,7 @@ const getS3Client = async () => {
     return new S3({
       credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY, 
+        secretAccessKey:  process.env.AWS_SECRET_ACCESS_KEY,
       },
       region: process.env.AWS_REGION,
     });
@@ -74,34 +74,5 @@ const uploadToS3 = async (req, res, next) => {
     return res.status(500).send(uploadError.message);
   }
 };
-
-// const uploadToS3 = async (req, res, next) => {
-//   const s3 = await getS3Client();
-
-//   try {  
-//     if (!req.file) {
-//       req.fileLocations = []; // No image uploaded, set empty array
-//       return next();
-//     }
-
-//     const file = req.file; // Only process if a file exists
-//     const params = {
-//       Bucket: process.env.AWS_S3_BUCKET_NAME,
-//       Key: `${Date.now()}-${file.originalname}`,
-//       Body: file.buffer,
-//       ContentType: file.mimetype,
-//     };
-
-//     await s3.putObject(params);
-//     req.fileLocations = [
-//       `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${params.Key}`,
-//     ];
-
-//     next();
-//   } catch (uploadError) {
-//     return res.status(500).json({ message: "Image upload failed", error: uploadError.message });
-//   }
-// };
-
 
 module.exports = { uploadToS3 };
