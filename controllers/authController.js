@@ -24,7 +24,7 @@ const signUp = async (req, res) => {
       password,
       ABN_Number,
       businessType,
-      userType, 
+      userType,
       isGuestMode,
     } = req.body;
 
@@ -108,7 +108,7 @@ const signUp = async (req, res) => {
       }
       return res.status(400).json({ message: "User already exists." });
     }
-    
+
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -142,7 +142,7 @@ const signUp = async (req, res) => {
             password: hashedPassword,
             userType,
             insBy: req.headers["x-client-type"],
-            images: req.fileLocations?.[0] || null,
+            images: req.fileLocations?.[0],
             address,
           })
         : new Provider({
@@ -155,7 +155,7 @@ const signUp = async (req, res) => {
             password: hashedPassword,
             userType,
             insBy: req.headers["x-client-type"],
-            images: req.fileLocations?.[0] || null,
+            images: req.fileLocations?.[0],
             address,
             isGuestMode,
           });

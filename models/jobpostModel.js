@@ -18,7 +18,7 @@
 
     estimatedBudget: {
       type: Number,
-      required: true
+      required: false
     },
     businessType: {
       type: [String],
@@ -35,11 +35,11 @@
     timeframe: {
       from: {
         type: Number,
-        required: true
+        required: false
       },
       to: {
         type: Number,
-        required: true
+        required: false
       }
     },
     documents: {
