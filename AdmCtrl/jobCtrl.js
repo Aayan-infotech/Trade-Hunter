@@ -90,29 +90,78 @@ const createJobPost = async (req, res) => {
   }
 };
 
-
 const getAllJobPosts = async (req, res) => {
   let page = parseInt(req.query.page) || 1;
   let limit = parseInt(req.query.limit) || 10;
   let skip = (page - 1) * limit;
-  let search = req.query.search || ""; 
+  let search = req.query.search || "";
 
   try {
-    let query = {};
+    // Build the aggregation pipeline
+    let pipeline = [];
+
+    // If a search term is provided, join the hunters and filter by hunter's name
     if (search.trim()) {
-      query.title = { $regex: search, $options: "i" };
+      pipeline.push({
+        $lookup: {
+          from: "hunters", // Change this if your hunters collection is named differently
+          localField: "user",
+          foreignField: "_id",
+          as: "userDetails",
+        },
+      });
+      pipeline.push({ $unwind: "$userDetails" });
+      pipeline.push({
+        $match: {
+          "userDetails.name": { $regex: search, $options: "i" },
+        },
+      });
+    } else {
+      // Even without search, join the hunters so we can populate the user details.
+      pipeline.push({
+        $lookup: {
+          from: "hunters",
+          localField: "user",
+          foreignField: "_id",
+          as: "userDetails",
+        },
+      });
+      pipeline.push({ $unwind: "$userDetails" });
     }
 
-    const totalJobs = await JobPost.countDocuments(query);
-    const jobPosts = await JobPost.find(query)
-      .skip(skip)
-      .limit(limit)
-      .populate({
-        path: "user",
-        model: "hunter", 
-        select: "name email",
-      })
-      .lean();
+    // Count total matching documents
+    const countPipeline = [...pipeline, { $count: "totalJobs" }];
+    const countResult = await JobPost.aggregate(countPipeline);
+    const totalJobs = countResult[0] ? countResult[0].totalJobs : 0;
+
+    // Add pagination stages
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    // Project the fields you need and re-map "user" to the joined details
+    pipeline.push({
+      $project: {
+        title: 1,
+        jobLocation: 1,
+        estimatedBudget: 1,
+        businessType: 1,
+        date: 1,
+        timeframe: 1,
+        documents: 1,
+        requirements: 1,
+        jobStatus: 1,
+        jobAssigned: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        user: {
+          _id: "$userDetails._id",
+          name: "$userDetails.name",
+          email: "$userDetails.email",
+        },
+      },
+    });
+
+    const jobPosts = await JobPost.aggregate(pipeline);
 
     return apiResponse.success(res, "Job posts retrieved successfully.", {
       pagination: {
@@ -129,6 +178,8 @@ const getAllJobPosts = async (req, res) => {
     });
   }
 };
+
+
 
 
 const getJobPostById = async (req, res) => {
