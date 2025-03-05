@@ -9,7 +9,6 @@ const fileSchema = new mongoose.Schema({
   uploadedAt: { type: Date, default: Date.now },
 });
 
-// provider Schema
 const providerSchema = new mongoose.Schema(
   {
     businessName: {

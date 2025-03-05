@@ -29,13 +29,13 @@ const createJobPost = async (req, res) => {
     const hunter = await Hunter.findById(userId);
 
     if (!hunter) {
-      return res.status(404).json({ error: "Hunter not found" });
+      return res.status(404).json({ message: "Hunter not found" });
     }
     if (hunter.userType !== "hunter") {
-      return res.status(403).json({ error: "Unauthorized: User is not a hunter" });
+      return res.status(403).json({ message: "Unauthorized: User is not a hunter" });
     }
     if (hunter.userStatus !== "Active") {
-      return res.status(403).json({ error: "Unauthorized: Hunter status is not Active" });
+      return res.status(403).json({ message: "Unauthorized: Hunter status is not Active" });
     }
 
     const jobLocation = {
