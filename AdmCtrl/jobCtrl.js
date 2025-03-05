@@ -362,7 +362,6 @@ const getJobStatusCounts = async (req, res) => {
       },
     ]);
 
-    // Format the response to include all possible statuses
     const statusMap = {
       Pending: 0,
       Assigned: 0,
@@ -374,10 +373,15 @@ const getJobStatusCounts = async (req, res) => {
       statusMap[status._id] = status.count;
     });
 
+    const totalJobs = await JobPost.countDocuments();
+
     return res.status(200).json({
       success: true,
       message: "Job status counts fetched successfully",
-      data: statusMap,
+      data: {
+        status: statusMap,
+        totalJobs,
+      },
     });
   } catch (error) {
     return res.status(500).json({
