@@ -7,6 +7,10 @@ const MassNotificationSchema = new mongoose.Schema({
     enum: ["hunter", "provider"],
     required: true,
   },
+  subject:{
+    type:String,
+    required:true,
+  },
   message: {
     type: String,
     required: true,
