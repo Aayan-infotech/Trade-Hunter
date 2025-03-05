@@ -6,12 +6,10 @@ const addSubscription = async (req, res) => {
   try {
     const { amount, title, description, type } = req.body;
 
-    // Validate input
     if (!amount || !title || !description || !type) {
       return apiResponse.error(res, "All fields are required", 400);
     }
 
-    //create subscription
     const newSubscription = new Subscription({
       amount,
       title,

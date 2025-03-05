@@ -21,6 +21,7 @@ const notificationRts = require("./AdmRts/notificationRts")
 const dashboardRts = require("./AdmRts/dashboardRts")
 const softDeleteRoute = require("./routes/softDeleteRoute")
 const StaticContentRoutes = require("./AdmRts/StaticContentRoutes")
+const massNotifcationRts = require("./AdmRts/massNotificationRts")
 
 
 
@@ -34,6 +35,7 @@ app.use("/api/notification",notificationRts);
 app.use("/api/count",dashboardRts)
 app.use("/api/DeleteAccount",softDeleteRoute)
 app.use("/api/StaticContent",StaticContentRoutes)
+app.use("/api/massNotification",massNotifcationRts)
 
 
  

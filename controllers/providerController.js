@@ -621,3 +621,19 @@ exports.updateProviderById = async (req, res) => {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
+
+exports.getProviderProfile = async (req, res) => {
+  try {
+      const { providerId } = req.params;
+      const provider = await providerModel.findById(providerId);
+
+      if (!provider) {
+          return res.status(404).json({ success: false, message: "Provider not found" });
+      }
+
+      res.status(200).json({ success: true, messagee:"Provider fetched successfully",data: provider });
+  } catch (error) {
+      console.error("Error fetching provider profile:", error);
+      res.status(500).json({ success: false, message: error.message });
+  }
+};

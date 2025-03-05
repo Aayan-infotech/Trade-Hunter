@@ -13,7 +13,7 @@ const notificationSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: ['alert', 'reminder', 'promotion'],
-    required: true,
+    required: false,
   },
   text: {
     type: String,
