@@ -13,6 +13,8 @@ router.post('/getNearbyJobsForGuest',fileController.getNearbyJobsForGuest);
 router.post('/getServicesForGuestLocation2',fileController.getServicesForGuestLocation2);      
 router.get('/getJobByIdForGuest/:jobId',fileController.getJobByIdForGuest);
 router.put('/updateById/:id', fileController.updateProviderById);
-router.get('/:providerId', fileController.getProviderProfile)
+router.get('/:providerId', fileController.getProviderProfile);
+router.post('/acceptCount/:providerId', fileController.jobAcceptCount);
+router.post('/completedCount/:providerId', fileController.jobCompleteCount)
 
 module.exports = router;

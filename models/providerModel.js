@@ -131,6 +131,16 @@ const providerSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    jobAcceptCount:{
+      required:false,
+      type:Number,
+      default:0
+    },
+    jobCompleteCount:{
+      required:false,
+      type:Number,
+      default: 0,
+    },
 
   
 

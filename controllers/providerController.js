@@ -637,3 +637,82 @@ exports.getProviderProfile = async (req, res) => {
       res.status(500).json({ success: false, message: error.message });
   }
 };
+
+exports.jobAcceptCount = async (req, res) => {
+  try {
+    const { providerId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(providerId)) {
+      return res.status(400).json({ 
+        status: 400, 
+        message: "Invalid provider id." 
+      });
+    }
+
+    const updatedProvider = await providerModel.findByIdAndUpdate(
+      providerId,
+      { $inc: { jobAcceptCount: 1 } },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedProvider) {
+      return res.status(404).json({ 
+        status: 404, 
+        message: "Provider not found." 
+      });
+    }
+
+    return res.status(200).json({
+      status: 200,
+      message: "Job accept count incremented successfully!",
+      jobAcceptCount : updatedProvider.jobAcceptCount,
+    });
+  } catch (error) {
+    console.error("Error in incrementJobAcceptCount:", error);
+    return res.status(500).json({ 
+      status: 500, 
+      message: "Internal server error", 
+      error: error.message 
+    });
+  }
+};
+
+exports.jobCompleteCount = async (req, res) => {
+  try {
+    const { providerId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(providerId)) {
+      return res.status(400).json({ 
+        status: 400, 
+        message: "Invalid provider id." 
+      });
+    }
+
+    const updatedProvider = await providerModel.findByIdAndUpdate(
+      providerId,
+      { $inc: { jobCompleteCount: 1 } },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedProvider) {
+      return res.status(404).json({ 
+        status: 404, 
+        message: "Provider not found." 
+      });
+    }
+
+    return res.status(200).json({
+      status: 200,
+      message: "Job complete count incremented successfully!",
+      jobCompleteCount : updatedProvider.jobCompleteCount,
+    });
+  } catch (error) {
+    console.error("Error in incrementJobCompleteCount:", error);
+    return res.status(500).json({ 
+      status: 500, 
+      message: "Internal server error", 
+      error: error.message 
+    });
+  }
+};
+
+
