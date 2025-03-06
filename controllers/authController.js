@@ -1,5 +1,5 @@
 const bcrypt = require("bcrypt");
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 const User = require("../models/hunterModel");
 const generateverificationOTP = require("../utils/VerifyOTP");
 const sendEmail = require("../services/sendMail");
@@ -36,34 +36,11 @@ const signUp = async (req, res) => {
     // Validate required fields based on userType
     const requiredFields =
       userType === "hunter"
-        ? [
-            name,
-            email,
-            phoneNo,
-            latitude,
-            longitude,
-            radius,
-            password,
-            addressLine,
-          ]
-        : [
-            name,
-            businessName,
-            email,
-            phoneNo,
-            latitude,
-            longitude,
-            radius,
-            password,
-            ABN_Number,
-            businessType,
-            addressLine,
-          ];
+        ? [name, email, phoneNo, latitude, longitude, radius, password, addressLine]
+        : [name, businessName, email, phoneNo, latitude, longitude, radius, password, ABN_Number, businessType, addressLine];
 
     if (requiredFields.some((field) => !field)) {
-      return res
-        .status(400)
-        .json({ message: `All ${userType} fields are required.` });
+      return res.status(400).json({ message: `All ${userType} fields are required.` });
     }
 
     // Validate email format
@@ -75,9 +52,7 @@ const signUp = async (req, res) => {
     // Validate phone number
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(phoneNo)) {
-      return res
-        .status(400)
-        .json({ message: "Invalid phone number. Must be 10 digits." });
+      return res.status(400).json({ message: "Invalid phone number. Must be 10 digits." });
     }
 
     // Validate password
@@ -85,16 +60,16 @@ const signUp = async (req, res) => {
       /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&#]{8,}$/;
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
-        message:
-          "Password must be at least 8 characters long, including one letter, one number, and one special character.",
+        message: "Password must be at least 8 characters long, including one letter, one number, and one special character.",
       });
     }
 
     // Check if the email is already in use
-    const existingUser = await (userType === "hunter" || "provider"
-      ? User.findOne({ email, isDeleted: { $ne: true } })
-      : Provider.findOne({ email, isDeleted: { $ne: true } }));
-
+    const existingUser = await (
+      userType === "hunter" 
+        ? User.findOne({ email, isDeleted: { $ne: true } })
+        : Provider.findOne({ email, isDeleted: { $ne: true } })
+    );
     if (existingUser) {
       if (!existingUser.emailVerified) {
         const verificationOTP = await generateverificationOTP(existingUser);
@@ -111,9 +86,7 @@ const signUp = async (req, res) => {
 
     // Validate address fields
     if (!latitude || !longitude || !radius || !addressLine) {
-      return res
-        .status(400)
-        .json({ message: "All hunter fields are required." });
+      return res.status(400).json({ message: "All hunter fields are required." });
     }
 
     // Construct address
@@ -155,8 +128,9 @@ const signUp = async (req, res) => {
             images: req.fileLocations?.[0],
             address,
             isGuestMode,
-            // Set subscription field as empty (null) at signup
-            subscription: null,
+            // Set subscriptionPayment field as empty (null) at signup;
+            // It will later be updated when a payment is done.
+            subscriptionPayment: null,
           });
 
     // Send verification email
@@ -177,13 +151,15 @@ const signUp = async (req, res) => {
       }).save();
     }
 
-    return res
-      .status(201)
-      .json({ message: "Verification link sent to email.", user: newUser });
+    // For providers, you might want to populate subscriptionPayment if a payment is done.
+    // At signup, it's null, but if it's updated later, you can retrieve it with populate.
+    if (userType === "provider") {
+      await answer.populate("subscriptionPayment");
+    }
+
+    return res.status(201).json({ message: "Verification link sent to email.", user: answer });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
+    return res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
 

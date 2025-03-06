@@ -47,9 +47,13 @@ const createPayment = async (req, res) => {
       type,
     });
 
-    provider.subscriptionStatus = 1; 
-    await provider.save();
+    // Save the new Payment document first
     await newPayment.save();
+
+    // Update provider's subscription status and set its "type" field to reference the Payment document
+    provider.subscriptionStatus = 1;
+    provider.type = newPayment._id; // This will allow you to populate the Payment document later
+    await provider.save();
 
     return apiResponse.success(res, "Payment created successfully", newPayment);
   } catch (error) {
@@ -61,7 +65,7 @@ const createPayment = async (req, res) => {
 const getAllPayment = async (req, res) => {
   try {
     const payments = await Payment.find().populate("userId", "contactName");
-    console.log(payments)
+    console.log(payments);
     return apiResponse.success(
       res,
       "All payments fetched successfully",
@@ -114,7 +118,6 @@ const getTotalSubscriptionRevenue = async (req, res) => {
     return apiResponse.error(res, "Failed to fetch subscription revenue", 500);
   }
 };
-
 
 module.exports = {
   createPayment,

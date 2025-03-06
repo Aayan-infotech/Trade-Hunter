@@ -139,10 +139,10 @@ const providerSchema = new mongoose.Schema(
       default: 0,
       required: false,
     },
-    subscription: {
+    subscriptionPayment: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Payment",
-      required: false, 
+      required: false,
     },
     files: [fileSchema],
   },
