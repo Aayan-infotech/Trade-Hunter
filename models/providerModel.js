@@ -98,7 +98,7 @@ const providerSchema = new mongoose.Schema(
     },
     insDate: {
       type: Date,
-      default: Date.now(),
+      default: Date.now,
     },
     insIp: {
       type: String,
@@ -117,7 +117,6 @@ const providerSchema = new mongoose.Schema(
       type: String,
       enum: ['Suspend', 'Deactivate', 'Reactivate'],
       default: 'Reactivate'
-
     },
     refreshToken: {
       type: String,
@@ -126,29 +125,30 @@ const providerSchema = new mongoose.Schema(
       type: String,
     },
     isGuestMode: {
-      required: false,
       type: Boolean,
       default: false,
+      required: false,
     },
-    jobAcceptCount:{
-      required:false,
-      type:Number,
-      default:0
-    },
-    jobCompleteCount:{
-      required:false,
-      type:Number,
+    jobAcceptCount: {
+      type: Number,
       default: 0,
+      required: false,
     },
-
-  
-
+    jobCompleteCount: {
+      type: Number,
+      default: 0,
+      required: false,
+    },
+    subscription: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Subscription",
+      required: false, 
+    },
     files: [fileSchema],
   },
   { timestamps: true }
 );
 
-// Create 2dsphere index for geospatial queries
-providerSchema.index({ "address.location": '2dsphere' }); 
+providerSchema.index({ "address.location": "2dsphere" });
 
 module.exports = mongoose.model("Provider", providerSchema);

@@ -91,13 +91,10 @@ const signUp = async (req, res) => {
     }
 
     // Check if the email is already in use
-    const existingUser = await (userType === "hunter" ||"provider"
+    const existingUser = await (userType === "hunter" || "provider"
       ? User.findOne({ email, isDeleted: { $ne: true } })
       : Provider.findOne({ email, isDeleted: { $ne: true } }));
 
-    // const existingUser = await (userType === "hunter"
-    //   ? User.findOne({ email })
-    //   : Provider.findOne({ email }));
     if (existingUser) {
       if (!existingUser.emailVerified) {
         const verificationOTP = await generateverificationOTP(existingUser);
@@ -158,6 +155,8 @@ const signUp = async (req, res) => {
             images: req.fileLocations?.[0],
             address,
             isGuestMode,
+            // Set subscription field as empty (null) at signup
+            subscription: null,
           });
 
     // Send verification email
@@ -187,7 +186,6 @@ const signUp = async (req, res) => {
       .json({ message: "Internal server error", error: error.message });
   }
 };
-
 // login
 const login = async (req, res) => {
   const { email, password, userType } = req.body;
