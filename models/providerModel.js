@@ -141,7 +141,7 @@ const providerSchema = new mongoose.Schema(
     },
     subscription: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Subscription",
+      ref: "Payment",
       required: false, 
     },
     files: [fileSchema],
