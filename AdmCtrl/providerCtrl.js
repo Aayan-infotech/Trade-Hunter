@@ -17,9 +17,11 @@ exports.getAllProviders = async (req, res) => {
       query.userStatus = userStatus;
     }
 
+    // Find providers and populate the assignedJobs field with job details
     const providers = await Provider.find(query)
+      .populate("assignedJobs") // This will replace the ObjectIds in assignedJobs with full JobPost details
       .skip((page - 1) * parseInt(limit))
-      .limit(parseInt(limit))
+      .limit(parseInt(limit));
 
     const totalProviders = await Provider.countDocuments(query);
 
@@ -37,6 +39,7 @@ exports.getAllProviders = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error", error });
   }
 };
+
 
 // Delete a Provider
 exports.deleteProvider = async (req, res) => {
