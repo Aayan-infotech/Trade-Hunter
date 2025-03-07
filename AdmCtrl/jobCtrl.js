@@ -97,61 +97,44 @@ const getAllJobPosts = async (req, res) => {
   let search = req.query.search || "";
 
   try {
-    // Build the aggregation pipeline
     let pipeline = [];
 
-    // Join hunters to populate user details and optionally filter by hunter's name
+    pipeline.push({
+      $lookup: {
+        from: "hunters", 
+        localField: "user",
+        foreignField: "_id",
+        as: "userDetails",
+      },
+    });
+    pipeline.push({ $unwind: "$userDetails" });
     if (search.trim()) {
-      pipeline.push({
-        $lookup: {
-          from: "hunters", // Adjust if your hunters collection name differs
-          localField: "user",
-          foreignField: "_id",
-          as: "userDetails",
-        },
-      });
-      pipeline.push({ $unwind: "$userDetails" });
       pipeline.push({
         $match: {
           "userDetails.name": { $regex: search, $options: "i" },
         },
       });
-    } else {
-      // Even without search, join hunters so we can populate user details.
-      pipeline.push({
-        $lookup: {
-          from: "hunters",
-          localField: "user",
-          foreignField: "_id",
-          as: "userDetails",
-        },
-      });
-      pipeline.push({ $unwind: "$userDetails" });
     }
 
-    // Join providers to get provider details (contactName, email, etc.)
     pipeline.push({
       $lookup: {
-        from: "providers", // Ensure this matches your providers collection name
+        from: "providers",
         localField: "provider",
         foreignField: "_id",
         as: "providerDetails",
       },
     });
     pipeline.push({
-      $unwind: { path: "$providerDetails", preserveNullAndEmptyArrays: true }
+      $unwind: { path: "$providerDetails", preserveNullAndEmptyArrays: true },
     });
 
-    // Count total matching documents
     const countPipeline = [...pipeline, { $count: "totalJobs" }];
     const countResult = await JobPost.aggregate(countPipeline);
     const totalJobs = countResult[0] ? countResult[0].totalJobs : 0;
 
-    // Add pagination stages
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limit });
 
-    // Project the fields you need and map the joined details accordingly
     pipeline.push({
       $project: {
         title: 1,
@@ -173,7 +156,7 @@ const getAllJobPosts = async (req, res) => {
         },
         provider: {
           _id: "$providerDetails._id",
-          name: "$providerDetails.contactName",
+          contactName: "$providerDetails.contactName",
           email: "$providerDetails.email"
         }
       },
