@@ -715,5 +715,42 @@ exports.jobCompleteCount = async (req, res) => {
     });
   }
 };
-
+exports.deleteFile = async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    if (!fileId) {
+      return res.status(400).json({ message: "File ID is required." });
+    }
+    
+    // Get the authenticated provider's ID from the request (set by your auth middleware)
+    const providerId = req.user.userId;
+    
+    // Find the provider using the Provider model. Rename the variable to avoid conflict.
+    const foundProvider = await providerModel.findById(providerId);
+    if (!foundProvider) {
+      return res.status(404).json({ message: "Provider not found." });
+    }
+    
+    // Check if there are any files in the provider's files array
+    if (!foundProvider.files || foundProvider.files.length === 0) {
+      return res.status(404).json({ message: "No files found for this provider." });
+    }
+    
+    const initialCount = foundProvider.files.length;
+    
+    // Filter out the file with the matching fileId
+    foundProvider.files = foundProvider.files.filter(
+      (file) => file._id.toString() !== fileId
+    );
+    
+    if (foundProvider.files.length === initialCount) {
+      return res.status(404).json({ message: "File not found." });
+    }
+    
+    await foundProvider.save();
+    return res.status(200).json({ message: "File deleted successfully." });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
 

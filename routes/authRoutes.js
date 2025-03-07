@@ -100,5 +100,7 @@ router.get("/getProviderProfile", verifyUser, getProviderProfile);
 router.get("/getHunterProfile", verifyUser, getHunterProfile);
 router.put("/update/:id", verifyUser, updateUserById)
 router.get("/recentSignups", getNewSignups)
+
+
 module.exports = router;
    

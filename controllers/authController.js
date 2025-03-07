@@ -642,6 +642,8 @@ const getNewSignups = async (req, res) => {
 
 
 
+
+
 module.exports = {
   signUp,
   login,
@@ -654,5 +656,5 @@ module.exports = {
   getProviderProfile,
   getHunterProfile,
   updateUserById,
-  getNewSignups 
+  getNewSignups ,
 };
