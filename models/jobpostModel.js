@@ -53,7 +53,7 @@
       trim: true
     },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "hunter", required: true },
-    provider:{type:mongoose.Schema.Types.ObjectId,ref:"provider"},
+    provider:{type:mongoose.Schema.Types.ObjectId,ref:"provider" ||null},
     jobStatus: {
       type: String,
       enum: ['Pending','Assigned','InProgress','Completed'],
@@ -66,7 +66,6 @@
     },
   }, { timestamps: true });
 
-  // Create 2dsphere index for geospatial queries
   JobPostSchema.index({ "jobLocation.location": "2dsphere" });
 
   module.exports = mongoose.model('JobPost', JobPostSchema);

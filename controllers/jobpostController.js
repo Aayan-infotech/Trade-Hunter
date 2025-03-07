@@ -513,6 +513,79 @@ const getTopDemandedCities = async (req, res) => {
     return apiResponse.error(res, "Error retrieving top demanded cities.", 500, { error: error.message });
   }
 };
+const jobProviderAccept = async (req, res) => {
+  try {
+    const { jobId } = req.params;        
+    const { providerId } = req.body; 
+
+    if (!providerId) {
+      return res.status(400).json({ message: "Provider ID is required." });
+    }
+
+    const hunterId = req.user.userId;
+
+    const jobPost = await JobPost.findById(jobId);
+    if (!jobPost) {
+      return res.status(404).json({ message: "Job post not found." });
+    }
+
+    if (jobPost.user.toString() !== hunterId) {
+      return res.status(403).json({ message: "Unauthorized: You are not the owner of this job post." });
+    }
+
+    if (jobPost.jobStatus !== "Pending") {
+      return res.status(400).json({ message: "Job cannot be accepted. Only pending jobs can be accepted." });
+    }
+
+    const provider = await Provider.findById(providerId);
+    if (!provider) {
+      return res.status(404).json({ message: "Provider not found." });
+    }
+
+    const hunter = await Hunter.findById(hunterId);
+    if (!hunter) {
+      return res.status(404).json({ message: "Hunter not found." });
+    }
+
+    // Update the job post: set the provider field to the accepted provider's ID 
+    // and update jobStatus from "Pending" to "Assigned"
+    jobPost.provider = provider._id;
+    jobPost.jobStatus = "Assigned";
+    await jobPost.save();
+
+    // Optionally update the provider document: for example, add the job post to provider.myServices.
+    // Ensure that the Provider model has a myServices field.
+    if (!provider.myServices) {
+      provider.myServices = [];
+    }
+    if (!provider.myServices.includes(jobId)) {
+      provider.myServices.push(jobId);
+      await provider.save();
+    }
+
+    return res.status(200).json({
+      message: "Provider accepted successfully.",
+      data: {
+        job: jobPost,
+        hunter: {
+          _id: hunter._id,
+          name: hunter.name,
+          email: hunter.email,
+        },
+        provider: {
+          _id: provider._id,
+          contactName: provider.contactName,
+          email: provider.email,
+          myServices: provider.myServices,
+        },
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
+
+
 
 
 
@@ -530,5 +603,6 @@ module.exports = {
   getJobCountByBusinessType,  
   getJobPostingTrends,
   getTopBusinessTypes,
-  getTopDemandedCities
+  getTopDemandedCities,
+  jobProviderAccept
 };
