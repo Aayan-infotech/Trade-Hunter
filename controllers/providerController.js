@@ -625,7 +625,15 @@ exports.updateProviderById = async (req, res) => {
 exports.getProviderProfile = async (req, res) => {
   try {
     const { providerId } = req.params;
-    const provider = await providerModel.findById(providerId).populate("assignedJobs");
+    // Populate assignedJobs and then populate the 'user' field inside each job
+    const provider = await providerModel.findById(providerId)
+      .populate({
+        path: "assignedJobs",
+        populate: {
+          path: "user",
+          select: "name email" 
+        }
+      });
 
     if (!provider) {
       return res.status(404).json({ success: false, message: "Provider not found" });
