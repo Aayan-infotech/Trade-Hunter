@@ -547,19 +547,15 @@ const jobProviderAccept = async (req, res) => {
       return res.status(404).json({ message: "Hunter not found." });
     }
 
-    // Update the job post: set the provider field to the accepted provider's ID 
-    // and update jobStatus from "Pending" to "Assigned"
     jobPost.provider = provider._id;
     jobPost.jobStatus = "Assigned";
     await jobPost.save();
 
-    // Optionally update the provider document: for example, add the job post to provider.myServices.
-    // Ensure that the Provider model has a myServices field.
-    if (!provider.myServices) {
-      provider.myServices = [];
+    if (!provider.assignedJobs) {
+      provider.assignedJobs = [];
     }
-    if (!provider.myServices.includes(jobId)) {
-      provider.myServices.push(jobId);
+    if (!provider.assignedJobs.includes(jobId)) {
+      provider.assignedJobs.push(jobId);
       await provider.save();
     }
 
@@ -576,7 +572,7 @@ const jobProviderAccept = async (req, res) => {
           _id: provider._id,
           contactName: provider.contactName,
           email: provider.email,
-          myServices: provider.myServices,
+          jobsAssigned: provider.assignedJobs
         },
       },
     });

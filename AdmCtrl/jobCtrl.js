@@ -268,7 +268,6 @@ const getAllPendingJobPosts = async (req, res) => {
 const getJobPostByUserId = async (req, res) => {
   const userId = req.user.userId;
 
-  // Get page & limit from query params, set defaults
   let page = parseInt(req.query.page) || 1;
   let limit = parseInt(req.query.limit) || 10;
   let skip = (page - 1) * limit;

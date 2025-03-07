@@ -144,6 +144,11 @@ const providerSchema = new mongoose.Schema(
       ref: "Payment",
       required: false,
     },
+    assignedJobs: [{ 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: 'JobPost', 
+      default: [] 
+    }],
     files: [fileSchema],
   },
   { timestamps: true }
