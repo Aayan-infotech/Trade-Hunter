@@ -100,11 +100,11 @@ const getAllJobPosts = async (req, res) => {
     // Build the aggregation pipeline
     let pipeline = [];
 
-    // If a search term is provided, join the hunters and filter by hunter's name
+    // Join hunters to populate user details and optionally filter by hunter's name
     if (search.trim()) {
       pipeline.push({
         $lookup: {
-          from: "hunters", // Change this if your hunters collection is named differently
+          from: "hunters", // Adjust if your hunters collection name differs
           localField: "user",
           foreignField: "_id",
           as: "userDetails",
@@ -117,7 +117,7 @@ const getAllJobPosts = async (req, res) => {
         },
       });
     } else {
-      // Even without search, join the hunters so we can populate the user details.
+      // Even without search, join hunters so we can populate user details.
       pipeline.push({
         $lookup: {
           from: "hunters",
@@ -129,6 +129,19 @@ const getAllJobPosts = async (req, res) => {
       pipeline.push({ $unwind: "$userDetails" });
     }
 
+    // Join providers to get provider details (contactName, email, etc.)
+    pipeline.push({
+      $lookup: {
+        from: "providers", // Ensure this matches your providers collection name
+        localField: "provider",
+        foreignField: "_id",
+        as: "providerDetails",
+      },
+    });
+    pipeline.push({
+      $unwind: { path: "$providerDetails", preserveNullAndEmptyArrays: true }
+    });
+
     // Count total matching documents
     const countPipeline = [...pipeline, { $count: "totalJobs" }];
     const countResult = await JobPost.aggregate(countPipeline);
@@ -138,7 +151,7 @@ const getAllJobPosts = async (req, res) => {
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limit });
 
-    // Project the fields you need and re-map "user" to the joined details
+    // Project the fields you need and map the joined details accordingly
     pipeline.push({
       $project: {
         title: 1,
@@ -158,6 +171,11 @@ const getAllJobPosts = async (req, res) => {
           name: "$userDetails.name",
           email: "$userDetails.email",
         },
+        provider: {
+          _id: "$providerDetails._id",
+          name: "$providerDetails.contactName",
+          email: "$providerDetails.email"
+        }
       },
     });
 
@@ -178,6 +196,7 @@ const getAllJobPosts = async (req, res) => {
     });
   }
 };
+
 
 
 
