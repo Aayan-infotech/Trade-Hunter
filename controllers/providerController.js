@@ -624,19 +624,20 @@ exports.updateProviderById = async (req, res) => {
 
 exports.getProviderProfile = async (req, res) => {
   try {
-      const { providerId } = req.params;
-      const provider = await providerModel.findById(providerId);
+    const { providerId } = req.params;
+    const provider = await providerModel.findById(providerId).populate("assignedJobs");
 
-      if (!provider) {
-          return res.status(404).json({ success: false, message: "Provider not found" });
-      }
+    if (!provider) {
+      return res.status(404).json({ success: false, message: "Provider not found" });
+    }
 
-      res.status(200).json({ success: true, messagee:"Provider fetched successfully",data: provider });
+    res.status(200).json({ success: true, message: "Provider fetched successfully", data: provider });
   } catch (error) {
-      console.error("Error fetching provider profile:", error);
-      res.status(500).json({ success: false, message: error.message });
+    console.error("Error fetching provider profile:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 exports.jobAcceptCount = async (req, res) => {
   try {
