@@ -8,14 +8,14 @@ exports.createNotification = async (req, res) => {
         const notification = new Notification({ providerId, hunterID, jobId, text });
         await notification.save();
         res.status(201).json({
-            status: true,
+            status: 201,
             message: 'Notification created successfully',
             success: true,
             data: notification
         });
     } catch (error) {
         res.status(500).json({
-            status: false,
+            status: 500,
             message: 'Error creating notification',
             success: false,
             error: error.message
@@ -28,14 +28,14 @@ exports.getNotifications = async (req, res) => {
     try {
         const notifications = await Notification.find().sort({ createdAt: -1 });
         res.status(200).json({
-            status: true,
+            status: 200,
             message: 'Notifications fetched successfully',
             success: true,
             data: notifications
         });
     } catch (error) {
         res.status(500).json({
-            status: false,
+            status: 500,
             message: 'Error fetching notifications',
             success: false,
             error: error.message
@@ -53,14 +53,14 @@ exports.getNotificationById = async (req, res) => {
             success: false
         });
         res.status(200).json({
-            status: true,
+            status: 200,
             message: 'Notification fetched successfully',
             success: true,
             data: notification
         });
     } catch (error) {
         res.status(500).json({
-            status: false,
+            status: 500,
             message: 'Error fetching notification',
             success: false,
             error: error.message
@@ -78,13 +78,13 @@ exports.deleteNotification = async (req, res) => {
             success: false
         });
         res.status(200).json({
-            status: true,
+            status: 200,
             message: 'Notification deleted successfully',
             success: true
         });
     } catch (error) {
         res.status(500).json({
-            status: false,
+            status: 500,
             message: 'Error deleting notification',
             success: false,
             error: error.message
