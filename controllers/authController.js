@@ -47,7 +47,7 @@ const signUp = async (req, res) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ message: "Invalid email format." });
-    } 
+    }
 
     // Validate phone number
     const phoneRegex = /^[0-9]{10}$/;
@@ -56,8 +56,8 @@ const signUp = async (req, res) => {
     }
 
     // Validate password
-   const passwordRegex =
-  /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+    const passwordRegex =
+      /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
         message: "Password must be at least 8 characters long, including one letter, one number, and one special character.",
@@ -66,7 +66,7 @@ const signUp = async (req, res) => {
 
     // Check if the email is already in use
     const existingUser = await (
-      userType === "hunter" 
+      userType === "hunter"
         ? User.findOne({ email, isDeleted: { $ne: true } })
         : Provider.findOne({ email, isDeleted: { $ne: true } })
     );
@@ -106,32 +106,32 @@ const signUp = async (req, res) => {
     const newUser =
       userType === "hunter"
         ? new User({
-            name,
-            email,
-            phoneNo,
-            password: hashedPassword,
-            userType,
-            insBy: req.headers["x-client-type"],
-            images: req.fileLocations?.[0],
-            address,
-          })
+          name,
+          email,
+          phoneNo,
+          password: hashedPassword,
+          userType,
+          insBy: req.headers["x-client-type"],
+          images: req.fileLocations?.[0],
+          address,
+        })
         : new Provider({
-            businessName,
-            contactName: name,
-            email,
-            phoneNo,
-            ABN_Number,
-            businessType,
-            password: hashedPassword,
-            userType,
-            insBy: req.headers["x-client-type"],
-            images: req.fileLocations?.[0],
-            address,
-            isGuestMode,
-            // Set subscriptionPayment field as empty (null) at signup;
-            // It will later be updated when a payment is done.
-            subscriptionPayment: null,
-          });
+          businessName,
+          contactName: name,
+          email,
+          phoneNo,
+          ABN_Number,
+          businessType,
+          password: hashedPassword,
+          userType,
+          insBy: req.headers["x-client-type"],
+          images: req.fileLocations?.[0],
+          address,
+          isGuestMode,
+          // Set subscriptionPayment field as empty (null) at signup;
+          // It will later be updated when a payment is done.
+          subscriptionPayment: null,
+        });
 
     // Send verification email
     const verificationOTP = await generateverificationOTP(newUser);
@@ -201,6 +201,10 @@ const login = async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    if (req.body.UID) {
+      user.UID = req.body.UID;
+    }
+    
     user.refreshToken = refreshToken;
     user.token = token;
 
@@ -453,20 +457,20 @@ const changePassword = async (req, res) => {
 
 // Get Provider by ID
 const getProviderProfile = async (req, res) => {
-  try {    
+  try {
     const id = req.user.userId;
-    
+
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid provider ID" });
     }
-    
+
     const provider = await Provider.findById(id);
-    
+
     if (!provider) {
       return res.status(404).json({ message: "Provider not found" });
     }
-    
+
     res.status(200).json({
       success: true,
       status: 200,
@@ -480,17 +484,17 @@ const getProviderProfile = async (req, res) => {
 const getHunterProfile = async (req, res) => {
   try {
     const id = req.user.userId;
-    
+
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid provider ID" });
     }
-    
+
     const hunter = await Hunter.findById(id);
     if (!hunter) {
       return res.status(404).json({ message: "Hunter not found" });
     }
-    
+
     res.status(200).json({
       success: true,
       status: 200,
@@ -620,9 +624,9 @@ const getNewSignups = async (req, res) => {
     tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
 
     const newHuntersCount = await Hunter.countDocuments({ createdAt: { $gte: tenDaysAgo } });
-    
+
     const newProvidersCount = await Provider.countDocuments({ createdAt: { $gte: tenDaysAgo } });
-    
+
     const totalNewSignups = newHuntersCount + newProvidersCount;
 
     return res.status(200).json({
@@ -656,5 +660,5 @@ module.exports = {
   getProviderProfile,
   getHunterProfile,
   updateUserById,
-  getNewSignups ,
+  getNewSignups,
 };

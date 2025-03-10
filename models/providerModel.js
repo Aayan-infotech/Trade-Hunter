@@ -144,6 +144,11 @@ const providerSchema = new mongoose.Schema(
       ref: "Payment",
       required: false,
     },
+    UID: {
+      type: String,
+      unique: true,
+      default: null,
+    },  
     assignedJobs: [{ 
       type: mongoose.Schema.Types.ObjectId, 
       ref: 'JobPost', 
