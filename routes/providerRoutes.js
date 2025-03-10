@@ -18,5 +18,6 @@ router.get('/:providerId', fileController.getProviderProfile);
 router.post('/acceptCount/:providerId', fileController.jobAcceptCount);
 router.post('/completedCount/:providerId', fileController.jobCompleteCount)
 router.delete('/delete/:fileId',verifyUser, fileController.deleteFile);
+router.get('/byBusinessType', fileController.getProvidersByBusinessType)
 
 module.exports = router;

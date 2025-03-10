@@ -346,7 +346,27 @@ const myAcceptedJobs = async (req, res) => {
 
 const getJobCountByBusinessType = async (req, res) => {
   try {
+    const { lat, lng, radius } = req.query;
+    if (!lat || !lng || !radius) {
+      return res.status(400).json({
+        status: 400,
+        message: "Latitude, longitude, and radius are required.",
+      });
+    }
+
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+    const maxDistance = parseFloat(radius);
+
     const jobCounts = await JobPost.aggregate([
+      {
+        $geoNear: {
+          near: { type: "Point", coordinates: [longitude, latitude] },
+          distanceField: "distance",
+          maxDistance: maxDistance,
+          spherical: true,
+        },
+      },
       {
         $addFields: {
           businessTypeArray: {
@@ -373,6 +393,7 @@ const getJobCountByBusinessType = async (req, res) => {
         },
       },
     ]);
+
     const allBusinessTypes = await BusinessType.find({}, { _id: 0, name: 1 }).lean();
 
     const jobCountMap = {};
@@ -383,7 +404,7 @@ const getJobCountByBusinessType = async (req, res) => {
       name: bt.name,
       count: jobCountMap[bt.name] || 0,
     }));
-
+    
     result.sort((a, b) => b.count - a.count);
 
     return res.status(200).json({
