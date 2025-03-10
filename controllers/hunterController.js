@@ -1,13 +1,13 @@
 const mongoose = require("mongoose");
 const providerModel = require("../models/providerModel");
-const Hunter = require("../models/hunterModel"); 
+const Hunter = require("../models/hunterModel");
 
 exports.getNearbyServiceProviders = async (req, res) => {
   try {
     const RADIUS_OF_EARTH = 6371; // Radius of Earth in kilometers
     const { latitude, longitude, radius = 5000, page = 1, limit = 10 } = req.body;
     const offset = (page - 1) * limit;  // Calculate offset
-    
+
     if (!latitude || !longitude) {
       return res.status(400).json({
         message: "Latitude and Longitude are required.",
@@ -80,8 +80,6 @@ exports.getNearbyServiceProviders = async (req, res) => {
   }
 };
 
-
-
 exports.updateHunterById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -103,5 +101,52 @@ exports.updateHunterById = async (req, res) => {
     res.status(200).json({ message: "Hunter updated successfully", updatedHunter });
   } catch (error) {
     res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
+
+// update only the radius field
+exports.updateRadius = async (req, res) => {
+  try {
+    // Extract user ID from authenticated request
+    const id = req.user.userId;
+    const { radius } = req.body;
+
+    // Validate radius
+    if (typeof radius !== "number" || radius < 0) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Invalid radius value. It must be a positive number."
+      });
+    }
+
+    // Find and update the hunter's radius field
+    const updatedHunter = await Hunter.findByIdAndUpdate(
+      id,
+      { $set: { "address.radius": radius } },
+      { new: true }
+    );
+
+    if (!updatedHunter) {
+      return res.status(404).json({
+        status: 404,
+        success: false,
+        message: "Hunter not found."
+      });
+    }
+
+    res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Radius updated successfully.",
+      data: { radius: updatedHunter.address.radius }
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Internal server error.",
+      error: error.message
+    });
   }
 };
