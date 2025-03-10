@@ -28,6 +28,10 @@ const signUp = async (req, res) => {
       isGuestMode,
     } = req.body;
 
+    // if (req.body.UID) {
+    //   newUser.UID = req.body.UID;
+    // }
+    
     // Validate userType
     if (!["hunter", "provider"].includes(userType)) {
       return res.status(400).json({ message: "Invalid user type." });
@@ -204,7 +208,7 @@ const login = async (req, res) => {
     if (req.body.UID) {
       user.UID = req.body.UID;
     }
-    
+
     user.refreshToken = refreshToken;
     user.token = token;
 
