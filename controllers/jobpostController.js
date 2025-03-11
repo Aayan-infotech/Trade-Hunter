@@ -656,6 +656,61 @@ const getJobCountByBusinessType = async (req, res) => {
 };
 
 
+const jobsByBusinessType = async (req, res) => {
+  try {
+    const { lat, lng, radius, businessType } = req.query;
+    if (!lat || !lng || !radius || !businessType) {
+      return res.status(400).json({
+        status: 400,
+        message: "Latitude, longitude, radius, and businessType are required.",
+      });
+    }
+
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+    const maxDistance = parseFloat(radius);
+
+    const jobs = await JobPost.aggregate([
+      {
+        $geoNear: {
+          near: { type: "Point", coordinates: [longitude, latitude] },
+          distanceField: "distance",
+          maxDistance: maxDistance,
+          spherical: true,
+        },
+      },
+      {
+        $addFields: {
+          businessTypeArray: {
+            $cond: {
+              if: { $isArray: "$businessType" },
+              then: "$businessType",
+              else: ["$businessType"],
+            },
+          },
+        },
+      },
+      {
+        $match: {
+          businessTypeArray: businessType,
+        },
+      },
+      {
+        $sort: { distance: 1 },
+      },
+    ]);
+
+    return res.status(200).json({
+      status: 200,
+      message: "Jobs retrieved successfully.",
+      data: jobs,
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 500, error: error.message });
+  }
+};
+
+
 
 
 
@@ -679,4 +734,5 @@ module.exports = {
   getTopDemandedCities,
   jobProviderAccept,
   businessTypes,
+  jobsByBusinessType
 };

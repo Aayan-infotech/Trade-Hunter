@@ -14,7 +14,8 @@ const {
   getTopBusinessTypes,
   getTopDemandedCities,
   jobProviderAccept,
-  businessTypes
+  businessTypes,
+  jobsByBusinessType
 } = require("../controllers/jobpostController");
 const multer = require("multer");
 const upload = multer();
@@ -62,4 +63,5 @@ router.get("/getTopBusinessCount", getTopBusinessTypes);
 router.get("/topLocation", getTopDemandedCities);
 router.post("/acceptJob/:jobId", verifyUser, jobProviderAccept);
 router.get("/businessTypes",businessTypes);
+router.get("/jobsByBusinessType", jobsByBusinessType);
 module.exports = router;
