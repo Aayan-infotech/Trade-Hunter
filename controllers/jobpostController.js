@@ -678,5 +678,5 @@ module.exports = {
   getTopBusinessTypes,
   getTopDemandedCities,
   jobProviderAccept,
-  businessTypesCount,
+  businessTypes,
 };
