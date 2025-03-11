@@ -515,6 +515,13 @@ const updateUserById = async (req, res) => {
     const { id } = req.params;
     let updateData = { ...req.body };
 
+    if (updateData.address && typeof updateData.address === "string") {
+      try {
+        updateData.address = JSON.parse(updateData.address);
+      } catch (error) {
+      }
+    }
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid ID format" });
     }
@@ -534,6 +541,7 @@ const updateUserById = async (req, res) => {
     if (!existingUser) {
       return res.status(404).json({ message: "User not found" });
     }
+
     if (updateData.password) {
       updateData.password = await bcrypt.hash(updateData.password, 10);
     }
@@ -569,7 +577,9 @@ const updateUserById = async (req, res) => {
         addressType:
           updateData.address && updateData.address.addressType
             ? updateData.address.addressType
-            : updateData.addressType || existingAddress.addressType || (userType === "hunter" ? "home" : "office"),
+            : updateData.addressType ||
+              existingAddress.addressType ||
+              (userType === "hunter" ? "home" : "office"),
       };
 
       if (newAddress.latitude) newAddress.latitude = parseFloat(newAddress.latitude);
@@ -582,14 +592,18 @@ const updateUserById = async (req, res) => {
           coordinates: [newAddress.longitude, newAddress.latitude],
         };
       }
+      
 
       updateData.address = newAddress;
-
       delete updateData.addressLine;
       delete updateData.latitude;
       delete updateData.longitude;
       delete updateData.radius;
       delete updateData.addressType;
+    }
+
+    if (req.files && req.files.length > 0) {
+      updateData.images = req.files[0].path;
     }
 
     Object.keys(updateData).forEach((field) => {
