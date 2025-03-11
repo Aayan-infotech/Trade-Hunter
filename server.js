@@ -25,6 +25,8 @@ const massNotifcationRts = require("./AdmRts/massNotificationRts")
 const contactUsRts = require("./AdmRts/contactUsRts");
 const notificationAccept = require("./routes/notificationAcceptRoutes")
 const devicetokenRoute = require("./routes/devicetokenRoute")
+const pushNotificationRoutes = require("./routes/pushNotificationRoutes")
+
 
 
 
@@ -42,6 +44,8 @@ app.use("/api/massNotification",massNotifcationRts)
 app.use("/api/contact", contactUsRts);
 app.use("/api/notificationAccept", notificationAccept);
 app.use("/api/devicetokenRoute", devicetokenRoute);
+app.use("/api/pushNotificationRoutes", pushNotificationRoutes);
+
 
 
 
