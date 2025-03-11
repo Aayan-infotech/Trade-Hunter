@@ -659,10 +659,10 @@ const getJobCountByBusinessType = async (req, res) => {
 const jobsByBusinessType = async (req, res) => {
   try {
     const { lat, lng, radius, businessType } = req.query;
-    if (!lat || !lng || !radius || !businessType) {
+    if (!lat || !lng  || !businessType) {
       return res.status(400).json({
         status: 400,
-        message: "Latitude, longitude, radius, and businessType are required.",
+        message: "Latitude, longitude and businessType are required.",
       });
     }
 
