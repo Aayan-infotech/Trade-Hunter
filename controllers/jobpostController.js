@@ -661,6 +661,8 @@ const getJobCountByBusinessType = async (req, res) => {
 
 
 
+
+
 module.exports = {
   createJobPost,
   getAllJobPosts,
@@ -676,5 +678,5 @@ module.exports = {
   getTopBusinessTypes,
   getTopDemandedCities,
   jobProviderAccept,
-  businessTypes
+  businessTypesCount,
 };
