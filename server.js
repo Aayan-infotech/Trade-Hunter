@@ -24,6 +24,7 @@ const StaticContentRoutes = require("./AdmRts/StaticContentRoutes")
 const massNotifcationRts = require("./AdmRts/massNotificationRts")
 const contactUsRts = require("./AdmRts/contactUsRts");
 const notificationAccept = require("./routes/notificationAcceptRoutes")
+const devicetokenRoute = require("./routes/devicetokenRoute")
 
 
 
@@ -40,6 +41,8 @@ app.use("/api/StaticContent",StaticContentRoutes)
 app.use("/api/massNotification",massNotifcationRts)
 app.use("/api/contact", contactUsRts);
 app.use("/api/notificationAccept", notificationAccept);
+app.use("/api/devicetokenRoute", devicetokenRoute);
+
 
 
  
