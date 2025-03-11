@@ -3,7 +3,8 @@ const router = express.Router();
 const fileController = require('../controllers/providerController');
 const { uploadToS3 } = require("../common/multerConfig3");
 const { verifyUser } = require("../middlewares/auth");
-
+const multer = require("multer");
+const upload = multer();
 // Route to handle file upload
 router.get('/byBusinessType', fileController.getProvidersByBusinessType)
 
@@ -20,5 +21,6 @@ router.get('/:providerId', fileController.getProviderProfile);
 router.post('/acceptCount/:providerId', fileController.jobAcceptCount);
 router.post('/completedCount/:providerId', fileController.jobCompleteCount)
 router.delete('/delete/:fileId',verifyUser, fileController.deleteFile);
+router.put("/update/:id",upload.single("images"),fileController.updateProvider);
 
 module.exports = router;

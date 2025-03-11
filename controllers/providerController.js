@@ -814,3 +814,38 @@ exports.getProvidersByBusinessType = async (req, res) => {
     return res.status(500).json({ status: 500, error: error.message });
   }
 };
+
+
+// upadte 
+
+
+
+// Update Provider Controller
+exports.updateProvider = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    // Handle uploaded file
+    if (req.file) {
+      updateData.images = req.file.path;
+    }
+
+    // Ensure the provider exists
+    const provider = await providerModel.findById(id);
+    if (!provider) {
+      return res.status(404).json({ message: "Provider not found" });
+    }
+
+    // Update provider data
+    const updatedProvider = await providerModel.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
+
+    res.status(200).json({ message: "Provider updated successfully", provider: updatedProvider });
+  } catch (error) {
+    console.error("Update error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
