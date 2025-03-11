@@ -14,11 +14,13 @@ const {
   getTopBusinessTypes,
   getTopDemandedCities,
   jobProviderAccept,
+  businessTypes
 } = require("../controllers/jobpostController");
 const multer = require("multer");
 const upload = multer();
 const { uploadToS3files } = require("../common/multerconfig2");
 const { verifyUser } = require("../middlewares/auth");
+const { bulkSave } = require("../models/jobpostModel");
 const router = express.Router();
 
 // router.post(
@@ -59,4 +61,5 @@ router.get("/getJobTrends"  ,getJobPostingTrends);
 router.get("/getTopBusinessCount", getTopBusinessTypes);
 router.get("/topLocation", getTopDemandedCities);
 router.post("/acceptJob/:jobId", verifyUser, jobProviderAccept);
+router.get("/businessTypes",businessTypes);
 module.exports = router;

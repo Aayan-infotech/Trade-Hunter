@@ -344,7 +344,7 @@ const myAcceptedJobs = async (req, res) => {
   }
 };
 
-const getJobCountByBusinessType = async (req, res) => {
+const businessTypes = async (req, res) => {
   try {
     const { lat, lng, radius } = req.query;
     if (!lat || !lng || !radius) {
@@ -603,6 +603,60 @@ const jobProviderAccept = async (req, res) => {
 };
 
 
+const getJobCountByBusinessType = async (req, res) => {
+  try {
+    const jobCounts = await JobPost.aggregate([
+      {
+        $addFields: {
+          businessTypeArray: {
+            $cond: {
+              if: { $isArray: "$businessType" },
+              then: "$businessType",
+              else: ["$businessType"],
+            },
+          },
+        },
+      },
+      { $unwind: "$businessTypeArray" },
+      {
+        $group: {
+          _id: "$businessTypeArray",
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          name: "$_id",
+          count: 1,
+          _id: 0,
+        },
+      },
+    ]);
+    const allBusinessTypes = await BusinessType.find({}, { _id: 0, name: 1 }).lean();
+
+    const jobCountMap = {};
+    for (const jc of jobCounts) {
+      jobCountMap[jc.name] = jc.count;
+    }
+    const result = allBusinessTypes.map((bt) => ({
+      name: bt.name,
+      count: jobCountMap[bt.name] || 0,
+    }));
+
+    result.sort((a, b) => b.count - a.count);
+
+    return res.status(200).json({
+      status: 200,
+      message: "Job counts by business type retrieved successfully.",
+      data: result,
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 500, error: error.message });
+  }
+};
+
+
+
 
 
 
@@ -621,5 +675,6 @@ module.exports = {
   getJobPostingTrends,
   getTopBusinessTypes,
   getTopDemandedCities,
-  jobProviderAccept
+  jobProviderAccept,
+  businessTypes
 };
