@@ -258,7 +258,7 @@ const changeJobStatus = async (req, res) => {
       });
     }
 
-    const allowedStatuses = ["Pending", "Accepted", "Completed"];
+    const allowedStatuses = ['Pending','Assigned','InProgress','Completed'];
 
     // Validate if jobId is a valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(jobId)) {
