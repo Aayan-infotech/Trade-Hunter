@@ -146,7 +146,7 @@ const providerSchema = new mongoose.Schema(
     },
     UID: {
       type: String,
-      unique: true,
+      // unique: true,
       default: null,
     },  
     assignedJobs: [{ 
