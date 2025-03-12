@@ -246,10 +246,10 @@ const getJobPostByUserId = async (req, res) => {
 const changeJobStatus = async (req, res) => {
   try {
     const jobId = req.params.jobId;
-    const { jobStatus } = req.body;
+    const { jobStatus, providerId } = req.body;
     const user = req.user.userId;
 
-    const provider = await Provider.findById(user); 
+    const provider = await Provider.findById(providerId); 
     if (!provider) {
       return res.status(404).json({
         success: false,
@@ -285,7 +285,7 @@ const changeJobStatus = async (req, res) => {
     await jobPost.save();
 
     // If job is accepted, store jobId in provider's accepted jobs array
-    if (jobStatus === "Accepted") {
+    if (jobStatus === "Assigned") {
       if (!provider.myServices.includes(jobId)) {
         provider.myServices.push(jobId);
         await provider.save();
