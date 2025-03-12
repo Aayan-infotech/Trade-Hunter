@@ -249,7 +249,7 @@ const changeJobStatus = async (req, res) => {
     const { jobStatus } = req.body;
     const user = req.user.userId;
 
-    const provider = await Provider.findById(user);
+    const provider = await Provider.findById(user); 
     if (!provider) {
       return res.status(404).json({
         success: false,
