@@ -247,9 +247,22 @@ const changeJobStatus = async (req, res) => {
   try {
     const jobId = req.params.jobId;
     const { jobStatus, providerId } = req.body;
-    const user = req.user.userId;
 
-    const provider = await Provider.findById(providerId); 
+    // console.log("Job ID:", jobId);
+    // console.log("Job Status:", jobStatus);
+    // console.log("Provider ID:", providerId);
+
+    // Validate if jobId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(jobId)) {
+      return res.status(400).json({ error: "Invalid Job ID format" });
+    }
+
+    // Validate providerId
+    if (!mongoose.Types.ObjectId.isValid(providerId)) {
+      return res.status(400).json({ error: "Invalid Provider ID format" });
+    }
+
+    const provider = await Provider.findOne({ _id: providerId, isDeleted: false });
     if (!provider) {
       return res.status(404).json({
         success: false,
@@ -258,18 +271,12 @@ const changeJobStatus = async (req, res) => {
       });
     }
 
-    const allowedStatuses = ['Pending','Assigned','InProgress','Completed'];
-
-    // Validate if jobId is a valid ObjectId
-    if (!mongoose.Types.ObjectId.isValid(jobId)) {
-      return res.status(400).json({ error: "Invalid Job ID format" });
-    }
+    const allowedStatuses = ["Pending", "Assigned", "InProgress", "Completed"];
 
     // Validate jobStatus
     if (!allowedStatuses.includes(jobStatus)) {
       return res.status(400).json({
-        error:
-          "Invalid job status. Allowed values: Pending, Accepted, Completed",
+        error: "Invalid job status. Allowed values: Pending, Assigned, InProgress, Completed",
       });
     }
 
@@ -281,13 +288,14 @@ const changeJobStatus = async (req, res) => {
 
     // Update job status
     jobPost.jobStatus = jobStatus;
-
     await jobPost.save();
 
-    // If job is accepted, store jobId in provider's accepted jobs array
+    // console.log("Updated Job:", jobPost);
+
+    // If job is assigned, store jobId in provider's assignedJobs array
     if (jobStatus === "Assigned") {
-      if (!provider.myServices.includes(jobId)) {
-        provider.myServices.push(jobId);
+      if (!provider.assignedJobs.includes(jobId)) {
+        provider.assignedJobs.push(jobId);
         await provider.save();
       }
     }
@@ -298,6 +306,7 @@ const changeJobStatus = async (req, res) => {
       jobPost,
     });
   } catch (error) {
+    // console.error("Error:", error.message);
     return res.status(500).json({ error: error.message });
   }
 };
