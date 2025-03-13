@@ -26,6 +26,7 @@ const contactUsRts = require("./AdmRts/contactUsRts");
 const notificationAccept = require("./routes/notificationAcceptRoutes")
 const devicetokenRoute = require("./routes/devicetokenRoute")
 const pushNotificationRoutes = require("./routes/pushNotificationRoutes")
+const matchRoutes = require("./routes/matchRoutes")
 
 
 
@@ -45,6 +46,7 @@ app.use("/api/contact", contactUsRts);
 app.use("/api/notificationAccept", notificationAccept);
 app.use("/api/devicetokenRoute", devicetokenRoute);
 app.use("/api/pushNotificationRoutes", pushNotificationRoutes);
+app.use("/api/match", matchRoutes);
 
 
 
