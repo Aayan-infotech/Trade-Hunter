@@ -23,11 +23,11 @@ exports.getMatchedData = async (req, res) => {
         res.status(200).json({
             message: "Data fetched successfully.",
             status: true,
-            data: [
+            data: {
                 jobPost,
                 hunter,
                 provider
-            ],
+            }
         });
     } catch (error) {
         console.error(error);
