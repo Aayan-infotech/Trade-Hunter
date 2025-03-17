@@ -56,7 +56,7 @@
     provider:{type:mongoose.Schema.Types.ObjectId,ref:"provider" ||null},
     jobStatus: {
       type: String,
-      enum: ['Pending','Assigned','InProgress','Completed','deleted'],
+      enum: ['Pending','Assigned','InProgress','Completed','Deleted'],
       default: 'Pending' 
     },
     jobAssigned:{
@@ -64,6 +64,7 @@
       enum: ['Cancel', 'ReAssign','Assigned'],
       default:'Assigned'
     },
+    deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   }, { timestamps: true });
 
   JobPostSchema.index({ "jobLocation.location": "2dsphere" });
