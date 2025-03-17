@@ -27,6 +27,7 @@ const notificationAccept = require("./routes/notificationAcceptRoutes")
 const devicetokenRoute = require("./routes/devicetokenRoute")
 const pushNotificationRoutes = require("./routes/pushNotificationRoutes")
 const matchRoutes = require("./routes/matchRoutes")
+const SubscriptionNewRoute = require("./routes/SubscriptionNewRoute")
 
 
 
@@ -47,6 +48,8 @@ app.use("/api/notificationAccept", notificationAccept);
 app.use("/api/devicetokenRoute", devicetokenRoute);
 app.use("/api/pushNotificationRoutes", pushNotificationRoutes);
 app.use("/api/match", matchRoutes);
+app.use("/api/SubscriptionNew", SubscriptionNewRoute);
+
 
 
 
