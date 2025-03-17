@@ -8,7 +8,7 @@ const softDeleteProvider = async (req, res) => {
 
     const provider = await Provider.findByIdAndUpdate(
       providerId,
-      { isDeleted: true },
+      { isDeleted: true, accountStatus: "Suspend" },
       { new: true }
     );
 
@@ -29,7 +29,7 @@ const softDeleteHunter = async (req, res) => {
 
     const hunter = await Hunter.findByIdAndUpdate(
       hunterId,
-      { isDeleted: true },
+      { isDeleted: true, accountStatus: "Suspend" },
       { new: true }
     );
 
