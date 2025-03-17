@@ -470,6 +470,52 @@ const getRecentJobPosts = async (req, res) => {
   }
 };
 
+const getJobPostsByStatus = async (req, res) => {
+  let status = req.query.status;
+  let page = parseInt(req.query.page) || 1;
+  let limit = parseInt(req.query.limit) || 10;
+  let skip = (page - 1) * limit;
+
+  if (!status) {
+    return res.status(400).json({ error: "Job status is required " });
+  }
+
+  const allowedStatuses = ['Pending', 'Assigned', 'InProgress', 'Completed', 'deleted'];
+  if (!allowedStatuses.includes(status)) {
+    return res.status(400).json({
+      error: "Invalid job status. Allowed values: Pending, Assigned, InProgress, Completed, deleted.",
+    });
+  }
+
+  try {
+    const query = { jobStatus: status };
+    const totalJobs = await JobPost.countDocuments(query);
+    const jobPosts = await JobPost.find(query)
+      .skip(skip)
+      .limit(limit)
+      .populate("user", "name email")
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      message: "Job posts retrieved successfully.",
+      data: {
+        pagination: {
+          totalJobs,
+          currentPage: page,
+          totalPages: Math.ceil(totalJobs / limit),
+        },
+        jobPosts,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: "Internal server error",
+      details: error.message,
+    });
+  }
+};
+
 
 module.exports = {
   createJobPost,
@@ -482,5 +528,6 @@ module.exports = {
   changeJobStatus,
   myAcceptedJobs,
   getJobStatusCounts,
-  getRecentJobPosts
+  getRecentJobPosts,
+  getJobPostsByStatus
 };

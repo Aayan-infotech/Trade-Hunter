@@ -56,7 +56,7 @@
     provider:{type:mongoose.Schema.Types.ObjectId,ref:"provider" ||null},
     jobStatus: {
       type: String,
-      enum: ['Pending','Assigned','InProgress','Completed'],
+      enum: ['Pending','Assigned','InProgress','Completed','deleted'],
       default: 'Pending' 
     },
     jobAssigned:{
