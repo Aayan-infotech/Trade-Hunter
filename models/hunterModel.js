@@ -48,7 +48,7 @@ const hunterSchema = new mongoose.Schema(
     userStatus: {
       type: String,
       enum: ['Active', 'Suspended', 'Pending'],
-      default: 'Pending'
+      default: 'Active'
     },
     emailVerified: {
       type: Number,
