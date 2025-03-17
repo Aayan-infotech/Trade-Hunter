@@ -491,10 +491,10 @@ const getJobPostsByStatus = async (req, res) => {
     return res.status(400).json({ error: "Job status is required " });
   }
 
-  const allowedStatuses = ['Pending', 'Assigned', 'InProgress', 'Completed', 'deleted'];
+  const allowedStatuses = ['Pending', 'Assigned', 'InProgress', 'Completed', 'Deleted'];
   if (!allowedStatuses.includes(status)) {
     return res.status(400).json({
-      error: "Invalid job status. Allowed values: Pending, Assigned, InProgress, Completed, deleted.",
+      error: "Invalid job status. Allowed values: Pending, Assigned, InProgress, Completed, Deleted.",
     });
   }
 
