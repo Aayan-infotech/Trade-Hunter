@@ -169,11 +169,22 @@ const updateJobPost = async (req, res) => {
 
 const deleteJobPost = async (req, res) => {
   try {
-    const jobPost = await JobPost.findByIdAndDelete(req.params.id);
+    const deletingUser = req.user; 
+
+    const jobPost = await JobPost.findByIdAndUpdate(
+      req.params.id,
+      { jobStatus: "Deleted" },
+      { new: true }
+    );
+
     if (!jobPost) {
       return apiResponse.error(res, "Job post not found.", 404);
     }
-    return apiResponse.success(res, "Job post deleted successfully.");
+
+    return apiResponse.success(res, "Job post deleted successfully.", {
+      jobPost,
+      deletedBy: deletingUser,
+    });
   } catch (error) {
     return apiResponse.error(res, "Internal server error.", 500, {
       error: error.message,
@@ -726,6 +737,8 @@ const jobsByBusinessType = async (req, res) => {
 
 
 
+
+
 module.exports = {
   createJobPost,
   getAllJobPosts,
@@ -742,5 +755,6 @@ module.exports = {
   getTopDemandedCities,
   jobProviderAccept,
   businessTypes,
-  jobsByBusinessType
+  jobsByBusinessType,
+  deleteJobPost
 };

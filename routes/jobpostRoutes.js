@@ -52,7 +52,7 @@ router.post(
 router.get("/", getAllJobPosts);
 router.get("/jobpost-details/:id", verifyUser, getJobPostById);
 router.put("/:id", updateJobPost);
-router.delete("/:id", deleteJobPost);
+router.delete("/:id",verifyUser,  deleteJobPost);
 router.get("/getAllPendingJobPosts", getAllPendingJobPosts);
 router.get("/getJobPostByUserId", verifyUser ,getJobPostByUserId);
 router.post("/changeJobStatus/:jobId", verifyUser, changeJobStatus);
