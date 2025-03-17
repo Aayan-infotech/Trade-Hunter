@@ -50,14 +50,30 @@ exports.createSubscriptionPlan = async (req, res) => {
 };
 
 // Controller function to get all subscription plans
-exports.getAllSubscriptionPlans = async (req, res) => {
+exports.getAllSubscriptionPlans = async (req, res) => { 
   try {
     const plans = await SubscriptionPlan.find();
-    res.status(200).json({ status: 200, success: true, message: "Search results retrieved successfully", data: plans });
+
+    // Fetch all Subscription Types to map their IDs to names
+    const subscriptionTypes = await SubscriptionType.find();
+    const typeMap = subscriptionTypes.reduce((acc, type) => {
+      acc[type._id.toString()] = type.type; 
+      return acc;
+    }, {});
+
+    // Replace type ID with name
+    const formattedPlans = plans.map(plan => ({
+      ...plan.toObject(),
+      type: typeMap[plan.type.toString()] || "N/A" 
+    }));
+
+    res.status(200).json({ 
+      status: 200, success: true, message: "Search results retrieved successfully",data: formattedPlans});
   } catch (error) {
-    res.status(500).json({ status: 500, success: false, message: "Server error", error: error.message });
+    res.status(500).json({status: 500,success: false, message: "Server error", error: error.message });
   }
 };
+
 
 // Controller function to get a single subscription plan by ID
 exports.getSubscriptionPlanById = async (req, res) => {
