@@ -20,7 +20,7 @@ exports.createSubscriptionType = async (req, res) => {
 };
 
 
-                // SubscriptionPlan
+// SubscriptionPlan
 // Controller function to create a new subscription plan
 exports.createSubscriptionPlan = async (req, res) => {
   try {
@@ -39,7 +39,7 @@ exports.createSubscriptionPlan = async (req, res) => {
       kmRedieson,
       status
     });
-    
+
     await newSubscriptionPlan.save();
 
     res.status(201).json({ status: 201, success: true, message: "Subscription Plan created successfully", data: newSubscriptionPlan });
