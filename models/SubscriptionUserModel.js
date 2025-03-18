@@ -31,7 +31,7 @@ const SubscriptionUserSchema = new mongoose.Schema({
   },
   kmRadius: {
     type: Number,
-    default: 0 // Default value
+    default: null // Default value
   },
   updatedAt: {
     type: Date,
