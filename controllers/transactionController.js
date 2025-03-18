@@ -49,14 +49,14 @@ exports.createTransaction = async (req, res) => {
         // Check if the subscription plan exists
         const subscriptionPlan = await SubscriptionPlan.findById(subscriptionPlanId);
         if (!subscriptionPlan) {
-            return res.status(404).json({ message: 'Subscription Plan not found' });
+            return res.status(404).json({ status: 404, success: false, message: 'Subscription Plan not found', data: null });
         }
 
         // Simulating payment success (No real bank API used)
         const paymentSuccess = true;
 
         if (!paymentSuccess) {
-            return res.status(400).json({ message: 'Payment failed' });
+            return res.status(400).json({ status: 400, success: false, message: 'Payment failed', data: null });
         }
 
         // Create transaction
@@ -85,37 +85,37 @@ exports.createTransaction = async (req, res) => {
         });
         await subscriptionUser.save();
 
-        res.status(201).json({ message: 'Transaction successful and subscription activated', transaction, subscriptionUser });
+        res.status(201).json({ status: 201, success: true, message: 'Transaction successful and subscription activated', data: { transaction, subscriptionUser } });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ status: 500, success: false, message: 'Internal server error', data: null });
     }
 };
 
 exports.getAllTransactions = async (req, res) => {
     try {
         const transactions = await Transaction.find();
-        res.json(transactions);
+        res.status(200).json({ status: 200, success: true, message: 'Transactions fetched successfully', data: transactions });
     } catch (error) {
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ status: 500, success: false, message: 'Internal server error', data: null });
     }
 };
 
 exports.getTransactionById = async (req, res) => {
     try {
         const transaction = await Transaction.findById(req.params.id);
-        if (!transaction) return res.status(404).json({ message: 'Transaction not found' });
-        res.json(transaction);
+        if (!transaction) return res.status(404).json({ status: 404, success: false, message: 'Transaction not found', data: null });
+        res.status(200).json({ status: 200, success: true, message: 'Transaction fetched successfully', data: transaction });
     } catch (error) {
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ status: 500, success: false, message: 'Internal server error', data: null });
     }
 };
 
 exports.deleteTransaction = async (req, res) => {
     try {
         await Transaction.findByIdAndDelete(req.params.id);
-        res.json({ message: 'Transaction deleted successfully' });
+        res.status(200).json({ status: 200, success: true, message: 'Transaction deleted successfully', data: null });
     } catch (error) {
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ status: 500, success: false, message: 'Internal server error', data: null });
     }
 };

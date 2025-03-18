@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { createSubscriptionType,
     getAllSubscriptionTypes,
+    deleteSubscriptionType,
     createSubscriptionPlan,
     getAllSubscriptionPlans,
     getSubscriptionPlanById,
@@ -22,6 +23,7 @@ const { createSubscriptionType,
 
 router.post("/subscription-type", createSubscriptionType);
 router.get("/subscription-type", getAllSubscriptionTypes);
+router.delete("/subscription-type/:id", deleteSubscriptionType);
 
 
 // SubscriptionPlan

@@ -41,6 +41,18 @@ exports.getAllSubscriptionTypes = async (req, res) => {
   }
 };
 
+exports.deleteSubscriptionType = async (req, res) => {
+  try {
+      const deletedSubscriptionType = await SubscriptionType.findByIdAndDelete(req.params.id);
+      if (!deletedSubscriptionType) {
+          return res.status(404).json({ status: 404, success: false, message: 'Subscription Type not found', data: null });
+      }
+      res.status(200).json({ status: 200, success: true, message: 'Subscription Type deleted successfully', data: null });
+  } catch (error) {
+      res.status(500).json({ status: 500, success: false, message: 'Internal server error', data: null });
+  }
+};
+
 
 // SubscriptionPlan
 // Controller function to create a new subscription plan
