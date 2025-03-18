@@ -29,10 +29,7 @@ const pushNotificationRoutes = require("./routes/pushNotificationRoutes")
 const matchRoutes = require("./routes/matchRoutes")
 const SubscriptionNewRoute = require("./routes/SubscriptionNewRoute")
 const transactionRoutes = require("./routes/transactionRoutes")
-
-
-
-
+const voucherRoutes = require("./routes/voucherRoutes")
 
 app.use("/api", apiRoutes);
 app.use("/api/authAdmin", authAdmin);
@@ -52,13 +49,9 @@ app.use("/api/pushNotificationRoutes", pushNotificationRoutes);
 app.use("/api/match", matchRoutes);
 app.use("/api/SubscriptionNew", SubscriptionNewRoute);
 app.use("/api/demoTransaction", transactionRoutes);
+app.use("/api/voucher", voucherRoutes);
 
 
-
-
-
-
- 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
