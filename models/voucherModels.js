@@ -41,5 +41,5 @@ voucherSchema.methods.isValid = function () {
     const now = new Date();
     return this.isActive && this.usedCount < this.usageLimit && now >= this.startDate && now <= this.endDate;
 };
-
+  
 module.exports = mongoose.model('Voucher', voucherSchema);
