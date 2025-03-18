@@ -58,7 +58,7 @@ exports.deleteSubscriptionType = async (req, res) => {
 // Controller function to create a new subscription plan
 exports.createSubscriptionPlan = async (req, res) => {
   try {
-    const { type, planName, amount, validity, description, kmRedieson, status } = req.body;
+    const { type, planName, amount, validity, description, kmRadius, status } = req.body;
 
     if (!type || !planName || !amount || !validity) {
       return res.status(400).json({ status: 400, success: false, message: "Required fields are missing" });
@@ -70,7 +70,7 @@ exports.createSubscriptionPlan = async (req, res) => {
       amount,
       validity,
       description,
-      kmRedieson,
+      kmRadius,
       status
     });
 
@@ -153,7 +153,7 @@ exports.deleteSubscriptionPlan = async (req, res) => {
 // Controller function to create a new subscription user
 exports.createSubscriptionUser = async (req, res) => {
   try {
-    const { userId, subscriptionPlanId, startDate, endDate, status, kmRedieson } = req.body;
+    const { userId, subscriptionPlanId, startDate, endDate, status, kmRadius } = req.body;
 
     if (!userId || !subscriptionPlanId || !startDate || !endDate) {
       return res.status(400).json({ status: 400, success: false, message: "Required fields are missing" });
@@ -165,7 +165,7 @@ exports.createSubscriptionUser = async (req, res) => {
       startDate,
       endDate,
       status,
-      kmRedieson
+      kmRadius
     });
     
     await newSubscriptionUser.save();
