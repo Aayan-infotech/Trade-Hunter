@@ -38,12 +38,6 @@ router.get("/subscription-user/:id", getSubscriptionUserById);
 router.put("/subscription-user/:id", updateSubscriptionUser);
 router.delete("/subscription-user/:id", deleteSubscriptionUser);
 
-// Transaction Routes
-// router.post('/transaction', transactionController.createTransaction);
-// router.get('/transactions', transactionController.getAllTransactions);
-// router.get('/transaction/:id', transactionController.getTransactionById);
-// router.delete('/transaction/:id', transactionController.deleteTransaction);
-
 // Subscription Routes
 router.get('/subscriptions', getAllSubscriptions);
 router.get('/subscription/:id', getSubscriptionById);
