@@ -139,30 +139,30 @@ exports.deleteSubscriptionPlan = async (req, res) => {
 // subscription user api
 
 // Controller function to create a new subscription user
-// exports.createSubscriptionUser = async (req, res) => {
-//   try {
-//     const { userId, subscriptionPlanId, startDate, endDate, status, kmRedieson } = req.body;
+exports.createSubscriptionUser = async (req, res) => {
+  try {
+    const { userId, subscriptionPlanId, startDate, endDate, status, kmRedieson } = req.body;
 
-//     if (!userId || !subscriptionPlanId || !startDate || !endDate) {
-//       return res.status(400).json({ status: 400, success: false, message: "Required fields are missing" });
-//     }
+    if (!userId || !subscriptionPlanId || !startDate || !endDate) {
+      return res.status(400).json({ status: 400, success: false, message: "Required fields are missing" });
+    }
 
-//     const newSubscriptionUser = new SubscriptionUser({
-//       userId,
-//       subscriptionPlanId,
-//       startDate,
-//       endDate,
-//       status,
-//       kmRedieson
-//     });
+    const newSubscriptionUser = new SubscriptionUser({
+      userId,
+      subscriptionPlanId,
+      startDate,
+      endDate,
+      status,
+      kmRedieson
+    });
     
-//     await newSubscriptionUser.save();
+    await newSubscriptionUser.save();
 
-//     res.status(201).json({ status: 201, success: true, message: "Subscription User created successfully", data: newSubscriptionUser });
-//   } catch (error) {
-//     res.status(500).json({ status: 500, success: false, message: "Server error", error: error.message });
-//   }
-// };
+    res.status(201).json({ status: 201, success: true, message: "Subscription User created successfully", data: newSubscriptionUser });
+  } catch (error) {
+    res.status(500).json({ status: 500, success: false, message: "Server error", error: error.message });
+  }
+};
 
 // Controller function to get all subscription users
 exports.getAllSubscriptionUsers = async (req, res) => {

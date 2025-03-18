@@ -41,10 +41,10 @@ router.delete("/subscription-user/:id", deleteSubscriptionUser);
 
 
 // Subscription Routes
-// router.get('/subscriptions', getAllSubscriptions);
-// router.get('/subscription/:id', getSubscriptionById);
-// router.post('/subscription', createSubscription);
-// router.put('/subscription/:id', updateSubscription);
-// router.delete('/subscription/:id', deleteSubscription);
+router.get('/subscriptions', getAllSubscriptions);
+router.get('/subscription/:id', getSubscriptionById);
+router.post('/subscription', createSubscription);
+router.put('/subscription/:id', updateSubscription);
+router.delete('/subscription/:id', deleteSubscription);
 
 module.exports = router;
