@@ -29,7 +29,7 @@ const SubscriptionUserSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  kmRedieson: {
+  kmRadius: {
     type: Number,
     default: 0 // Default value
   },

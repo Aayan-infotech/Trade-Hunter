@@ -22,7 +22,7 @@ const SubscriptionPlanSchema = new mongoose.Schema({
     type: String,
     required: false
   },
-  kmRedieson: {
+  kmRadius: {
     type: Number,
     default: 0 // Default value
   },
