@@ -32,17 +32,17 @@ router.put("/subscription-plan/:id", updateSubscriptionPlan);
 router.delete("/subscription-plan/:id", deleteSubscriptionPlan);
 
 // subscription user
-router.post("/subscription-user", createSubscriptionUser);
-router.get("/subscription-users", getAllSubscriptionUsers);
-router.get("/subscription-user/:id", getSubscriptionUserById);
-router.put("/subscription-user/:id", updateSubscriptionUser);
-router.delete("/subscription-user/:id", deleteSubscriptionUser);
+// router.post("/subscription-user", createSubscriptionUser);
+// router.get("/subscription-users", getAllSubscriptionUsers);
+// router.get("/subscription-user/:id", getSubscriptionUserById);
+// router.put("/subscription-user/:id", updateSubscriptionUser);
+// router.delete("/subscription-user/:id", deleteSubscriptionUser);
 
-// Subscription Routes
-router.get('/subscriptions', getAllSubscriptions);
-router.get('/subscription/:id', getSubscriptionById);
-router.post('/subscription', createSubscription);
-router.put('/subscription/:id', updateSubscription);
-router.delete('/subscription/:id', deleteSubscription);
+// Subscription 
+router.get('/subscription-user', getAllSubscriptions);
+router.get('/subscription-user/:id', getSubscriptionById);
+router.post('/subscription-user', createSubscription);
+router.put('/subscription-user/:id', updateSubscription);
+router.delete('/subscription-user/:id', deleteSubscription);
 
 module.exports = router;

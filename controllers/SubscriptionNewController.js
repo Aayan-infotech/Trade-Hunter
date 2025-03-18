@@ -139,79 +139,79 @@ exports.deleteSubscriptionPlan = async (req, res) => {
 // subscription user api
 
 // Controller function to create a new subscription user
-exports.createSubscriptionUser = async (req, res) => {
-  try {
-    const { userId, subscriptionPlanId, startDate, endDate, status, kmRedieson } = req.body;
+// exports.createSubscriptionUser = async (req, res) => {
+//   try {
+//     const { userId, subscriptionPlanId, startDate, endDate, status, kmRedieson } = req.body;
 
-    if (!userId || !subscriptionPlanId || !startDate || !endDate) {
-      return res.status(400).json({ status: 400, success: false, message: "Required fields are missing" });
-    }
+//     if (!userId || !subscriptionPlanId || !startDate || !endDate) {
+//       return res.status(400).json({ status: 400, success: false, message: "Required fields are missing" });
+//     }
 
-    const newSubscriptionUser = new SubscriptionUser({
-      userId,
-      subscriptionPlanId,
-      startDate,
-      endDate,
-      status,
-      kmRedieson
-    });
+//     const newSubscriptionUser = new SubscriptionUser({
+//       userId,
+//       subscriptionPlanId,
+//       startDate,
+//       endDate,
+//       status,
+//       kmRedieson
+//     });
     
-    await newSubscriptionUser.save();
+//     await newSubscriptionUser.save();
 
-    res.status(201).json({ status: 201, success: true, message: "Subscription User created successfully", data: newSubscriptionUser });
-  } catch (error) {
-    res.status(500).json({ status: 500, success: false, message: "Server error", error: error.message });
-  }
-};
+//     res.status(201).json({ status: 201, success: true, message: "Subscription User created successfully", data: newSubscriptionUser });
+//   } catch (error) {
+//     res.status(500).json({ status: 500, success: false, message: "Server error", error: error.message });
+//   }
+// };
 
 // Controller function to get all subscription users
-exports.getAllSubscriptionUsers = async (req, res) => {
-  try {
-    const users = await SubscriptionUser.find().populate("userId subscriptionPlanId");
-    res.status(200).json({ status: 200, success: true, message: "Subscription users retrieved successfully", data: users });
-  } catch (error) {
-    res.status(500).json({ status: 500, success: false, message: "Server error", error: error.message });
-  }
-};
+// exports.getAllSubscriptionUsers = async (req, res) => {
+//   try {
+//     const users = await SubscriptionUser.find().populate("userId subscriptionPlanId");
+//     res.status(200).json({ status: 200, success: true, message: "Subscription users retrieved successfully", data: users });
+//   } catch (error) {
+//     res.status(500).json({ status: 500, success: false, message: "Server error", error: error.message });
+//   }
+// };
 
 // Controller function to get a single subscription user by ID
-exports.getSubscriptionUserById = async (req, res) => {
-  try {
-    const user = await SubscriptionUser.findById(req.params.id).populate("userId subscriptionPlanId");
-    if (!user) {
-      return res.status(404).json({ status: 404, success: false, message: "Subscription User not found" });
-    }
-    res.status(200).json({ status: 200, success: true, message: "Subscription User retrieved successfully", data: user });
-  } catch (error) {
-    res.status(500).json({ status: 500, success: false, message: "Server error", error: error.message });
-  }
-};
+// exports.getSubscriptionUserById = async (req, res) => {
+//   try {
+//     const user = await SubscriptionUser.findById(req.params.id).populate("userId subscriptionPlanId");
+//     if (!user) {
+//       return res.status(404).json({ status: 404, success: false, message: "Subscription User not found" });
+//     }
+//     res.status(200).json({ status: 200, success: true, message: "Subscription User retrieved successfully", data: user });
+//   } catch (error) {
+//     res.status(500).json({ status: 500, success: false, message: "Server error", error: error.message });
+//   }
+// };
 
 // Controller function to update a subscription user
-exports.updateSubscriptionUser = async (req, res) => {
-  try {
-    const updatedUser = await SubscriptionUser.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updatedUser) {
-      return res.status(404).json({ status: 404, success: false, message: "Subscription User not found" });
-    }
-    res.status(200).json({ status: 200, success: true, message: "Subscription User updated successfully", data: updatedUser });
-  } catch (error) {
-    res.status(500).json({ status: 500, success: false, message: "Server error", error: error.message });
-  }
-};
+// exports.updateSubscriptionUser = async (req, res) => {
+//   try {
+//     const updatedUser = await SubscriptionUser.findByIdAndUpdate(req.params.id, req.body, { new: true });
+//     if (!updatedUser) {
+//       return res.status(404).json({ status: 404, success: false, message: "Subscription User not found" });
+//     }
+//     res.status(200).json({ status: 200, success: true, message: "Subscription User updated successfully", data: updatedUser });
+//   } catch (error) {
+//     res.status(500).json({ status: 500, success: false, message: "Server error", error: error.message });
+//   }
+// };
 
 // Controller function to delete a subscription user
-exports.deleteSubscriptionUser = async (req, res) => {
-  try {
-    const deletedUser = await SubscriptionUser.findByIdAndDelete(req.params.id);
-    if (!deletedUser) {
-      return res.status(404).json({ status: 404, success: false, message: "Subscription User not found" });
-    }
-    res.status(200).json({ status: 200, success: true, message: "Subscription User deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ status: 500, success: false, message: "Server error", error: error.message });
-  }
-};
+// exports.deleteSubscriptionUser = async (req, res) => {
+//   try {
+//     const deletedUser = await SubscriptionUser.findByIdAndDelete(req.params.id);
+//     if (!deletedUser) {
+//       return res.status(404).json({ status: 404, success: false, message: "Subscription User not found" });
+//     }
+//     res.status(200).json({ status: 200, success: true, message: "Subscription User deleted successfully" });
+//   } catch (error) {
+//     res.status(500).json({ status: 500, success: false, message: "Server error", error: error.message });
+//   }
+// };
 
 
 
@@ -219,50 +219,50 @@ exports.deleteSubscriptionUser = async (req, res) => {
 // SubscriptionUser
 
 exports.getAllSubscriptions = async (req, res) => {
-    try {
-        const subscriptions = await SubscriptionUser.find();
-        res.json(subscriptions);
-    } catch (error) {
-        res.status(500).json({ message: 'Internal server error' });
-    }
+  try {
+      const subscriptions = await SubscriptionUser.find();
+      res.status(200).json({ success: true, message: 'Subscriptions fetched successfully', data: subscriptions });
+  } catch (error) {
+      res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+  }
 };
 
 exports.getSubscriptionById = async (req, res) => {
-    try {
-        const subscription = await SubscriptionUser.findById(req.params.id);
-        if (!subscription) return res.status(404).json({ message: 'Subscription not found' });
-        res.json(subscription);
-    } catch (error) {
-        res.status(500).json({ message: 'Internal server error' });
-    }
+  try {
+      const subscription = await SubscriptionUser.findById(req.params.id);
+      if (!subscription) return res.status(404).json({ success: false, message: 'Subscription not found' });
+      res.status(200).json({ success: true, message: 'Subscription fetched successfully', data: subscription });
+  } catch (error) {
+      res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+  }
 };
 
 exports.createSubscription = async (req, res) => {
-    try {
-        const { userId, subscriptionPlanId, startDate, endDate, kmRadius } = req.body;
-        const subscriptionUser = new SubscriptionUser({ userId, subscriptionPlanId, startDate, endDate, status: 'active', kmRadius });
-        await subscriptionUser.save();
-        res.status(201).json({ message: 'Subscription created successfully', subscriptionUser });
-    } catch (error) {
-        res.status(500).json({ message: 'Internal server error' });
-    }
+  try {
+      const { userId, subscriptionPlanId, startDate, endDate, kmRadius } = req.body;
+      const subscriptionUser = new SubscriptionUser({ userId, subscriptionPlanId, startDate, endDate, status: 'active', kmRadius });
+      await subscriptionUser.save();
+      res.status(201).json({ success: true, message: 'Subscription created successfully', data: subscriptionUser });
+  } catch (error) {
+      res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+  }
 };
 
 exports.updateSubscription = async (req, res) => {
-    try {
-        const subscription = await SubscriptionUser.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (!subscription) return res.status(404).json({ message: 'Subscription not found' });
-        res.json({ message: 'Subscription updated successfully', subscription });
-    } catch (error) {
-        res.status(500).json({ message: 'Internal server error' });
-    }
+  try {
+      const subscription = await SubscriptionUser.findByIdAndUpdate(req.params.id, req.body, { new: true });
+      if (!subscription) return res.status(404).json({ success: false, message: 'Subscription not found' });
+      res.status(200).json({ success: true, message: 'Subscription updated successfully', data: subscription });
+  } catch (error) {
+      res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+  }
 };
 
 exports.deleteSubscription = async (req, res) => {
-    try {
-        await SubscriptionUser.findByIdAndDelete(req.params.id);
-        res.json({ message: 'Subscription deleted successfully' });
-    } catch (error) {
-        res.status(500).json({ message: 'Internal server error' });
-    }
+  try {
+      await SubscriptionUser.findByIdAndDelete(req.params.id);
+      res.status(200).json({ success: true, message: 'Subscription deleted successfully' });
+  } catch (error) {
+      res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+  }
 };
