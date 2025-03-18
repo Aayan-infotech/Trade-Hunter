@@ -19,7 +19,7 @@ const voucherSchema = new mongoose.Schema({
     usageLimit: {
         type: Number,
         default: 1 ,// Default to 1 use per voucher
-        required:false
+        required:true
     },
     usedCount: {
         type: Number,
