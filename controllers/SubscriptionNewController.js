@@ -2,6 +2,7 @@ const SubscriptionType = require("../models/SubscriptionTypeModel");
 const SubscriptionPlan = require("../models/SubscriptionPlanModel");
 const SubscriptionUser = require("../models/SubscriptionUserModel");
 
+
 // Controller function to create a new subscription type
 exports.createSubscriptionType = async (req, res) => {
   try {
@@ -17,6 +18,26 @@ exports.createSubscriptionType = async (req, res) => {
     res.status(201).json({ message: "Subscription Type created successfully", data: newSubscriptionType });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+exports.getAllSubscriptionTypes = async (req, res) => {
+  try {
+    const subscriptionTypes = await SubscriptionType.find();
+
+    res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Subscription types retrieved successfully",
+      data: subscriptionTypes,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
 
@@ -190,4 +211,58 @@ exports.deleteSubscriptionUser = async (req, res) => {
   } catch (error) {
     res.status(500).json({ status: 500, success: false, message: "Server error", error: error.message });
   }
+};
+
+
+
+
+// SubscriptionUser
+
+exports.getAllSubscriptions = async (req, res) => {
+    try {
+        const subscriptions = await SubscriptionUser.find();
+        res.json(subscriptions);
+    } catch (error) {
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+exports.getSubscriptionById = async (req, res) => {
+    try {
+        const subscription = await SubscriptionUser.findById(req.params.id);
+        if (!subscription) return res.status(404).json({ message: 'Subscription not found' });
+        res.json(subscription);
+    } catch (error) {
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+exports.createSubscription = async (req, res) => {
+    try {
+        const { userId, subscriptionPlanId, startDate, endDate, kmRadius } = req.body;
+        const subscriptionUser = new SubscriptionUser({ userId, subscriptionPlanId, startDate, endDate, status: 'active', kmRadius });
+        await subscriptionUser.save();
+        res.status(201).json({ message: 'Subscription created successfully', subscriptionUser });
+    } catch (error) {
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+exports.updateSubscription = async (req, res) => {
+    try {
+        const subscription = await SubscriptionUser.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        if (!subscription) return res.status(404).json({ message: 'Subscription not found' });
+        res.json({ message: 'Subscription updated successfully', subscription });
+    } catch (error) {
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+exports.deleteSubscription = async (req, res) => {
+    try {
+        await SubscriptionUser.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Subscription deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Internal server error' });
+    }
 };
