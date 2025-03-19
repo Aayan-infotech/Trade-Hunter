@@ -100,11 +100,11 @@ exports.deleteUser = async (req, res) => {
 
 exports.getUsersByType = async (req, res) => {
   try {
-    const { type } = req.params; 
-    const limit = parseInt(req.params.pagelimit) || 10; 
-    const page = Math.max(1, parseInt(req.query.page) || 1); 
-    const search = req.query.search || ""; 
-    const userStatusFilter = req.query.userStatus; 
+    const { type } = req.params; // Extract user type from params
+    const limit = parseInt(req.params.pagelimit) || 10; // Extract pagelimit from params
+    const page = Math.max(1, parseInt(req.query.page) || 1); // Extract page from query
+    const search = req.query.search || ""; // Extract search query
+    const userStatusFilter = req.query.userStatus; // Extract userStatus filter
 
     if (!type) {
       return res.status(400).json({ message: "User type is required" });
@@ -117,17 +117,18 @@ exports.getUsersByType = async (req, res) => {
       $or: [
         { name: { $regex: `.*${search}.*`, $options: "i" } },
         { email: { $regex: `.*${search}.*`, $options: "i" } },
-        { addressLine: { $regex: `.*${search}.*`, $options: "i" } },
+        { "address.addressLine": { $regex: `.*${search}.*`, $options: "i" } },
       ],
     };
 
+    // Apply userStatus filter if provided
     if (userStatusFilter) {
       query.userStatus = userStatusFilter;
     }
 
+
     console.log("Query:", query);
 
-    // Fetch users with pagination
     const users = await User.find(query)
       .skip((page - 1) * limit)
       .limit(limit);
@@ -146,6 +147,7 @@ exports.getUsersByType = async (req, res) => {
     res.status(500).json({ message: "Error retrieving users", error });
   }
 };
+
 
 
 
