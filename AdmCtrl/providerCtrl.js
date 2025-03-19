@@ -116,6 +116,9 @@ exports.getAllProvidersGuestMode = async (req, res) => {
         totalPages: Math.ceil(totalProviders / limit),
       },
     });
+
+
+    
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error", error });
   }
