@@ -101,7 +101,23 @@ const paymentByProviderId = async (req, res) => {
 
 const getTotalSubscriptionRevenue = async (req, res) => {
   try {
+    const { month, financialYear } = req.query;
+    let conditions = [];
+    if (financialYear) {
+      const [startYear, endYear] = financialYear.split('-').map(Number);
+      const fyStart = new Date(`${startYear}-07-01T00:00:00.000Z`);
+      const fyEnd = new Date(`${endYear}-06-30T23:59:59.999Z`);
+      conditions.push({ transactionDate: { $gte: fyStart, $lte: fyEnd } });
+    }
+
+    if (month) {
+      conditions.push({ $expr: { $eq: [ { $month: "$transactionDate" }, Number(month) ] } });
+    }
+
+    const matchConditions = conditions.length > 0 ? { $and: conditions } : {};
+
     const totalRevenue = await Payment.aggregate([
+      { $match: matchConditions },
       {
         $group: {
           _id: null,
@@ -118,6 +134,7 @@ const getTotalSubscriptionRevenue = async (req, res) => {
     return apiResponse.error(res, "Failed to fetch subscription revenue", 500);
   }
 };
+
 
 module.exports = {
   createPayment,
