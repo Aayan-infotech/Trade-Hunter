@@ -117,9 +117,16 @@ exports.getAllProvidersGuestMode = async (req, res) => {
       },
     });
 
+//provider cotroller 
 
-    
+
+
+
+
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error", error });
   }
 };
+
+
+
