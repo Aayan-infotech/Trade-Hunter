@@ -33,24 +33,6 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                script {
-                    sh '''
-                    echo "Running SonarQube analysis using Docker..."
-                    docker run --rm \
-                        -v $(pwd):/usr/src \
-                        --network host \
-                        sonarsource/sonar-scanner-cli:latest \
-                        -Dsonar.projectKey=trade-hunter-backend \
-                        -Dsonar.sources=/usr/src \
-                        -Dsonar.host.url=http://3.223.253.106:9000 \
-                        -Dsonar.login=${SONARTOKEN}
-                    '''
-                }
-            }
-        }
-
         stage('Login to Docker Hub') {
             steps {
                 script {
