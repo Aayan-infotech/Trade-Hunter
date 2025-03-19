@@ -54,10 +54,7 @@ const signUp = async (req, res) => {
     }
 
     // Validate phone number
-    const phoneRegex = /^[0-9]{10}$/;
-    if (!phoneRegex.test(phoneNo)) {
-      return res.status(400).json({ message: "Invalid phone number. Must be 10 digits." });
-    }
+
 
     // Validate password
     const passwordRegex =
