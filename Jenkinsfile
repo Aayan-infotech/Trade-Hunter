@@ -44,7 +44,7 @@ pipeline {
                         sonarsource/sonar-scanner-cli:latest \
                         -Dsonar.projectKey=trade-hunter-backend \
                         -Dsonar.sources=/usr/src \
-                        -Dsonar.host.url=http://54.236.98.193:9000 \
+                        -Dsonar.host.url=http://3.223.253.106:9000 \
                         -Dsonar.login=${SONARTOKEN}
                     '''
                 }
