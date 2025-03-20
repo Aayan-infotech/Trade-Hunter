@@ -154,6 +154,8 @@ const providerSchema = new mongoose.Schema(
       ref: 'JobPost', 
       default: [] 
     }],
+
+    
     files: [fileSchema],
   },
   { timestamps: true }
