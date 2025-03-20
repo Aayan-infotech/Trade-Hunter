@@ -20,6 +20,8 @@ const signUp = async (req, res) => {
       addressLine,
       latitude,
       longitude,
+
+      
       radius,
       password,
       ABN_Number,
