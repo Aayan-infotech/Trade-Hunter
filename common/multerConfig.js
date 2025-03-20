@@ -44,18 +44,19 @@ const getS3Client = async () => {
 };
 
 const uploadToS3 = async (req, res, next) => {
+  // If no file is provided, skip the upload process.
+  if (!req.file) {
+    return next();
+  }
+
   const s3 = await getS3Client();
-
   try {
-    console.log(req.file)
     const file = req.file;
-
+    // If file is not an array, wrap it in an array.
     const files = Array.isArray(file) ? file : [file];
     const fileLocations = [];
-    console.log(file)
 
     for (const file of files) {
-
       const params = {
         Bucket: process.env.AWS_S3_BUCKET_NAME,
         Key: `${Date.now()}-${file.originalname}`,
@@ -74,5 +75,6 @@ const uploadToS3 = async (req, res, next) => {
     return res.status(500).send(uploadError.message);
   }
 };
+
 
 module.exports = { uploadToS3 };
