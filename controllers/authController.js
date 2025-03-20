@@ -97,8 +97,11 @@ const signUp = async (req, res) => {
       },
     };
 
-    // Create new user or provider, making the image upload optional
-    const imageUrl = req.fileLocations && req.fileLocations.length > 0 ? req.fileLocations[0] : undefined;
+    // Ensure req.fileLocations is defined; if not, set it as empty array
+    const fileLocations = req.fileLocations || [];
+    const imageUrl = fileLocations.length > 0 ? fileLocations[0] : null;
+
+    // Create new user or provider
     const newUser =
       userType === "hunter"
         ? new User({
@@ -108,7 +111,7 @@ const signUp = async (req, res) => {
             password: hashedPassword,
             userType,
             insBy: req.headers["x-client-type"],
-            images: imageUrl, // Optional image
+            images: imageUrl, // Optional image field; will be null if not provided
             address,
           })
         : new Provider({
@@ -121,7 +124,7 @@ const signUp = async (req, res) => {
             password: hashedPassword,
             userType,
             insBy: req.headers["x-client-type"],
-            images: imageUrl, // Optional image
+            images: imageUrl, // Optional image field
             address,
             isGuestMode,
             subscriptionPayment: null,
