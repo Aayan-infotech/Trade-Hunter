@@ -28,10 +28,6 @@ const signUp = async (req, res) => {
       isGuestMode,
     } = req.body;
 
-    // if (req.body.UID) {
-    //   newUser.UID = req.body.UID;
-    // }
-    
     // Validate userType
     if (!["hunter", "provider"].includes(userType)) {
       return res.status(400).json({ message: "Invalid user type." });
@@ -53,15 +49,13 @@ const signUp = async (req, res) => {
       return res.status(400).json({ message: "Invalid email format." });
     }
 
-    // Validate phone number
-
-
     // Validate password
     const passwordRegex =
       /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
-        message: "Password must be at least 8 characters long, including one letter, one number, and one special character.",
+        message:
+          "Password must be at least 8 characters long, including one letter, one number, and one special character.",
       });
     }
 
@@ -103,36 +97,35 @@ const signUp = async (req, res) => {
       },
     };
 
-    // Create new user or provider
+    // Create new user or provider, making the image upload optional
+    const imageUrl = req.fileLocations && req.fileLocations.length > 0 ? req.fileLocations[0] : undefined;
     const newUser =
       userType === "hunter"
         ? new User({
-          name,
-          email,
-          phoneNo,
-          password: hashedPassword,
-          userType,
-          insBy: req.headers["x-client-type"],
-          images: req.fileLocations?.[0],
-          address,
-        })
+            name,
+            email,
+            phoneNo,
+            password: hashedPassword,
+            userType,
+            insBy: req.headers["x-client-type"],
+            images: imageUrl, // Optional image
+            address,
+          })
         : new Provider({
-          businessName,
-          contactName: name,
-          email,
-          phoneNo,
-          ABN_Number,
-          businessType,
-          password: hashedPassword,
-          userType,
-          insBy: req.headers["x-client-type"],
-          images: req.fileLocations?.[0],
-          address,
-          isGuestMode,
-          // Set subscriptionPayment field as empty (null) at signup;
-          // It will later be updated when a payment is done.
-          subscriptionPayment: null,
-        });
+            businessName,
+            contactName: name,
+            email,
+            phoneNo,
+            ABN_Number,
+            businessType,
+            password: hashedPassword,
+            userType,
+            insBy: req.headers["x-client-type"],
+            images: imageUrl, // Optional image
+            address,
+            isGuestMode,
+            subscriptionPayment: null,
+          });
 
     // Send verification email
     const verificationOTP = await generateverificationOTP(newUser);
@@ -152,8 +145,6 @@ const signUp = async (req, res) => {
       }).save();
     }
 
-    // For providers, you might want to populate subscriptionPayment if a payment is done.
-    // At signup, it's null, but if it's updated later, you can retrieve it with populate.
     if (userType === "provider") {
       await answer.populate("subscriptionPayment");
     }
