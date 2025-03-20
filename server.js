@@ -11,6 +11,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // For URL-encoded data
 
 connectDB();
+require("./middlewares/cron"); // 🔥 Import cron job
+
 const apiRoutes = require("./apiRoutes");
 const authAdmin = require("./AdmRts/authAdmin");
 const userRoutes = require("./AdmRts/userRoutes");
