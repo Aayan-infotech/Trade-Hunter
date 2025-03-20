@@ -51,7 +51,7 @@ const uploadToS3 = async (req, res, next) => {
     if (!req.files || !req.files.images) {
       req.fileLocations = '';  //added new line
       return next();
-    }
+    } 
 
     console.log(req.file);
     const file = req.file;

@@ -72,21 +72,14 @@ const router = express.Router();
 const multer = require("multer");
 const upload = multer();
 const { uploadToS3 } = require("../common/multerConfig");
-const { refreshToken } = require("../middlewares/auth");
-const { verifyUser } = require("../middlewares/auth");
+const { refreshToken, verifyUser } = require("../middlewares/auth");
+
+// Removed the file check middleware to make image upload optional
 router.post("/signup", 
   upload.single("images"),
-  async (req, res, next) => {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded." });
-    }
-    next();
-  },
   uploadToS3,
   signUp
 );
-
-
 
 router.post("/login", login);
 router.post("/logout", verifyUser, logout);
@@ -98,9 +91,7 @@ router.post("/changePassword/:id", changePassword);
 router.post("/refreshtoken", refreshToken);
 router.get("/getProviderProfile", verifyUser, getProviderProfile);
 router.get("/getHunterProfile", verifyUser, getHunterProfile);
-router.put("/update/:id",upload.single("images"), verifyUser, updateUserById)
-router.get("/recentSignups", getNewSignups)
-
+router.put("/update/:id", upload.single("images"), verifyUser, updateUserById);
+router.get("/recentSignups", getNewSignups);
 
 module.exports = router;
-   
