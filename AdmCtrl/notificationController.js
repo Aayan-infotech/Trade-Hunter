@@ -24,13 +24,14 @@ exports.getAllNotifications = async (req, res) => {
     if (!['hunter', 'provider'].includes(userType)) {
       return res.status(400).json({ success: false, message: "Invalid user type." });
     }
-    const notifications = await Notification.find({ userId, userType });
+    const notifications = await Notification.find({ userId, userType }).sort({ createdAt: -1 });
     return res.status(200).json({ success: true, message: "Notifications retrieved successfully.", data: notifications });
   } catch (error) {
     console.error("Error fetching notifications:", error);
     return res.status(500).json({ success: false, message: "Internal Server Error" });
   }
 };
+
 
 exports.getNotificationById = async (req, res) => {
   try {
