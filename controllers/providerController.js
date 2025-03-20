@@ -602,6 +602,7 @@ exports.updateProviderById = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
+    console.log(req)
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid ID format" });

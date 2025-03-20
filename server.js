@@ -1,14 +1,23 @@
 const express = require("express");
+const bodyParser = require('body-parser');
 const dotenv = require("dotenv");
 const cors = require("cors");
+const multer = require("multer");
 const connectDB = require("./config/db");
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 7777;
 
-app.use(cors());
+
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // For URL-encoded data
+app.use(express.urlencoded({ extended: true })); 
+app.use(bodyParser.json());// For URL-encoded data
+app.use(cors());
+const upload = multer();
+
+
+
+
 
 connectDB();
 require("./middlewares/cron"); // 🔥 Import cron job
