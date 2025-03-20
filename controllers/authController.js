@@ -28,16 +28,12 @@ const signUp = async (req, res) => {
       isGuestMode,
     } = req.body;
 
-    // if (req.body.UID) {
-    //   newUser.UID = req.body.UID;
-    // }
-    
     // Validate userType
     if (!["hunter", "provider"].includes(userType)) {
       return res.status(400).json({ message: "Invalid user type." });
     }
 
-    // Validate required fields based on userType
+    // Validate required fields based on userType (image upload is NOT required)
     const requiredFields =
       userType === "hunter"
         ? [name, email, phoneNo, latitude, longitude, radius, password, addressLine]
@@ -60,8 +56,7 @@ const signUp = async (req, res) => {
     }
 
     // Validate password
-    const passwordRegex =
-      /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
         message: "Password must be at least 8 characters long, including one letter, one number, and one special character.",
@@ -90,10 +85,10 @@ const signUp = async (req, res) => {
 
     // Validate address fields
     if (!latitude || !longitude || !radius || !addressLine) {
-      return res.status(400).json({ message: "All hunter fields are required." });
+      return res.status(400).json({ message: "All hunter address fields are required." });
     }
 
-    // Construct address
+    // Construct address object
     const address = {
       latitude: parseFloat(latitude),
       longitude: parseFloat(longitude),
@@ -106,36 +101,34 @@ const signUp = async (req, res) => {
       },
     };
 
-    // Create new user or provider
+    // Create new user or provider. The image field is optional.
     const newUser =
       userType === "hunter"
         ? new User({
-          name,
-          email,
-          phoneNo,
-          password: hashedPassword,
-          userType,
-          insBy: req.headers["x-client-type"],
-          images: req.fileLocations?.[0],
-          address,
-        })
+            name,
+            email,
+            phoneNo,
+            password: hashedPassword,
+            userType,
+            insBy: req.headers["x-client-type"],
+            images: req.fileLocations ? req.fileLocations[0] : undefined, // Optional image upload
+            address,
+          })
         : new Provider({
-          businessName,
-          contactName: name,
-          email,
-          phoneNo,
-          ABN_Number,
-          businessType,
-          password: hashedPassword,
-          userType,
-          insBy: req.headers["x-client-type"],
-          images: req.fileLocations?.[0],
-          address,
-          isGuestMode,
-          // Set subscriptionPayment field as empty (null) at signup;
-          // It will later be updated when a payment is done.
-          subscriptionPayment: null,
-        });
+            businessName,
+            contactName: name,
+            email,
+            phoneNo,
+            ABN_Number,
+            businessType,
+            password: hashedPassword,
+            userType,
+            insBy: req.headers["x-client-type"],
+            images: req.fileLocations ? req.fileLocations[0] : undefined, // Optional image upload
+            address,
+            isGuestMode,
+            subscriptionPayment: null,
+          });
 
     // Send verification email
     const verificationOTP = await generateverificationOTP(newUser);
@@ -143,7 +136,7 @@ const signUp = async (req, res) => {
 
     const answer = await newUser.save();
 
-    // Create address for hunter
+    // Create address document for hunter if applicable
     if (userType === "hunter") {
       await new Address({
         userId: answer._id,
@@ -155,8 +148,7 @@ const signUp = async (req, res) => {
       }).save();
     }
 
-    // For providers, you might want to populate subscriptionPayment if a payment is done.
-    // At signup, it's null, but if it's updated later, you can retrieve it with populate.
+    // For providers, populate subscriptionPayment if needed
     if (userType === "provider") {
       await answer.populate("subscriptionPayment");
     }
@@ -166,6 +158,7 @@ const signUp = async (req, res) => {
     return res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
+
 
 
 
