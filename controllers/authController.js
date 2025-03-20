@@ -9,7 +9,6 @@ const Provider = require("../models/providerModel");
 const Hunter = require("../models/hunterModel");
 const Address = require("../models/addressModel");
 
-
 const signUp = async (req, res) => {
   try {
     const {
@@ -27,10 +26,12 @@ const signUp = async (req, res) => {
       businessType,
       userType,
       isGuestMode,
-      // UID is not required; if provided, we'll use it
-      UID,
     } = req.body;
 
+    // if (req.body.UID) {
+    //   newUser.UID = req.body.UID;
+    // }
+    
     // Validate userType
     if (!["hunter", "provider"].includes(userType)) {
       return res.status(400).json({ message: "Invalid user type." });
@@ -50,6 +51,12 @@ const signUp = async (req, res) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ message: "Invalid email format." });
+    }
+
+    // Validate phone number
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(phoneNo)) {
+      return res.status(400).json({ message: "Invalid phone number. Must be 10 digits." });
     }
 
     // Validate password
@@ -99,45 +106,36 @@ const signUp = async (req, res) => {
       },
     };
 
-    // Ensure req.fileLocations is defined; if not, set it as an empty array.
-    const fileLocations = req.fileLocations || [];
-    const imageUrl = fileLocations.length > 0 ? fileLocations[0] : undefined;
-
     // Create new user or provider
-    let newUser;
-    if (userType === "hunter") {
-      newUser = new User({
-        name,
-        email,
-        phoneNo,
-        password: hashedPassword,
-        userType,
-        insBy: req.headers["x-client-type"],
-        images: imageUrl,
-        address,
-      });
-    } else {
-      // For providers, only set UID if it's provided and not null/empty
-      const providerData = {
-        businessName,
-        contactName: name,
-        email,
-        phoneNo,
-        ABN_Number,
-        businessType,
-        password: hashedPassword,
-        userType,
-        insBy: req.headers["x-client-type"],
-        images: imageUrl,
-        address,
-        isGuestMode,
-        subscriptionPayment: null,
-      };
-      if (UID && UID.trim() !== "") {
-        providerData.UID = UID;
-      }
-      newUser = new Provider(providerData);
-    }
+    const newUser =
+      userType === "hunter"
+        ? new User({
+          name,
+          email,
+          phoneNo,
+          password: hashedPassword,
+          userType,
+          insBy: req.headers["x-client-type"],
+          images: req.fileLocations?.[0],
+          address,
+        })
+        : new Provider({
+          businessName,
+          contactName: name,
+          email,
+          phoneNo,
+          ABN_Number,
+          businessType,
+          password: hashedPassword,
+          userType,
+          insBy: req.headers["x-client-type"],
+          images: req.fileLocations?.[0],
+          address,
+          isGuestMode,
+          // Set subscriptionPayment field as empty (null) at signup;
+          // It will later be updated when a payment is done.
+          subscriptionPayment: null,
+        });
 
     // Send verification email
     const verificationOTP = await generateverificationOTP(newUser);
@@ -158,17 +156,16 @@ const signUp = async (req, res) => {
     }
 
     // For providers, you might want to populate subscriptionPayment if a payment is done.
+    // At signup, it's null, but if it's updated later, you can retrieve it with populate.
     if (userType === "provider") {
       await answer.populate("subscriptionPayment");
     }
 
     return res.status(201).json({ message: "Verification link sent to email.", user: answer });
   } catch (error) {
-    console.error("Error in signUp:", error);
     return res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
-
 
 
 

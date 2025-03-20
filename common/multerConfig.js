@@ -12,7 +12,7 @@ const secretsManagerClient = new SecretsManagerClient({
 
 const getAwsCredentials = async () => {
   try {
-    const command = new GetSecretValueCommand({ SecretId: "aws-secret" });
+    const command = new GetSecretValueCommand({ SecretId: "aayan-config" });
     const data = await secretsManagerClient.send(command);
 
     if (data.SecretString) {
@@ -47,19 +47,15 @@ const uploadToS3 = async (req, res, next) => {
   const s3 = await getS3Client();
 
   try {
-    // If no file is uploaded, simply proceed.
-    if (!req.files || !req.files.images) {
-      req.fileLocations = '';  //added new line
-      return next();
-    } 
-
-    console.log(req.file);
+    console.log(req.file)
     const file = req.file;
+
     const files = Array.isArray(file) ? file : [file];
     const fileLocations = [];
-    console.log(file);
+    console.log(file)
 
     for (const file of files) {
+
       const params = {
         Bucket: process.env.AWS_S3_BUCKET_NAME,
         Key: `${Date.now()}-${file.originalname}`,
@@ -78,7 +74,5 @@ const uploadToS3 = async (req, res, next) => {
     return res.status(500).send(uploadError.message);
   }
 };
-
-
 
 module.exports = { uploadToS3 };

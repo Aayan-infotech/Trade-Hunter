@@ -100,7 +100,11 @@ const hunterSchema = new mongoose.Schema(
     token: {
       type: String,
     },
-    UID: { type: String, unique: true, sparse: true }  ,
+    UID: {
+      type: String,
+      // unique: true,
+      default: null,
+    },    
     files: [fileSchema],
   },
   { timestamps: true }
