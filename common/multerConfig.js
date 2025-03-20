@@ -48,7 +48,7 @@ const uploadToS3 = async (req, res, next) => {
 
   try {
     // If no file is uploaded, simply proceed.
-    if (!req.files || !req.files.image) {
+    if (!req.files || !req.files.images) {
       req.fileLocations = '';  //added new line
       return next();
     }
