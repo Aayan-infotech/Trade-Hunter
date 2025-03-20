@@ -71,7 +71,7 @@ const {
 const router = express.Router();
 const multer = require("multer");
 const upload = multer();
-const { uploadToS3 } = require("../common/multerConfig3");
+const { uploadToS3 } = require("../common/multerConfig");
 const { refreshToken } = require("../middlewares/auth");
 const { verifyUser } = require("../middlewares/auth");
 router.post("/signup", 
