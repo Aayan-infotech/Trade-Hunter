@@ -85,9 +85,6 @@ router.post("/signup",
   uploadToS3,
   signUp
 );
-
-
-
 router.post("/login", login);
 router.post("/logout", verifyUser, logout);
 router.post("/verify-email", verifyEmail);
