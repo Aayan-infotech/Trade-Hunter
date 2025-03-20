@@ -85,8 +85,16 @@ exports.updateHunterById = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
+    console.log("Received ID:", id);
+    console.log("Update Data:", updateData);
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    const hunterExists = await Hunter.findById(id);
+    if (!hunterExists) {
+      return res.status(404).json({ message: "Hunter not found" });
     }
 
     const updatedHunter = await Hunter.findByIdAndUpdate(id, updateData, {
@@ -94,12 +102,11 @@ exports.updateHunterById = async (req, res) => {
       runValidators: true,
     });
 
-    if (!updatedHunter) {
-      return res.status(404).json({ message: "Hunter not found" });
-    }
+    console.log("Updated Hunter:", updatedHunter);
 
     res.status(200).json({ message: "Hunter updated successfully", updatedHunter });
   } catch (error) {
+    console.error("Update Error:", error);
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
