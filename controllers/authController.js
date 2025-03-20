@@ -15,6 +15,7 @@ const signUp = async (req, res) => {
       businessName,
       name,
       email,
+      
       phoneNo,
       addressType,
       addressLine,
