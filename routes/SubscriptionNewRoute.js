@@ -20,8 +20,7 @@ const { createSubscriptionType,
     deleteSubscription
 
  } = require("../controllers/SubscriptionNewController");
-const { verifyUser } = require("../middlewares/auth");
-const { checkSubscriptionOrVoucher } = require("../middlewares/checkSubscriptionOrVoucher");
+
 
 
 router.post("/subscription-type", createSubscriptionType);
@@ -38,7 +37,6 @@ router.delete("/subscription-plan/:id", deleteSubscriptionPlan);
 
 // subscription user
 router.post("/subscription-user", createSubscriptionUser);
-// router.get("/subscription-users",verifyUser, checkSubscriptionOrVoucher,getAllSubscriptionUsers);
 router.get("/subscription-users",getAllSubscriptionUsers);
 router.get("/subscription-user/:id", getSubscriptionUserById);
 router.put("/subscription-user/:id", updateSubscriptionUser);
