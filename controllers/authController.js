@@ -30,7 +30,7 @@ const signUp = async (req, res) => {
 
     // Validate userType
     if (!["hunter", "provider"].includes(userType)) {
-      return res.status(400).json({ message: "Invalid user type." });
+      return res.status(400).json({ status: 400, message: "Invalid user type." });
     }
 
     // Validate required fields based on userType (image upload is NOT required)
@@ -40,26 +40,28 @@ const signUp = async (req, res) => {
         : [name, businessName, email, phoneNo, latitude, longitude, radius, password, ABN_Number, businessType, addressLine];
 
     if (requiredFields.some((field) => !field)) {
-      return res.status(400).json({ message: `All ${userType} fields are required.` });
+      return res.status(400).json({ status: 400, message: `All ${userType} fields are required.` });
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ message: "Invalid email format." });
+      return res.status(400).json({ status: 400, message: "Invalid email format." });
     }
 
     // Validate phone number
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(phoneNo)) {
-      return res.status(400).json({ message: "Invalid phone number. Must be 10 digits." });
+      return res.status(400).json({ status: 400, message: "Invalid phone number. Must be 10 digits." });
     }
 
     // Validate password
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
-        message: "Password must be at least 8 characters long, including one letter, one number, and one special character.",
+        status: 400,
+        message:
+          "Password must be at least 8 characters long, including one letter, one number, and one special character.",
       });
     }
 
@@ -74,10 +76,11 @@ const signUp = async (req, res) => {
         const verificationOTP = await generateverificationOTP(existingUser);
         await sendEmail(email, "Account Verification OTP", verificationOTP);
         return res.status(400).json({
+          status: 400,
           message: "Account exists. Please verify via OTP sent to your email.",
         });
       }
-      return res.status(400).json({ message: "User already exists." });
+      return res.status(400).json({ status: 400, message: "User already exists." });
     }
 
     // Hash the password
@@ -85,7 +88,7 @@ const signUp = async (req, res) => {
 
     // Validate address fields
     if (!latitude || !longitude || !radius || !addressLine) {
-      return res.status(400).json({ message: "All hunter address fields are required." });
+      return res.status(400).json({ status: 400, message: "All hunter address fields are required." });
     }
 
     // Construct address object
@@ -153,50 +156,37 @@ const signUp = async (req, res) => {
       await answer.populate("subscriptionPayment");
     }
 
-    return res.status(201).json({ message: "Verification link sent to email.", user: answer });
+    return res.status(201).json({ status: 201, message: "Verification link sent to email.", user: answer });
   } catch (error) {
-    return res.status(500).json({ message: "Internal server error", error: error.message });
+    return res.status(500).json({ status: 500, message: "Server error", error: error.message });
   }
 };
 
-
-
-
-// login
 const login = async (req, res) => {
   const { email, password, userType } = req.body;
 
   if (!["hunter", "provider"].includes(userType)) {
-    return apiResponse.error(res, "Invalid user type", 400);
+    return res.status(400).json({ status: 400, message: "Invalid user type." });
   }
   try {
     let user;
 
     if (userType == "hunter") {
-      user = await User.findOne({ email: email, userType: userType, isDeleted: { $ne: true } });
+      user = await User.findOne({ email, userType, isDeleted: { $ne: true } });
     } else {
-      user = await Provider.findOne({ email: email, userType: userType, isDeleted: { $ne: true } });
+      user = await Provider.findOne({ email, userType, isDeleted: { $ne: true } });
     }
     if (!user) {
-      return apiResponse.error(res, "Invalid credentials", 400);
+      return res.status(400).json({ status: 400, message: "Invalid credentials" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return apiResponse.error(res, "Invalid credentials", 400);
+      return res.status(400).json({ status: 400, message: "Invalid credentials" });
     }
 
-    const token = jwt.sign(
-      { userId: user._id, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "24h" }
-    );
-
-    const refreshToken = jwt.sign(
-      { userId: user._id, email: user.email },
-      process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: "7d" }
-    );
+    const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "24h" });
+    const refreshToken = jwt.sign({ userId: user._id, email: user.email }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: "7d" });
 
     if (req.body.UID) {
       user.UID = req.body.UID;
@@ -210,22 +200,24 @@ const login = async (req, res) => {
     if (!user.emailVerified) {
       const verificationOTP = await generateverificationOTP(user);
       await sendEmail(email, "Account Verification OTP", verificationOTP);
-      return apiResponse.success(res, "You are not verified, Please verify your email");
+      return res.status(200).json({ status: 200, message: "You are not verified, Please verify your email" });
     }
 
     if (userType === "provider" && user.subscriptionStatus !== 1) {
-      return apiResponse.success(res, "You have not subscribed to the service", {
-        token: token,
-        user: user,
+      return res.status(200).json({
+        status: 200,
+        message: "You have not subscribed to the service",
+        data: { token: token, user: user }
       });
     }
 
-    return apiResponse.success(res, "Login successful", {
-      token: token,
-      user: user,
+    return res.status(200).json({
+      status: 200,
+      message: "Login successful",
+      data: { token: token, user: user }
     });
   } catch (err) {
-    return apiResponse.error(res, "Server error", 500);
+    return res.status(500).json({ status: 500, message: "Server error", error: err.message });
   }
 };
 
@@ -263,17 +255,12 @@ const logout = async (req, res) => {
       message: "Logout successful."
     });
   } catch (error) {
-    return res.status(500).json({
-      status: 500,
-      message: "Server error",
-      error: error.message
-    });
+    return res.status(500).json({ status: 500, message: "Server error", error: error.message });
   }
 };
 
 const verifyEmail = async (req, res) => {
   const { email, verificationOTP, userType } = req.body;
-
   let user;
 
   try {
@@ -285,21 +272,21 @@ const verifyEmail = async (req, res) => {
     }
 
     if (!user) {
-      return apiResponse.error(res, "User not found, please sign up first", 400);
+      return res.status(400).json({ status: 400, message: "User not found, please sign up first" });
     }
 
     if (user.emailVerified) {
-      return apiResponse.success(res, "User already verified.", {});
+      return res.status(200).json({ status: 200, message: "User already verified.", data: {} });
     }
 
     if (verificationOTP !== user.verificationOTP) {
-      return apiResponse.error(res, "Invalid OTP.", 401);
+      return res.status(401).json({ status: 401, message: "Invalid OTP." });
     }
 
     // Generate JWT Token
     const token = jwt.sign(
       { userId: user._id, email: user.email, userType: user.userType },
-      process.env.JWT_SECRET, // Ensure you have a secure secret in .env
+      process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
@@ -310,14 +297,12 @@ const verifyEmail = async (req, res) => {
     user.token = token;
     await user.save();
 
-    return apiResponse.success(res, "Email verified successfully", { token, user });
-
+    return res.status(200).json({ status: 200, message: "Email verified successfully", data: { token, user } });
   } catch (err) {
-    return apiResponse.error(res, "Server error", 500);
+    return res.status(500).json({ status: 500, message: "Server error", error: err.message });
   }
 };
 
-//reset password
 const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
@@ -332,7 +317,7 @@ const forgotPassword = async (req, res) => {
     }
 
     if (!user) {
-      return apiResponse.error(res, "User not found", 404);
+      return res.status(404).json({ status: 404, message: "User not found" });
     }
 
     // Generate OTP
@@ -346,16 +331,15 @@ const forgotPassword = async (req, res) => {
     );
 
     // Respond with success message
-    return apiResponse.success(
-      res,
-      "OTP sent to your email. Please check your inbox."
-    );
+    return res.status(200).json({
+      status: 200,
+      message: "OTP sent to your email. Please check your inbox."
+    });
   } catch (err) {
-    return apiResponse.error(res, "Server error", 500);
+    return res.status(500).json({ status: 500, message: "Server error", error: err.message });
   }
 };
 
-// verify otp
 const verifyOtp = async (req, res) => {
   const { email, verificationOTP } = req.body;
 
@@ -370,28 +354,23 @@ const verifyOtp = async (req, res) => {
     }
 
     if (!user) {
-      return apiResponse.error(
-        res,
-        "User not found, please sign up first",
-        400
-      );
+      return res.status(400).json({ status: 400, message: "User not found, please sign up first" });
     }
 
     if (verificationOTP === user.verificationOTP) {
-      user.emailVerified = true; // Use `true` for consistency
+      user.emailVerified = true;
       user.verificationOTP = null;
       user.verificationOTPExpires = null;
       await user.save();
-      return apiResponse.success(res, "Email verified successfully", null, 201);
+      return res.status(201).json({ status: 201, message: "Email verified successfully" });
     }
 
-    return apiResponse.error(res, "Invalid OTP", 401);
+    return res.status(401).json({ status: 401, message: "Invalid OTP" });
   } catch (err) {
-    return apiResponse.error(res, "Server error", 500);
+    return res.status(500).json({ status: 500, message: "Server error", error: err.message });
   }
 };
 
-// reset password with OTP
 const resetPasswordWithOTP = async (req, res) => {
   const { email, newPassword } = req.body;
 
@@ -406,7 +385,7 @@ const resetPasswordWithOTP = async (req, res) => {
     }
 
     if (!user) {
-      return apiResponse.error(res, "Invalid Email", 404);
+      return res.status(404).json({ status: 404, message: "Invalid Email" });
     }
 
     // Update the password
@@ -414,13 +393,12 @@ const resetPasswordWithOTP = async (req, res) => {
     user.password = hashedPassword;
     await user.save();
 
-    return apiResponse.success(res, "Password reset successfully", 200);
+    return res.status(200).json({ status: 200, message: "Password reset successfully" });
   } catch (err) {
-    return apiResponse.error(res, "Server error", 500);
+    return res.status(500).json({ status: 500, message: "Server error", error: err.message });
   }
 };
 
-// change password
 const changePassword = async (req, res) => {
   const { oldPassword, newPassword } = req.body;
 
@@ -432,13 +410,13 @@ const changePassword = async (req, res) => {
     }
 
     if (!user) {
-      return apiResponse.error(res, "Invalid User", 404);
+      return res.status(404).json({ status: 404, message: "Invalid User" });
     }
 
     // Check if the old password matches
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) {
-      return apiResponse.error(res, "Old password is incorrect", 400, null);
+      return res.status(400).json({ status: 400, message: "Old password is incorrect" });
     }
 
     // Hash the new password
@@ -446,35 +424,34 @@ const changePassword = async (req, res) => {
     user.password = hashedNewPassword;
     await user.save();
 
-    return apiResponse.success(res, "Password changed successfully", null, 200);
+    return res.status(200).json({ status: 200, message: "Password changed successfully" });
   } catch (err) {
-    return apiResponse.error(res, "Server error", 500);
+    return res.status(500).json({ status: 500, message: "Server error", error: err.message });
   }
 };
 
-// Get Provider by ID
 const getProviderProfile = async (req, res) => {
   try {
     const id = req.user.userId;
 
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid provider ID" });
+      return res.status(400).json({ status: 400, message: "Invalid provider ID" });
     }
 
     const provider = await Provider.findById(id);
 
     if (!provider) {
-      return res.status(404).json({ message: "Provider not found" });
+      return res.status(404).json({ status: 404, message: "Provider not found" });
     }
 
-    res.status(200).json({
-      success: true,
+    return res.status(200).json({
       status: 200,
+      success: true,
       data: provider,
     });
   } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ status: 500, message: "Server error", error: error.message });
   }
 };
 
@@ -484,24 +461,23 @@ const getHunterProfile = async (req, res) => {
 
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid provider ID" });
+      return res.status(400).json({ status: 400, message: "Invalid provider ID" });
     }
 
     const hunter = await Hunter.findById(id);
     if (!hunter) {
-      return res.status(404).json({ message: "Hunter not found" });
+      return res.status(404).json({ status: 404, message: "Hunter not found" });
     }
 
-    res.status(200).json({
-      success: true,
+    return res.status(200).json({
       status: 200,
+      success: true,
       data: hunter,
     });
   } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ status: 500, message: "Server error", error: error.message });
   }
 };
-
 
 const updateUserById = async (req, res) => {
   try {
@@ -512,16 +488,17 @@ const updateUserById = async (req, res) => {
       try {
         updateData.address = JSON.parse(updateData.address);
       } catch (error) {
+        // Optionally handle parsing error here if needed
       }
     }
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid ID format" });
+      return res.status(400).json({ status: 400, message: "Invalid ID format" });
     }
 
     const { userType } = updateData;
     if (!userType || !["hunter", "provider"].includes(userType)) {
-      return res.status(400).json({ message: "Invalid or missing user type." });
+      return res.status(400).json({ status: 400, message: "Invalid or missing user type." });
     }
 
     if (userType === "provider" && updateData.name) {
@@ -532,7 +509,7 @@ const updateUserById = async (req, res) => {
     const Model = userType === "hunter" ? Hunter : Provider;
     const existingUser = await Model.findById(id);
     if (!existingUser) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ status: 404, message: "User not found" });
     }
     if (updateData.password) {
       updateData.password = await bcrypt.hash(updateData.password, 10);
@@ -616,9 +593,7 @@ const updateUserById = async (req, res) => {
       updatedUser,
     });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ message: "Internal server error", error: error.message });
+    return res.status(500).json({ status: 500, message: "Server error", error: error.message });
   }
 };
 
@@ -628,29 +603,22 @@ const getNewSignups = async (req, res) => {
     tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
 
     const newHuntersCount = await Hunter.countDocuments({ createdAt: { $gte: tenDaysAgo } });
-
     const newProvidersCount = await Provider.countDocuments({ createdAt: { $gte: tenDaysAgo } });
-
     const totalNewSignups = newHuntersCount + newProvidersCount;
 
     return res.status(200).json({
+      status: 200,
       totalNewSignups,
     });
   } catch (error) {
     console.error("Error retrieving new signups for the last 10 days:", error);
     return res.status(500).json({
-      message: "Error retrieving new signups",
+      status: 500,
+      message: "Server error",
       error: error.message,
     });
   }
 };
-
-
-
-
-
-
-
 
 module.exports = {
   signUp,
