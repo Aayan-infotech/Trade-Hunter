@@ -126,10 +126,11 @@ exports.getUsersByType = async (req, res) => {
       query.userStatus = userStatusFilter;
     }
 
-
     console.log("Query:", query);
 
+    // Apply sorting first, then pagination (skip & limit)
     const users = await User.find(query)
+      .sort({ createdAt: -1 }) // Sort by creation date descending (latest first)
       .skip((page - 1) * limit)
       .limit(limit);
 
