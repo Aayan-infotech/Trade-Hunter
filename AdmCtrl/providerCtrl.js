@@ -104,9 +104,11 @@ exports.getAllProvidersGuestMode = async (req, res) => {
       query.userStatus = userStatus;
     }
 
+    // Apply sorting first, then pagination
     const providers = await Provider.find(query)
+      .sort({ createdAt: -1 }) // Sort by creation date descending (latest first)
       .skip((page - 1) * parseInt(limit))
-      .limit(parseInt(limit))
+      .limit(parseInt(limit));
 
     const totalProviders = await Provider.countDocuments(query);
 
@@ -120,13 +122,6 @@ exports.getAllProvidersGuestMode = async (req, res) => {
         totalPages: Math.ceil(totalProviders / limit),
       },
     });
-
-//provider cotroller 
-
-
-
-
-
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error", error });
   }
