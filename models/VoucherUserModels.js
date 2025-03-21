@@ -13,7 +13,8 @@ const voucherUserSchema = new mongoose.Schema({
     },
     kmRadius: {
         type: Number,
-        required: false
+        required: false,
+        default: 10
     },
     code: {
         type: String,
