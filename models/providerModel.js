@@ -68,6 +68,8 @@ const providerSchema = new mongoose.Schema(
       enum: ['Active', 'Suspended', 'Pending'],
       default: 'Active'
     },
+
+    
     emailVerified: {
       type: Number,
       default: 0,
