@@ -18,9 +18,10 @@ exports.getAllProviders = async (req, res) => {
       query.userStatus = userStatus;
     }
 
-    // Find providers and populate the assignedJobs field with job details
+    // Find providers, sort them by createdAt (latest first), and populate the assignedJobs field with job details
     const providers = await Provider.find(query)
-      .populate("assignedJobs") // This will replace the ObjectIds in assignedJobs with full JobPost details
+      .sort({ createdAt: -1 })
+      .populate("assignedJobs")
       .skip((page - 1) * parseInt(limit))
       .limit(parseInt(limit));
 
@@ -40,6 +41,7 @@ exports.getAllProviders = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error", error });
   }
 };
+
 
 
 // Delete a Provider
