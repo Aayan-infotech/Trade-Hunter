@@ -729,7 +729,31 @@ const jobsByBusinessType = async (req, res) => {
 };
 
 
+// Function to increment jobAcceptCount with a limit of 4
+const incrementJobAcceptCount = async (req, res) => {
+  try {
+      const { jobId } = req.params;
 
+      // Find the job post
+      const job = await JobPost.findById(jobId);
+      if (!job) {
+          return res.status(404).json({ success: false, message: "Job not found" });
+      }
+
+      // Check if jobAcceptCount has reached the limit
+      if (job.jobAcceptCount >= 4) {
+          return res.status(400).json({ success: false, message: "Job accept limit reached (4)" });
+      }
+
+      // Increment jobAcceptCount
+      job.jobAcceptCount += 1;
+      await job.save();
+
+      res.status(200).json({ success: true, message: "Job accept count incremented", jobAcceptCount: job.jobAcceptCount });
+  } catch (error) {
+      res.status(500).json({ success: false, message: "Internal server error", error: error.message });
+  }
+};
 
 
 
@@ -758,5 +782,6 @@ module.exports = {
   jobProviderAccept,
   businessTypes,
   jobsByBusinessType,
-  deleteJobPost
+  deleteJobPost,
+  incrementJobAcceptCount
 };

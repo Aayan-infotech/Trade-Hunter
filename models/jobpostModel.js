@@ -64,6 +64,10 @@
       enum: ['Cancel', 'ReAssign','Assigned'],
       default:'Assigned'
     },
+    jobAcceptCount: {
+      type: Number,
+      default: 0
+    },
     deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   }, { timestamps: true });
 
