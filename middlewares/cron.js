@@ -90,7 +90,7 @@ const updateSubscriptions = async () => {
   };
   
   // Har 6 ghante par chalega (0 */6 * * *)
-  cron.schedule("0 */6 * * *", updateSubscriptions);
-// cron.schedule("*/1 * * * *", updateSubscriptions);
+  // cron.schedule("0 */6 * * *", updateSubscriptions);
+  cron.schedule("0 12 * * *", updateSubscriptions); //24h
   
 //   console.log("⏳ Subscription update cron job scheduled.");
