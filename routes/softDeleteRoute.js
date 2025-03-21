@@ -5,5 +5,5 @@ const { softDeleteProvider, softDeleteHunter,deleteHunterPermanently } = require
 router.delete("/provider/:providerId", softDeleteProvider);
 
 router.delete("/hunter/:hunterId", softDeleteHunter);
-router.delete("delete/:hunterId", deleteHunterPermanently)
+router.delete("/delete/:hunterId", deleteHunterPermanently)
 module.exports = router;
