@@ -180,12 +180,28 @@ exports.createSubscriptionUser = async (req, res) => {
 // Controller function to get all subscription users
 exports.getAllSubscriptionUsers = async (req, res) => {
   try {
-    const users = await SubscriptionUser.find().populate("userId subscriptionPlanId");
-    res.status(200).json({ status: 200, success: true, message: "Subscription users retrieved successfully", data: users });
+    const users = await SubscriptionUser.find()
+      .populate("userId")
+      .populate({
+        path: "subscriptionPlanId",
+        populate: { path: "type", model: "SubscriptionType" },
+      });
+    res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Subscription users retrieved successfully",
+      data: users,
+    });
   } catch (error) {
-    res.status(500).json({ status: 500, success: false, message: "Server error", error: error.message });
+    res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
+
 
 // Controller function to get a single subscription user by ID
 exports.getSubscriptionUserById = async (req, res) => {
