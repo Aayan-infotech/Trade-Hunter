@@ -7,6 +7,7 @@ router.post('/transaction', transactionController.createTransaction);
 router.get('/transactions', transactionController.getAllTransactions);
 router.get('/transaction/:id', transactionController.getTransactionById);
 router.delete('/transaction/:id', transactionController.deleteTransaction);
+router.get('/totalRevenue', transactionController.getTotalSubscriptionRevenue);
 
 
 module.exports = router;
