@@ -7,7 +7,7 @@ const upload = multer();
 
 // Route to handle file upload
 router.post('/getNearbyServiceProviders',hunterController.getNearbyServiceProviders);
-router.put('/updateById/:id',upload.none(), hunterController.updateHunterById);
+router.put('/updateById/:id',upload.single(), hunterController.updateHunterById);
 router.patch('/updateRadius', verifyUser, hunterController.updateRadius);
 
 module.exports = router;
