@@ -128,6 +128,10 @@ const getAllJobPosts = async (req, res) => {
       $unwind: { path: "$providerDetails", preserveNullAndEmptyArrays: true },
     });
 
+    // Sort first so that pagination happens on the sorted data
+    pipeline.push({ $sort: { createdAt: -1 } });
+
+    // Count total jobs from the sorted pipeline
     const countPipeline = [...pipeline, { $count: "totalJobs" }];
     const countResult = await JobPost.aggregate(countPipeline);
     const totalJobs = countResult[0] ? countResult[0].totalJobs : 0;
