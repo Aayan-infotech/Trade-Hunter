@@ -739,6 +739,8 @@ const jobsByBusinessType = async (req, res) => {
 
 
 
+
+
 module.exports = {
   createJobPost,
   getAllJobPosts,

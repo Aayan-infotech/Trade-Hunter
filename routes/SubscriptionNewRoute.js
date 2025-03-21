@@ -17,7 +17,7 @@ const { createSubscriptionType,
     getSubscriptionById,
     createSubscription,
     updateSubscription,
-    deleteSubscription
+    deleteSubscription,
 
  } = require("../controllers/SubscriptionNewController");
 
