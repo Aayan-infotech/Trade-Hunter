@@ -190,3 +190,74 @@ exports.deleteTransaction = async (req, res) => {
         res.status(500).json({ status: 500, success: false, message: 'Internal server error', data: null });
     }
 };
+
+
+exports.getTotalSubscriptionRevenue = async (req, res) => {
+    try {
+      const { month, financialYear } = req.query;
+      let conditions = [];
+  
+      // Financial Year Filter (e.g., "2023-2024")
+      if (financialYear) {
+        const [startYear, endYear] = financialYear.split('-').map(Number);
+        // Financial year: July 1 of startYear to June 30 of endYear (UTC)
+        const fyStart = new Date(`${startYear}-07-01T00:00:00.000Z`);
+        const fyEnd = new Date(`${endYear}-06-30T23:59:59.999Z`);
+        conditions.push({ createdAt: { $gte: fyStart, $lte: fyEnd } });
+      }
+  
+      // Month Filter (supports numeric values or case-insensitive month names)
+      if (month) {
+        let monthNum = Number(month);
+        if (isNaN(monthNum)) {
+          const monthMapping = {
+            january: 1,
+            february: 2,
+            march: 3,
+            april: 4,
+            may: 5,
+            june: 6,
+            july: 7,
+            august: 8,
+            september: 9,
+            october: 10,
+            november: 11,
+            december: 12,
+          };
+          monthNum = monthMapping[month.toLowerCase()];
+        }
+        conditions.push({ $expr: { $eq: [ { $month: "$createdAt" }, monthNum ] } });
+      }
+  
+      const matchConditions = conditions.length > 0 ? { $and: conditions } : {};
+  
+      // Aggregate transactions to sum the 'amount' field
+      const totalRevenue = await Transaction.aggregate([
+        { $match: matchConditions },
+        {
+          $group: {
+            _id: null,
+            totalAmount: { $sum: "$amount" },
+          },
+        },
+      ]);
+  
+      res.status(200).json({
+        status: 200,
+        success: true,
+        message: "Total subscription revenue fetched",
+        data: { totalRevenue: totalRevenue.length > 0 ? totalRevenue[0].totalAmount : 0 },
+      });
+    } catch (error) {
+      console.error("Error in getTotalSubscriptionRevenue:", error);
+      res.status(500).json({
+        status: 500,
+        success: false,
+        message: "Failed to fetch subscription revenue",
+        data: null,
+      });
+    }
+  };
+
+  
+  
