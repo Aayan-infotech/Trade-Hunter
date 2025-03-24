@@ -92,11 +92,12 @@ router.get("/getProviderProfile", verifyUser, getProviderProfile);
 router.get("/getHunterProfile", verifyUser, getHunterProfile);
 router.put(
   "/update/:id",
-  upload.any(),         
-  uploadToS3, 
-  verifyUser, 
+  upload.fields([{ name: 'images', maxCount: 1 }]), 
+  uploadToS3,
+  verifyUser,
   updateUserById
 );
+
 router.get("/recentSignups", getNewSignups)
 
 
