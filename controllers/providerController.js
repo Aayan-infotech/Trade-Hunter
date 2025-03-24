@@ -599,10 +599,17 @@ exports.updateProviderById = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
-    console.log(req)
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    // Check if an image was uploaded and update the "images" field
+    // if (req.file) {
+    //   updateData.images = req.file.location; // This is the S3 URL
+    // }
+    if (req.fileLocations && req.fileLocations.length > 0) {
+      updateData.images = req.fileLocations[0]; // Assuming single image upload
     }
 
     const updatedProvider = await providerModel.findByIdAndUpdate(id, updateData, {
@@ -616,6 +623,7 @@ exports.updateProviderById = async (req, res) => {
 
     res.status(200).json({ message: "Provider updated successfully", updatedProvider });
   } catch (error) {
+    console.error("Update Error:", error);
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
