@@ -71,6 +71,18 @@ const {
 const router = express.Router();
 const multer = require("multer");
 const upload = multer();
+
+const updateStorage = multer.memoryStorage();
+
+// Create a multer instance for update route that accepts any file field
+const updateUpload = multer({
+  storage: updateStorage,
+  fileFilter: (req, file, cb) => {
+    // Accept all files; you can add further filtering if needed.
+    cb(null, true);
+  },
+});
+
 const { uploadToS3 } = require("../common/multerConfig");
 const { refreshToken } = require("../middlewares/auth");
 const { verifyUser } = require("../middlewares/auth");
@@ -92,11 +104,13 @@ router.get("/getProviderProfile", verifyUser, getProviderProfile);
 router.get("/getHunterProfile", verifyUser, getHunterProfile);
 router.put(
   "/update/:id",
-  upload.any(),         
-  uploadToS3, 
-  verifyUser, 
+  verifyUser,
+  updateUpload.any(),
+  uploadToS3,
   updateUserById
 );
+
+
 router.get("/recentSignups", getNewSignups)
 
 
