@@ -85,16 +85,22 @@ exports.updateHunterById = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
-    console.log("Received ID:", id);
-    console.log("Update Data:", updateData);
+    // console.log("Received ID:", id);
+    // console.log("Update Data:", updateData);
+    // console.log("Uploaded File URLs:", req.fileLocations);
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid ID format" });
+      return res.status(400).json({ status: 400, success: false, message: "Invalid ID format", data: [] });
     }
 
     const hunterExists = await Hunter.findById(id);
     if (!hunterExists) {
-      return res.status(404).json({ message: "Hunter not found" });
+      return res.status(404).json({ status: 404, success: false, message: "Hunter not found", data: [] });
+    }
+
+    // If image is uploaded, update the images field
+    if (req.fileLocations && req.fileLocations.length > 0) {
+      updateData.images = req.fileLocations[0]; // Assuming single image upload
     }
 
     const updatedHunter = await Hunter.findByIdAndUpdate(id, updateData, {
@@ -102,14 +108,20 @@ exports.updateHunterById = async (req, res) => {
       runValidators: true,
     });
 
-    console.log("Updated Hunter:", updatedHunter);
+    // console.log("Updated Hunter:", updatedHunter);
 
-    res.status(200).json({ message: "Hunter updated successfully", updatedHunter });
+    res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Hunter updated successfully",
+      data: [updatedHunter]
+    });
   } catch (error) {
-    console.error("Update Error:", error);
-    res.status(500).json({ message: "Server Error", error: error.message });
+    // console.error("Update Error:", error);
+    res.status(500).json({ status: 500, success: false, message: "Server Error", error: error.message, data: [] });
   }
 };
+
 
 // update only the radius field
 exports.updateRadius = async (req, res) => {
