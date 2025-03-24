@@ -41,6 +41,9 @@ const matchRoutes = require("./routes/matchRoutes")
 const SubscriptionNewRoute = require("./routes/SubscriptionNewRoute")
 const transactionRoutes = require("./routes/transactionRoutes")
 const voucherRoutes = require("./routes/voucherRoutes")
+// const voucherRoutes = require("./routes/voucherRoutes")
+const backgroundImgRoutes = require("./routes/backgroundImgRoutes")
+
 
 app.use("/api", apiRoutes);
 app.use("/api/authAdmin", authAdmin);
@@ -61,6 +64,7 @@ app.use("/api/match", matchRoutes);
 app.use("/api/SubscriptionNew", SubscriptionNewRoute);
 app.use("/api/demoTransaction", transactionRoutes);
 app.use("/api/voucher", voucherRoutes);
+app.use("/api/backgroundImg", backgroundImgRoutes);
 
 
 app.listen(PORT, () => {
