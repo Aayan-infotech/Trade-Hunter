@@ -7,12 +7,12 @@ const TransactionSchema = new mongoose.Schema({
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'providers',
+    ref: 'Provider',
     required: true
   },
   subscriptionPlanId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'subscriptionplans',
+    ref: 'SubscriptionPlan',
     required: true
   },
   amount: {

@@ -165,7 +165,9 @@ exports.createTransaction = async (req, res) => {
 
 exports.getAllTransactions = async (req, res) => {
     try {
-        const transactions = await Transaction.find();
+        const transactions = await Transaction.find()
+      .populate('userId')
+      .populate('subscriptionPlanId');
         res.status(200).json({ status: 200, success: true, message: 'Transactions fetched successfully', data: transactions });
     } catch (error) {
         res.status(500).json({ status: 500, success: false, message: 'Internal server error', data: null });
