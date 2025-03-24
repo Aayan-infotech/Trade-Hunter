@@ -22,5 +22,7 @@ router.post('/acceptCount/:providerId', fileController.jobAcceptCount);
 router.post('/completedCount/:providerId', fileController.jobCompleteCount)
 router.delete('/delete/:fileId',verifyUser, fileController.deleteFile);
 router.put("/update/:id",upload.single("images"),fileController.updateProvider);
+router.post("/about/:id",fileController.upsertAbout);
+router.get("/about/:id",fileController.getAbout);
 
 module.exports = router;

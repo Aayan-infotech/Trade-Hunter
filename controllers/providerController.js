@@ -842,3 +842,77 @@ exports.updateProvider = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+// Create or Update "about" field
+exports.upsertAbout = async (req, res) => {
+  try {
+    const { about } = req.body;
+    const { id } = req.params;
+
+    if (!about) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "About field is required",
+
+      });
+    }
+
+    const provider = await providerModel.findByIdAndUpdate(
+      id,
+      { about },
+      { new: true, upsert: false, select: "about" }
+    );
+
+    if (!provider) {
+      return res.status(404).json({
+        status: 404,
+        success: false,
+        message: "Provider not found",
+      });
+    }
+
+    res.status(200).json({
+      status: 200,
+      success: true,
+      message: "About updated successfully",
+      data: [provider],
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Error updating about",
+      error: error.message,
+    });
+  }
+};
+
+// Get "about" field
+exports.getAbout = async (req, res) => {
+  try {
+    const provider = await providerModel.findById(req.params.id, "about");
+
+    if (!provider) {
+      return res.status(404).json({
+        status: 404,
+        success: false,
+        message: "Provider not found",
+      });
+    }
+
+    res.status(200).json({
+      status: 200,
+      success: true,
+      message: "About fetched successfully",
+      data: [provider],
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Error fetching about",
+      error: error.message,
+    });
+  }
+};

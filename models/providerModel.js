@@ -159,6 +159,12 @@ const providerSchema = new mongoose.Schema(
 
     
     files: [fileSchema],
+
+    about: {
+      type: String,
+      required: false,
+      trim: true,
+    },
   },
   { timestamps: true }
 );
