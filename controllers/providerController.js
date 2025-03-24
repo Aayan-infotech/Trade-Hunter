@@ -89,9 +89,6 @@ exports.uploadFile = async (req, res) => {
   }
 };
 
-
-
-
 exports.getProviderByUserLocation = async (req, res) => {
   try {
     const RADIUS_OF_EARTH = 6371;
@@ -577,7 +574,6 @@ exports.getNearbyJobsForGuest = async (req, res) => {
   }
 };
 
-
 exports.getJobByIdForGuest = async (req, res) => {
   try {
     const { jobId } = req.params;
@@ -598,6 +594,7 @@ exports.getJobByIdForGuest = async (req, res) => {
     return res.status(500).json({ status: 500, message: "Error fetching job: " + error });
   }
 };
+
 exports.updateProviderById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -646,7 +643,6 @@ exports.getProviderProfile = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 exports.jobAcceptCount = async (req, res) => {
   try {
@@ -724,6 +720,7 @@ exports.jobCompleteCount = async (req, res) => {
     });
   }
 };
+
 exports.deleteFile = async (req, res) => {
   try {
     const { fileId } = req.params;
@@ -815,11 +812,6 @@ exports.getProvidersByBusinessType = async (req, res) => {
     return res.status(500).json({ status: 500, error: error.message });
   }
 };
-
-
-// upadte 
-
-
 
 // Update Provider Controller
 exports.updateProvider = async (req, res) => {
