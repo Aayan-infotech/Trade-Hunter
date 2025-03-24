@@ -217,25 +217,26 @@ const getAllPendingJobPosts = async (req, res) => {
 };
 
 const getJobPostByUserId = async (req, res) => {
-  const userId = req.user.userId;
-
-  let page = parseInt(req.query.page) || 1;
-  let limit = parseInt(req.query.limit) || 10;
-  let skip = (page - 1) * limit;
-
   try {
+    // Log the authenticated user details for debugging
+    console.log("Authenticated user:", req.user);
+    const userId = req.user.userId;
+    console.log("Querying JobPosts for userId:", userId);
+
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
+    let skip = (page - 1) * limit;
+
+    // Count total job posts for the user
     const totalJobs = await JobPost.countDocuments({ user: userId });
+    // Retrieve paginated job posts for the user
     const jobPosts = await JobPost.find({ user: userId })
       .skip(skip)
       .limit(limit);
-    if (!jobPosts || jobPosts.length === 0) {
-      return res.status(200).json({
-        success: true,
-        status: 200,
-        message: "Job posts fetched successfully!",
-        data: jobPosts,
-      });
-    }
+
+    // Log the retrieved job posts for debugging
+    console.log("Retrieved job posts:", jobPosts);
+
     return res.status(200).json({
       success: true,
       status: 200,
@@ -248,7 +249,10 @@ const getJobPostByUserId = async (req, res) => {
       },
     });
   } catch (error) {
-    return apiResponse.error(res, "Internal server error.", 500, {
+    console.error("Error in getJobPostByUserId:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error.",
       error: error.message,
     });
   }

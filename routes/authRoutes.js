@@ -90,7 +90,7 @@ router.post("/changePassword/:id", changePassword);
 router.post("/refreshtoken", refreshToken);
 router.get("/getProviderProfile", verifyUser, getProviderProfile);
 router.get("/getHunterProfile", verifyUser, getHunterProfile);
-router.put("/update/:id",upload.single("images"), verifyUser, updateUserById)
+router.put("/update/:id",upload.single("images"),uploadToS3, verifyUser, updateUserById)
 router.get("/recentSignups", getNewSignups)
 
 
