@@ -30,29 +30,29 @@ const signUp = async (req, res) => {
 
     // Validate userType
     if (!["hunter", "provider"].includes(userType)) {
-      return res.status(400).json({ status: 400, message: "Invalid user type." });
+      return res.status(400).json({ status: 400, success: false, message: "Invalid user type." });
     }
 
-    // Validate required fields based on userType (image upload is NOT required)
+    // Validate required fields based on userType
     const requiredFields =
       userType === "hunter"
         ? [name, email, phoneNo, latitude, longitude, radius, password, addressLine]
         : [name, businessName, email, phoneNo, latitude, longitude, radius, password, ABN_Number, businessType, addressLine];
 
     if (requiredFields.some((field) => !field)) {
-      return res.status(400).json({ status: 400, message: `All ${userType} fields are required.` });
+      return res.status(400).json({ status: 400, success: false, message: `All ${userType} fields are required.` });
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ status: 400, message: "Invalid email format." });
+      return res.status(400).json({ status: 400, success: false, message: "Invalid email format." });
     }
 
     // Validate phone number
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(phoneNo)) {
-      return res.status(400).json({ status: 400, message: "Invalid phone number. Must be 10 digits." });
+      return res.status(400).json({ status: 400, success: false, message: "Invalid phone number. Must be 10 digits." });
     }
 
     // Validate password
@@ -60,8 +60,8 @@ const signUp = async (req, res) => {
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
         status: 400,
-        message:
-          "Password must be at least 8 characters long, including one letter, one number, and one special character.",
+        success: false,
+        message: "Password must be at least 8 characters long, including one letter, one number, and one special character.",
       });
     }
 
@@ -71,16 +71,18 @@ const signUp = async (req, res) => {
         ? User.findOne({ email, isDeleted: { $ne: true } })
         : Provider.findOne({ email, isDeleted: { $ne: true } })
     );
+
     if (existingUser) {
       if (!existingUser.emailVerified) {
         const verificationOTP = await generateverificationOTP(existingUser);
         await sendEmail(email, "Account Verification OTP", verificationOTP);
         return res.status(400).json({
           status: 400,
+          success: false,
           message: "Account exists. Please verify via OTP sent to your email.",
         });
       }
-      return res.status(400).json({ status: 400, message: "User already exists." });
+      return res.status(400).json({ status: 400, success: false, message: "User already exists." });
     }
 
     // Hash the password
@@ -88,7 +90,7 @@ const signUp = async (req, res) => {
 
     // Validate address fields
     if (!latitude || !longitude || !radius || !addressLine) {
-      return res.status(400).json({ status: 400, message: "All hunter address fields are required." });
+      return res.status(400).json({ status: 400, success: false, message: "All hunter address fields are required." });
     }
 
     // Construct address object
@@ -104,7 +106,7 @@ const signUp = async (req, res) => {
       },
     };
 
-    // Create new user or provider. The image field is optional.
+    // Create new user or provider
     const newUser =
       userType === "hunter"
         ? new User({
@@ -156,9 +158,19 @@ const signUp = async (req, res) => {
       await answer.populate("subscriptionPayment");
     }
 
-    return res.status(201).json({ status: 201, message: "Verification link sent to email.", user: answer });
+    return res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Signup successful! Verification link sent to email.",
+      user: answer,
+    });
   } catch (error) {
-    return res.status(500).json({ status: 500, message: "Server error", error: error.message });
+    return res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
 
