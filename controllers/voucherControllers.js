@@ -1,5 +1,6 @@
 const Voucher = require('../models/voucherModels');
 const SubscriptionVoucherUser = require('../models/SubscriptionVoucherUserModel');
+const Provider = require('../models/providerModel'); 
 
 
 // Apply a voucher
@@ -99,6 +100,12 @@ exports.applyVoucher = async (req, res) => {
             status: 'active'
         });
         await newVoucherUsage.save();
+        // Update Provider subscriptionStatus and isGuestMode
+        await Provider.findOneAndUpdate(
+            { _id: userId }, // Assuming userId is the provider's ID
+            { $set: { subscriptionStatus: 1, isGuestMode: false } },
+            // { new: true }
+        );
 
         return res.status(200).json({
             status: 200,
