@@ -18,7 +18,7 @@ const { createSubscriptionType,
     createSubscription,
     updateSubscription,
     deleteSubscription,
-
+    getRetentionRate,
  } = require("../controllers/SubscriptionNewController");
 
 
@@ -50,5 +50,6 @@ router.get('/subscription/:id', getSubscriptionById);
 router.post('/subscription', createSubscription);
 router.put('/subscription/:id', updateSubscription);
 router.delete('/subscription/:id', deleteSubscription);
+router.get("/retentionRate", getRetentionRate)
 
 module.exports = router;
