@@ -168,8 +168,7 @@ const signUp = async (req, res) => {
     return res.status(500).json({
       status: 500,
       success: false,
-      message: "Server error",
-      error: error.message,
+      message: `Server error: ${error.message}`,
     });
   }
 };
