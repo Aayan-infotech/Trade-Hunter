@@ -48,11 +48,11 @@ const refreshToken = async (req, res) => {
 
     let user;
     if (userType === "hunter") {
-      user = await User.findOne({ _id: decoded.userid, refreshToken });
+      user = await User.findOne({ _id: decoded.userId, refreshToken });
     }
 
     if (userType === "provider") {
-      user = await Provider.findOne({ _id: decoded.userid, refreshToken });
+      user = await Provider.findOne({ _id: decoded.userId, refreshToken });
     }
 
     if (!user) {
