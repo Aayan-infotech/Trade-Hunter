@@ -141,11 +141,11 @@ const providerSchema = new mongoose.Schema(
       default: 0,
       required: false,
     },
-    subscriptionPayment: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Payment",
-      required: false,
-    },
+    // subscriptionPayment: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "Payment",
+    //   required: false,
+    // },
     UID: {
       type: String,
       // unique: true,
