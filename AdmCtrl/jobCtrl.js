@@ -462,12 +462,17 @@ const getJobStatusCounts = async (req, res) => {
 const getRecentJobPosts = async (req, res) => {
   try {
     const recentJobs = await JobPost.find()
-      .sort({ createdAt: -1 }) 
-      .limit(4) 
+      .sort({ createdAt: -1 })
+      .limit(4)
       .populate({
         path: "user",
-        model: "hunter", 
-        select: "name email", 
+        model: "hunter",
+        select: "name email",
+      })
+      .populate({
+        path: "provider",
+        model: "Provider",
+        select: "contactName email",
       })
       .lean();
 
@@ -484,6 +489,7 @@ const getRecentJobPosts = async (req, res) => {
     });
   }
 };
+
 
 const getJobPostsByStatus = async (req, res) => {
   let status = req.query.status;
