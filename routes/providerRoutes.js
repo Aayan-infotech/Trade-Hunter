@@ -20,6 +20,7 @@ router.put('/updateById/:id', upload.single(), fileController.updateProviderById
 router.get('/:providerId', fileController.getProviderProfile);
 router.post('/acceptCount/:providerId', fileController.jobAcceptCount);
 router.post('/completedCount/:providerId', fileController.jobCompleteCount)
+router.get('/completionRate/:providerId', fileController.completionRate);
 router.delete('/delete/:fileId',verifyUser, fileController.deleteFile);
 router.put("/update/:id",upload.single("images"),fileController.updateProvider);
 router.post("/about/:id",fileController.upsertAbout);

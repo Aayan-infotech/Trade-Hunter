@@ -652,6 +652,7 @@ exports.getProviderProfile = async (req, res) => {
   }
 };
 
+
 exports.jobAcceptCount = async (req, res) => {
   try {
     const { providerId } = req.params;
@@ -678,10 +679,10 @@ exports.jobAcceptCount = async (req, res) => {
     return res.status(200).json({
       status: 200,
       message: "Job accept count incremented successfully!",
-      jobAcceptCount : updatedProvider.jobAcceptCount,
+      jobAcceptCount: updatedProvider.jobAcceptCount,
     });
   } catch (error) {
-    console.error("Error in incrementJobAcceptCount:", error);
+    console.error("Error in jobAcceptCount:", error);
     return res.status(500).json({ 
       status: 500, 
       message: "Internal server error", 
@@ -690,10 +691,10 @@ exports.jobAcceptCount = async (req, res) => {
   }
 };
 
+// Increment job complete count for a provider
 exports.jobCompleteCount = async (req, res) => {
   try {
     const { providerId } = req.params;
-
     if (!mongoose.Types.ObjectId.isValid(providerId)) {
       return res.status(400).json({ 
         status: 400, 
@@ -717,10 +718,10 @@ exports.jobCompleteCount = async (req, res) => {
     return res.status(200).json({
       status: 200,
       message: "Job complete count incremented successfully!",
-      jobCompleteCount : updatedProvider.jobCompleteCount,
+      jobCompleteCount: updatedProvider.jobCompleteCount,
     });
   } catch (error) {
-    console.error("Error in incrementJobCompleteCount:", error);
+    console.error("Error in jobCompleteCount:", error);
     return res.status(500).json({ 
       status: 500, 
       message: "Internal server error", 
@@ -728,6 +729,46 @@ exports.jobCompleteCount = async (req, res) => {
     });
   }
 };
+
+exports.completionRate = async (req, res) => {
+  try {
+    const { providerId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(providerId)) {
+      return res.status(400).json({ 
+        status: 400, 
+        message: "Invalid provider id." 
+      });
+    }
+
+    const provider = await providerModel.findById(providerId);
+    if (!provider) {
+      return res.status(404).json({ 
+        status: 404, 
+        message: "Provider not found." 
+      });
+    }
+
+    const { jobAcceptCount, jobCompleteCount } = provider;
+    const completionRate = jobAcceptCount > 0 
+      ? (jobCompleteCount / jobAcceptCount) * 100 
+      : 0;
+
+    return res.status(200).json({
+      status: 200,
+      message: "Completion rate computed successfully!",
+      completionRate: completionRate
+    });
+  } catch (error) {
+    console.error("Error computing completion rate:", error);
+    return res.status(500).json({ 
+      status: 500, 
+      message: "Internal server error", 
+      error: error.message 
+    });
+  }
+};
+
+
 
 exports.deleteFile = async (req, res) => {
   try {
