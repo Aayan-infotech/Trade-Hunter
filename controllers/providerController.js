@@ -466,8 +466,6 @@ exports.getNearbyJobs = async (req, res) => {
         .json({ status: 400, message: "Missing required fields" });
     }
 
-    // Build the condition for businessType. If businessType is an array,
-    // create an array of case-insensitive regex conditions; otherwise, use one regex.
     let businessTypeCondition;
     if (Array.isArray(businessType)) {
       businessTypeCondition = {
@@ -482,7 +480,7 @@ exports.getNearbyJobs = async (req, res) => {
         $geoNear: {
           near: { type: "Point", coordinates: [longitude, latitude] },
           distanceField: "distance",
-          maxDistance: radius * 1000, // Convert km to meters
+          maxDistance: radius * 1000, 
           spherical: true,
           key: "jobLocation.location",
         },
@@ -491,21 +489,20 @@ exports.getNearbyJobs = async (req, res) => {
         $match: {
           businessType: businessTypeCondition,
           jobStatus: "Pending",
-          ...(services ? { services } : {}), // Match services if provided
+          ...(services ? { services } : {}),
         },
       },
       {
-        $sort: { distance: 1 }, // Sort by closest jobs first
+        $sort: { distance: 1 }, 
       },
       {
-        $skip: (page - 1) * limit, // Skip previous pages
+        $skip: (page - 1) * limit, 
       },
       {
-        $limit: limit, // Limit results per page
+        $limit: limit, 
       },
     ]);
 
-    // Get total job count for pagination metadata using the same businessType condition
     const totalJobs = await jobpostModel.countDocuments({
       businessType: businessTypeCondition,
       jobStatus: "Pending",
