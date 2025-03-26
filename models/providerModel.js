@@ -128,7 +128,6 @@ const providerSchema = new mongoose.Schema(
       default: false,
       required: false,
     },
-    // New fields for job counts
     jobAcceptCount: {
       type: Number,
       default: 0,
