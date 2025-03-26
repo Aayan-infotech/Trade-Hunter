@@ -53,7 +53,7 @@
       trim: true
     },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "hunter", required: true },
-    provider:{type:mongoose.Schema.Types.ObjectId,ref:"provider" ||null},
+    provider:{type:mongoose.Schema.Types.ObjectId,ref:"Provider" ||null},
     jobStatus: {
       type: String,
       enum: ['Pending','Assigned','InProgress','Completed','Deleted'],
