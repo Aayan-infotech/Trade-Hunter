@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 
-// File Schema
 const fileSchema = new mongoose.Schema({
   filename: String,
   path: String,
@@ -68,8 +67,6 @@ const providerSchema = new mongoose.Schema(
       enum: ['Active', 'Suspended', 'Pending'],
       default: 'Active'
     },
-
-    
     emailVerified: {
       type: Number,
       default: 0,
@@ -131,6 +128,7 @@ const providerSchema = new mongoose.Schema(
       default: false,
       required: false,
     },
+    // New fields for job counts
     jobAcceptCount: {
       type: Number,
       default: 0,
@@ -141,25 +139,16 @@ const providerSchema = new mongoose.Schema(
       default: 0,
       required: false,
     },
-    subscriptionPayment: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Payment",
-      required: false,
-    },
     UID: {
       type: String,
-      // unique: true,
       default: null,
-    },  
+    },
     assignedJobs: [{ 
       type: mongoose.Schema.Types.ObjectId, 
       ref: 'JobPost', 
       default: [] 
     }],
-
-    
     files: [fileSchema],
-
     about: {
       type: String,
       required: false,

@@ -132,7 +132,6 @@ const signUp = async (req, res) => {
             images: req.fileLocations ? req.fileLocations[0] : undefined, // Optional image upload
             address,
             isGuestMode,
-            subscriptionPayment: null,
           });
 
     // Send verification email
@@ -153,10 +152,7 @@ const signUp = async (req, res) => {
       }).save();
     }
 
-    // For providers, populate subscriptionPayment if needed
-    if (userType === "provider") {
-      await answer.populate("subscriptionPayment");
-    }
+    
 
     return res.status(200).json({
       status: 200,
