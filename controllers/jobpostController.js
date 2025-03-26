@@ -576,7 +576,9 @@ const jobProviderAccept = async (req, res) => {
     }
 
     if (jobPost.user.toString() !== hunterId) {
-      return res.status(403).json({ message: "Unauthorized: You are not the owner of this job post." });
+      return res
+        .status(403)
+        .json({ message: "Unauthorized: You are not the owner of this job post." });
     }
 
     if (jobPost.jobStatus !== "Pending") {
@@ -593,11 +595,11 @@ const jobProviderAccept = async (req, res) => {
       return res.status(404).json({ message: "Hunter not found." });
     }
 
-    // Update the job post with the provider id and change the status atomically
+    // Update the job post with the provider id and change the status atomically using $set
     const updatedJobPost = await JobPost.findByIdAndUpdate(
       jobId,
-      { provider: provider._id, jobStatus: "Assigned" },
-      { new: true }
+      { $set: { provider: provider._id, jobStatus: "Assigned" } },
+      { new: true, runValidators: true }
     );
 
     // Update provider's assignedJobs if not already added
@@ -630,6 +632,7 @@ const jobProviderAccept = async (req, res) => {
     return res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
+
 
 
 
