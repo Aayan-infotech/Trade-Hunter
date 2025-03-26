@@ -263,10 +263,6 @@ const changeJobStatus = async (req, res) => {
     const jobId = req.params.jobId;
     const { jobStatus, providerId } = req.body;
 
-    // console.log("Job ID:", jobId);
-    // console.log("Job Status:", jobStatus);
-    // console.log("Provider ID:", providerId);
-
     // Validate if jobId is a valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(jobId)) {
       return res.status(400).json({ error: "Invalid Job ID format" });
@@ -301,11 +297,12 @@ const changeJobStatus = async (req, res) => {
       return res.status(404).json({ error: "Job post not found" });
     }
 
-    // Update job status
+    // Update job status and update provider field if the status is Assigned
     jobPost.jobStatus = jobStatus;
+    if (jobStatus === "Assigned") {
+      jobPost.provider = provider._id;
+    }
     await jobPost.save();
-
-    // console.log("Updated Job:", jobPost);
 
     // If job is assigned, store jobId in provider's assignedJobs array
     if (jobStatus === "Assigned") {
@@ -321,10 +318,10 @@ const changeJobStatus = async (req, res) => {
       jobPost,
     });
   } catch (error) {
-    // console.error("Error:", error.message);
     return res.status(500).json({ error: error.message });
   }
 };
+
 
 const myAcceptedJobs = async (req, res) => {
   try {
