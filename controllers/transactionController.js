@@ -2,7 +2,7 @@ const Transaction = require('../models/TransactionModel');
 const SubscriptionUser = require('../models/SubscriptionVoucherUserModel');
 const SubscriptionPlan = require('../models/SubscriptionPlanModel');
 const SubscriptionVoucherUser = require('../models/SubscriptionVoucherUserModel');
-
+const Provider = require('../models/providerModel'); 
 
 
 // exports.createTransaction = async (req, res) => {
@@ -150,6 +150,12 @@ exports.createTransaction = async (req, res) => {
             kmRadius: subscriptionPlan.kmRadius,
         });
         await newSubscription.save();
+
+        await Provider.findOneAndUpdate(
+            { _id: userId }, 
+            { $set: { subscriptionStatus: 1, isGuestMode: false } },
+            // { new: true }
+        );
 
         res.status(201).json({
             status: 201,
