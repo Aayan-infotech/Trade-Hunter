@@ -560,8 +560,8 @@ const getTopDemandedCities = async (req, res) => {
 };
 const jobProviderAccept = async (req, res) => {
   try {
-    const { jobId } = req.params;        
-    const { providerId } = req.body; 
+    const { jobId } = req.params;
+    const { providerId } = req.body;
 
     if (!providerId) {
       return res.status(400).json({ message: "Provider ID is required." });
@@ -569,6 +569,7 @@ const jobProviderAccept = async (req, res) => {
 
     const hunterId = req.user.userId;
 
+    // Find the job post and verify ownership and status
     const jobPost = await JobPost.findById(jobId);
     if (!jobPost) {
       return res.status(404).json({ message: "Job post not found." });
@@ -592,10 +593,14 @@ const jobProviderAccept = async (req, res) => {
       return res.status(404).json({ message: "Hunter not found." });
     }
 
-    jobPost.provider = provider._id;
-    jobPost.jobStatus = "Assigned";
-    await jobPost.save();
+    // Update the job post with the provider id and change the status atomically
+    const updatedJobPost = await JobPost.findByIdAndUpdate(
+      jobId,
+      { provider: provider._id, jobStatus: "Assigned" },
+      { new: true }
+    );
 
+    // Update provider's assignedJobs if not already added
     if (!provider.assignedJobs) {
       provider.assignedJobs = [];
     }
@@ -607,7 +612,7 @@ const jobProviderAccept = async (req, res) => {
     return res.status(200).json({
       message: "Provider accepted successfully.",
       data: {
-        job: jobPost,
+        job: updatedJobPost,
         hunter: {
           _id: hunter._id,
           name: hunter.name,
@@ -617,7 +622,7 @@ const jobProviderAccept = async (req, res) => {
           _id: provider._id,
           contactName: provider.contactName,
           email: provider.email,
-          jobsAssigned: provider.assignedJobs
+          jobsAssigned: provider.assignedJobs,
         },
       },
     });
@@ -625,6 +630,7 @@ const jobProviderAccept = async (req, res) => {
     return res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
+
 
 
 const getJobCountByBusinessType = async (req, res) => {

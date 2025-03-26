@@ -466,6 +466,17 @@ exports.getNearbyJobs = async (req, res) => {
         .json({ status: 400, message: "Missing required fields" });
     }
 
+    // Build the condition for businessType. If businessType is an array,
+    // create an array of case-insensitive regex conditions; otherwise, use one regex.
+    let businessTypeCondition;
+    if (Array.isArray(businessType)) {
+      businessTypeCondition = {
+        $in: businessType.map((bt) => new RegExp(`^${bt}$`, "i")),
+      };
+    } else {
+      businessTypeCondition = new RegExp(`^${businessType}$`, "i");
+    }
+
     const jobs = await jobpostModel.aggregate([
       {
         $geoNear: {
@@ -478,7 +489,7 @@ exports.getNearbyJobs = async (req, res) => {
       },
       {
         $match: {
-          businessType: { $regex: new RegExp(`^${businessType}$`, "i") }, // Case-insensitive match
+          businessType: businessTypeCondition,
           jobStatus: "Pending",
           ...(services ? { services } : {}), // Match services if provided
         },
@@ -494,9 +505,9 @@ exports.getNearbyJobs = async (req, res) => {
       },
     ]);
 
-    // Get total job count for pagination metadata
+    // Get total job count for pagination metadata using the same businessType condition
     const totalJobs = await jobpostModel.countDocuments({
-      businessType: { $regex: new RegExp(`^${businessType}$`, "i") },
+      businessType: businessTypeCondition,
       jobStatus: "Pending",
     });
 
@@ -516,6 +527,7 @@ exports.getNearbyJobs = async (req, res) => {
       .json({ status: 500, message: "Error fetching nearby jobs:" + error });
   }
 };
+
 
 exports.getNearbyJobsForGuest = async (req, res) => {
   try {
@@ -749,6 +761,7 @@ exports.completionRate = async (req, res) => {
     }
 
     const { jobAcceptCount, jobCompleteCount } = provider;
+    // Prevent division by zero; if no accepted jobs, completion rate is 0%
     const completionRate = jobAcceptCount > 0 
       ? (jobCompleteCount / jobAcceptCount) * 100 
       : 0;
