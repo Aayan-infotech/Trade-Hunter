@@ -2,7 +2,7 @@ const Provider = require("../models/providerModel");
 
 exports.getAllProviders = async (req, res) => {
   try {
-    const { limit = 10, page = 1, search = "", userStatus, isGuestMode = false } = req.query;
+    const { search = "", userStatus } = req.query;
 
     let query = {
       isGuestMode: false,
@@ -18,23 +18,18 @@ exports.getAllProviders = async (req, res) => {
       query.userStatus = userStatus;
     }
 
-    // Find providers, sort them by createdAt (latest first), and populate the assignedJobs field with job details
+    // Fetch all providers without pagination
     const providers = await Provider.find(query)
       .sort({ createdAt: -1 })
-      .populate("assignedJobs")
-      .skip((page - 1) * parseInt(limit))
-      .limit(parseInt(limit));
+      .populate("assignedJobs");
 
-    const totalProviders = await Provider.countDocuments(query);
+    const totalProviders = providers.length;
 
     res.status(200).json({
       success: true,
       data: providers,
       metadata: {
         total: totalProviders,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(totalProviders / limit),
       },
     });
   } catch (error) {
