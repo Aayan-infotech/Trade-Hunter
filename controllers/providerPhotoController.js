@@ -6,7 +6,6 @@ const uploadProviderImages = async (req, res) => {
   try {
     console.log("Request body:", req.body);
     console.log("Uploaded files (req.files):", req.files);
-
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: "No files uploaded" });
     }
