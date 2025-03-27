@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const ProviderPhoto = require("../models/ProviderPhotos"); // Ensure the file name matches
+const ProviderPhoto = require("../models/providerPhotos"); // Ensure the file name matches
 
 const uploadProviderImages = async (req, res) => {
   try {
@@ -74,9 +74,45 @@ const getProviderPhotoByUserId = async (req, res) => {
   }
 };
 
+const deleteFileById = async (req, res) => {
+  try {
+    const { fileId } = req.params;
+    if (!fileId) {
+      return res.status(400).json({ message: "Missing fileId parameter" });
+    }
+    
+    // Validate fileId before converting
+    if (!mongoose.Types.ObjectId.isValid(fileId)) {
+      return res.status(400).json({ message: "Invalid fileId parameter" });
+    }
+    
+    const fileObjectId = new mongoose.Types.ObjectId(fileId);
+
+    // Use $pull to remove the file object with the given _id from the files array
+    const providerPhoto = await ProviderPhoto.findOneAndUpdate(
+      { "files._id": fileObjectId },
+      { $pull: { files: { _id: fileObjectId } } },
+      { new: true }
+    );
+    
+    if (!providerPhoto) {
+      return res.status(404).json({ message: "File not found" });
+    }
+
+    return res.status(200).json({
+      message: "File deleted successfully",
+      data: providerPhoto,
+    });
+  } catch (error) {
+    console.error("Error in deleteFileById controller:", error);
+    return res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
+
 
 
 module.exports = {
   uploadProviderImages,
-  getProviderPhotoByUserId
+  getProviderPhotoByUserId,
+  deleteFileById
 };
