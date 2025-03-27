@@ -1,18 +1,13 @@
-const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
+const mongoose = require("mongoose");
 
-const providerUploadedPictures = new Schema(
+const ProviderPhotoSchema = new mongoose.Schema({
+  userId: { type: String, required: true },
+  files: [
     {
-        userId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Provider",
-            required: true,
-        },
-        files: [{
-            type: String,
-        }],
+      _id: { type: mongoose.Schema.Types.ObjectId, required: true },
+      url: { type: String, required: true },
     },
-    { timestamps: true }
-);
+  ],
+}, { timestamps: true });
 
-module.exports = mongoose.model('providerPhotos', providerUploadedPictures);
+module.exports = mongoose.model("ProviderPhoto", ProviderPhotoSchema);

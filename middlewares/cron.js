@@ -34,11 +34,11 @@ const updateSubscriptions = async () => {
           provider.isGuestMode = false;
           provider.address.radius = (sub.kmRadius || 0) * 1000; // Convert km to meters
           await provider.save();
-          console.log(`✅ Updated Provider: ${provider._id} | Status: 1 | Radius: ${provider.address.radius}`);
+          // console.log(`✅ Updated Provider: ${provider._id} | Status: 1 | Radius: ${provider.address.radius}`);
         }
       }
   
-      console.log("✅ Subscription update job completed.");
+      // console.log("✅ Subscription update job completed.");
     } catch (error) {
       console.error("❌ Error updating subscriptions:", error);
     }
@@ -48,4 +48,4 @@ const updateSubscriptions = async () => {
   // cron.schedule("0 */6 * * *", updateSubscriptions); //6h
   cron.schedule("0 12 * * *", updateSubscriptions); //24h
   
-//   console.log("⏳ Subscription update cron job scheduled.");
+//   // console.log("⏳ Subscription update cron job scheduled.");

@@ -219,9 +219,9 @@ const getAllPendingJobPosts = async (req, res) => {
 const getJobPostByUserId = async (req, res) => {
   try {
     // Log the authenticated user details for debugging
-    console.log("Authenticated user:", req.user);
+    // console.log("Authenticated user:", req.user);
     const userId = req.user.userId;
-    console.log("Querying JobPosts for userId:", userId);
+    // console.log("Querying JobPosts for userId:", userId);
 
     let page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 10;
@@ -235,7 +235,7 @@ const getJobPostByUserId = async (req, res) => {
       .limit(limit);
 
     // Log the retrieved job posts for debugging
-    console.log("Retrieved job posts:", jobPosts);
+    // console.log("Retrieved job posts:", jobPosts);
 
     return res.status(200).json({
       success: true,
