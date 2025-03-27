@@ -69,7 +69,7 @@ const createJobPost = async (req, res) => {
       !requirements
     ) {
       return res.status(400).json({
-        error: "All fields are required",
+        message: "All fields are required",
       });
     }
 
@@ -89,7 +89,7 @@ const createJobPost = async (req, res) => {
     await jobPost.save();
 
     return res.status(201).json({
-      message: "Job post created successfully.",
+      message: "Job post created successfully.",  
       jobPost,
     });
   } catch (error) {
