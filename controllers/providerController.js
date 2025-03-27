@@ -6,11 +6,11 @@ const jobpostModel = require("../models/jobpostModel");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    console.log("Destination callback called. File received:", file);
+    // console.log("Destination callback called. File received:", file);
     cb(null, "uploads/"); 
   },
   filename: function (req, file, cb) {
-    console.log("Filename callback called. File received:", file);
+    // console.log("Filename callback called. File received:", file);
     if (!file || !file.originalname) {
       return cb(new Error("No file provided or file is undefined."));
     }
@@ -22,7 +22,7 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 1024 * 1024 * 5 },
   fileFilter: function (req, file, cb) {
-    console.log("File filter invoked. File received:", file);
+    // console.log("File filter invoked. File received:", file);
     if (!file) {
       return cb(new Error("No file provided."));
     }
@@ -38,9 +38,9 @@ const upload = multer({
 }).array("file", 10);
 
 exports.uploadFile = async (req, res) => {
-  console.log("Request params:", req.params);
-  console.log("Request body:", req.body);
-  console.log("Request files:", req.files);
+  // console.log("Request params:", req.params);
+  // console.log("Request body:", req.body);
+  // console.log("Request files:", req.files);
 
   const { description } = req.body;
   const { providerId } = req.params;
@@ -51,7 +51,7 @@ exports.uploadFile = async (req, res) => {
 
   try {
     const provider = await providerModel.findById(providerId).exec();
-    console.log("Provider fetched:", provider);
+    // console.log("Provider fetched:", provider);
     if (!provider) {
       return res.status(404).json({ status: 404, message: "Provider not found." });
     }

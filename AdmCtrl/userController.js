@@ -126,7 +126,7 @@ exports.getUsersByType = async (req, res) => {
       query.userStatus = userStatusFilter;
     }
 
-    console.log("Query:", query);
+    // console.log("Query:", query);
 
     // Apply sorting first, then pagination (skip & limit)
     const users = await User.find(query)

@@ -37,8 +37,8 @@ exports.updateBlog = async (req, res) => {
       const { title, content } = req.body;
       
       // Debug logs to check incoming file data
-      console.log("req.file:", req.file);
-      console.log("req.files:", req.files);
+      // console.log("req.file:", req.file);
+      // console.log("req.files:", req.files);
       
       let imageUrl = "";
       // Check if req.file exists (if using single file upload)
