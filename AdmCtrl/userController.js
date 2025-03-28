@@ -154,27 +154,27 @@ exports.getUsersByType = async (req, res) => {
 
 
 // GET Job Posts By User Id
+
 exports.getJobPostsByUser = async (req, res) => {
   try {
     const userId = req.params.userId;
 
-    // Check if userId is valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ message: 'Invalid User ID' });
+      return res.status(400).json({ message: "Invalid User ID" });
     }
 
-    // Fetch job posts by user (ensure type matches database)
-    const jobPosts = await JobPost.find({ user: userId }); // No conversion if user is stored as a string
-    // If user is stored as ObjectId, uncomment the following line:
-    // const jobPosts = await JobPost.find({ user: mongoose.Types.ObjectId(userId) });
+    const jobPosts = await JobPost.find({ user: userId })
+      .populate({
+        path: "provider",
+        select: "contactName email"
+      });
 
     if (!jobPosts || jobPosts.length === 0) {
-      return res.status(404).json({ message: 'No job posts found for this user' });
+      return res.status(404).json({ message: "No job posts found for this user" });
     }
 
-    // Send matching job posts
     return res.status(200).json({ data: jobPosts });
   } catch (error) {
-    return res.status(500).json({ message: 'Internal Server Error' });
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 };
