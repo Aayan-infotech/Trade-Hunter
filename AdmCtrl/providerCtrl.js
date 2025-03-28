@@ -61,9 +61,14 @@ exports.updateProvider = async (req, res) => {
     const { id } = req.params;
     const updatedData = req.body;
 
+    if (updatedData.businessType) {
+      updatedData.$set = { businessType: updatedData.businessType };
+      delete updatedData.businessType;
+    }
+
     const updatedProvider = await Provider.findByIdAndUpdate(id, updatedData, {
-      new: true, // Return the updated document
-      runValidators: true, // Ensure the updated data follows schema validations
+      new: true,
+      runValidators: true,
     });
 
     if (!updatedProvider) {
@@ -79,6 +84,7 @@ exports.updateProvider = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error", error });
   }
 };
+
 
 
 exports.getAllProvidersGuestMode = async (req, res) => {
