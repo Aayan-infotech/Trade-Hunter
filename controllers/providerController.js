@@ -607,35 +607,36 @@ exports.getJobByIdForGuest = async (req, res) => {
 exports.updateProviderById = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    let updateData = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid ID format" });
     }
 
-    // Check if an image was uploaded and update the "images" field
-    // if (req.file) {
-    //   updateData.images = req.file.location; // This is the S3 URL
-    // }
     if (req.fileLocations && req.fileLocations.length > 0) {
-      updateData.images = req.fileLocations[0]; // Assuming single image upload
+      updateData.images = req.fileLocations[0]; 
     }
 
-    const updatedProvider = await providerModel.findByIdAndUpdate(id, updateData, {
-      new: true,
-      runValidators: true,
-    });
+    const updatedProvider = await providerModel.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
 
     if (!updatedProvider) {
       return res.status(404).json({ message: "Provider not found" });
     }
 
-    res.status(200).json({ message: "Provider updated successfully", updatedProvider });
+    res.status(200).json({
+      message: "Provider updated successfully",
+      updatedProvider,
+    });
   } catch (error) {
     console.error("Update Error:", error);
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
+
 
 exports.getProviderProfile = async (req, res) => {
   try {
