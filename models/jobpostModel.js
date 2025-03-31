@@ -64,8 +64,13 @@ const JobPostSchema = new mongoose.Schema({
     default: 'Assigned',
   },
   jobAcceptCount: {
-    type: Number,
-    default: 0,
+    type: [{
+      providerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Provider', 
+      }
+    }],
+    default: []
   },
   deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
 }, { timestamps: true });

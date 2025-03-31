@@ -739,10 +739,10 @@ const jobsByBusinessType = async (req, res) => {
 };
 
 
-// Function to increment jobAcceptCount with a limit of 4
 const incrementJobAcceptCount = async (req, res) => {
   try {
       const { jobId } = req.params;
+      const { providerId } = req.body; // Provider ID from request body
 
       // Find the job post
       const job = await JobPost.findById(jobId);
@@ -750,19 +750,38 @@ const incrementJobAcceptCount = async (req, res) => {
           return res.status(404).json({ status: 404, message: "Job not found" });
       }
 
-      // Check if jobAcceptCount has reached the limit
-      if (job.jobAcceptCount >= 4) {
+      // Ensure jobAcceptCount is an array (initialize if not)
+      if (!Array.isArray(job.jobAcceptCount)) {
+          job.jobAcceptCount = [];
+          console.log(job.jobAcceptCount)
+      }
+      // Check if providerId already exists in the jobAcceptCount array
+      if (job.jobAcceptCount.some(item => item.providerId === providerId)) {
+          return res.status(400).json({ 
+              status: 400, 
+              message: "you had already applied for this job please go to chat section" 
+          });
+      }
+
+      // Check if the array already has 4 objects
+      if (job.jobAcceptCount.length >= 4) {
           return res.status(400).json({ status: 400, message: "Job accept limit reached (4)" });
       }
 
-      job.jobAcceptCount += 1;
+      // Add the providerId object to the array
+      job.jobAcceptCount.push({ providerId });
       await job.save();
 
-      res.status(200).json({ status: 200, message: "Job accept count incremented", jobAcceptCount: job.jobAcceptCount });
+      res.status(200).json({ 
+          status: 200, 
+          message: "Job accept count incremented", 
+          jobAcceptCount: job.jobAcceptCount 
+      });
   } catch (error) {
       res.status(500).json({ status: 500, message: "Internal server error", error: error.message });
   }
 };
+
 
 
 
