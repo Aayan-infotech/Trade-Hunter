@@ -747,20 +747,20 @@ const incrementJobAcceptCount = async (req, res) => {
       // Find the job post
       const job = await JobPost.findById(jobId);
       if (!job) {
-          return res.status(404).json({ success: false, message: "Job not found" });
+          return res.status(404).json({ status: 404, message: "Job not found" });
       }
 
       // Check if jobAcceptCount has reached the limit
       if (job.jobAcceptCount >= 4) {
-          return res.status(400).json({ success: false, message: "Job accept limit reached (4)" });
+          return res.status(400).json({ status: 400, message: "Job accept limit reached (4)" });
       }
 
       job.jobAcceptCount += 1;
       await job.save();
 
-      res.status(200).json({ success: true, message: "Job accept count incremented", jobAcceptCount: job.jobAcceptCount });
+      res.status(200).json({ status: 200, message: "Job accept count incremented", jobAcceptCount: job.jobAcceptCount });
   } catch (error) {
-      res.status(500).json({ success: false, message: "Internal server error", error: error.message });
+      res.status(500).json({ status: 500, message: "Internal server error", error: error.message });
   }
 };
 
