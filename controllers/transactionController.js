@@ -192,7 +192,7 @@ exports.getTransactionById = async (req, res) => {
 
 exports.getTransactionsByUserId = async (req, res) => {
     try {
-        const { userId } = req.params;
+        const { userId } = req.userId;
         const transactions = await Transaction.find({ userId }).populate('subscriptionPlanId');
 
         if (!transactions.length) {
@@ -282,6 +282,39 @@ exports.getTotalSubscriptionRevenue = async (req, res) => {
       });
     }
   };
+
+  exports.getSubscriptionByUserId = async (req, res) => {
+    try {
+        // Retrieve userId from token middleware
+        const { userId } = req.user;  // Correct extraction
+
+        const transactions = await Transaction.find({ userId }).populate('subscriptionPlanId');
+
+        if (!transactions.length) {
+            return res.status(404).json({ 
+                status: 404, 
+                success: false, 
+                message: 'No transactions found for this user', 
+                data: [] 
+            });
+        }
+
+        res.status(200).json({ 
+            status: 200, 
+            success: true, 
+            message: '', 
+            data: transactions 
+        });
+    } catch (error) {
+        res.status(500).json({ 
+            status: 500, 
+            success: false, 
+            message: 'Server error', 
+            error: error.message 
+        });
+    }
+};
+
 
   
   
