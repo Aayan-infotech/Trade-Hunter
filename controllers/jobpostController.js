@@ -755,7 +755,6 @@ const incrementJobAcceptCount = async (req, res) => {
           return res.status(400).json({ success: false, message: "Job accept limit reached (4)" });
       }
 
-      // Increment jobAcceptCount
       job.jobAcceptCount += 1;
       await job.save();
 

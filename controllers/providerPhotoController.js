@@ -81,14 +81,12 @@ const deleteFileById = async (req, res) => {
       return res.status(400).json({ message: "Missing fileId parameter" });
     }
     
-    // Validate fileId before converting
     if (!mongoose.Types.ObjectId.isValid(fileId)) {
       return res.status(400).json({ message: "Invalid fileId parameter" });
     }
     
     const fileObjectId = new mongoose.Types.ObjectId(fileId);
 
-    // Use $pull to remove the file object with the given _id from the files array
     const providerPhoto = await ProviderPhoto.findOneAndUpdate(
       { "files._id": fileObjectId },
       { $pull: { files: { _id: fileObjectId } } },

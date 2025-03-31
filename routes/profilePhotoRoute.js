@@ -7,5 +7,5 @@ const { uploadToS3 } = require("../common/multerConfig3");
 
 router.post("/upload", uploadToS3, uploadProviderImages);
 router.get("/:userId", getProviderPhotoByUserId);
-router.delete("/fileId", deleteFileById);
+router.delete("/:fileId", deleteFileById);
 module.exports = router;
