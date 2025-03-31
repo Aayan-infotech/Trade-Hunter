@@ -619,13 +619,11 @@ exports.updateProviderById = async (req, res) => {
           ],
         },
         addressLine: updateData.addressLine,
-        radius: Number(updateData.radius),
       };
 
       delete updateData.addressLine;
       delete updateData.latitude;
       delete updateData.longitude;
-      delete updateData.radius;
     }
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
