@@ -609,25 +609,26 @@ exports.updateProviderById = async (req, res) => {
     const { id } = req.params;
     let updateData = { ...req.body };
 
-    if (updateData.addressLine || updateData.latitude || updateData.longitude) {
-      updateData.address = {
-        location: {
-          type: 'Point',
-          coordinates: [
-            Number(updateData.longitude), 
-            Number(updateData.latitude)
-          ],
-        },
-        addressLine: updateData.addressLine,
-      };
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
 
+    if (updateData.addressLine !== undefined) {
+      updateData["address.addressLine"] = updateData.addressLine;
       delete updateData.addressLine;
+    }
+    if (updateData.latitude !== undefined && updateData.longitude !== undefined) {
+      updateData["address.location.coordinates"] = [
+        Number(updateData.longitude), 
+        Number(updateData.latitude)
+      ];
+      updateData["address.location.type"] = 'Point';
       delete updateData.latitude;
       delete updateData.longitude;
     }
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: "Invalid ID format" });
+    if (updateData.radius !== undefined) {
+      updateData["address.radius"] = Number(updateData.radius);
+      delete updateData.radius;
     }
 
     if (req.fileLocations && req.fileLocations.length > 0) {
@@ -653,6 +654,7 @@ exports.updateProviderById = async (req, res) => {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
+
 
 
 
