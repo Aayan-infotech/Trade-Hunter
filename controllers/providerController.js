@@ -607,14 +607,33 @@ exports.getJobByIdForGuest = async (req, res) => {
 exports.updateProviderById = async (req, res) => {
   try {
     const { id } = req.params;
-    let updateData = req.body;
+    let updateData = { ...req.body };
+
+    if (updateData.addressLine || updateData.latitude || updateData.longitude || updateData.radius) {
+      updateData.address = {
+        location: {
+          type: 'Point',
+          coordinates: [
+            Number(updateData.longitude), 
+            Number(updateData.latitude)
+          ],
+        },
+        addressLine: updateData.addressLine,
+        radius: Number(updateData.radius),
+      };
+
+      delete updateData.addressLine;
+      delete updateData.latitude;
+      delete updateData.longitude;
+      delete updateData.radius;
+    }
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid ID format" });
     }
 
     if (req.fileLocations && req.fileLocations.length > 0) {
-      updateData.images = req.fileLocations[0]; 
+      updateData.images = req.fileLocations[0];
     }
 
     const updatedProvider = await providerModel.findByIdAndUpdate(
@@ -636,6 +655,7 @@ exports.updateProviderById = async (req, res) => {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
+
 
 
 exports.getProviderProfile = async (req, res) => {
