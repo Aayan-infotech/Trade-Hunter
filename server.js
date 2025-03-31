@@ -60,8 +60,8 @@ app.use("/api/StaticContent",StaticContentRoutes)
 app.use("/api/massNotification",massNotifcationRts)
 app.use("/api/contact", contactUsRts);
 app.use("/api/notificationAccept", notificationAccept);
-app.use("/api/devicetokenRoute", devicetokenRoute);
-app.use("/api/pushNotificationRoutes", pushNotificationRoutes);
+app.use("/api/devicetoken", devicetokenRoute);
+app.use("/api/pushNotification", pushNotificationRoutes);
 app.use("/api/match", matchRoutes);
 app.use("/api/SubscriptionNew", SubscriptionNewRoute);
 app.use("/api/demoTransaction", transactionRoutes);
