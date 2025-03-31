@@ -609,7 +609,7 @@ exports.updateProviderById = async (req, res) => {
     const { id } = req.params;
     let updateData = { ...req.body };
 
-    if (updateData.addressLine || updateData.latitude || updateData.longitude || updateData.radius) {
+    if (updateData.addressLine || updateData.latitude || updateData.longitude) {
       updateData.address = {
         location: {
           type: 'Point',
