@@ -742,33 +742,29 @@ const jobsByBusinessType = async (req, res) => {
 const incrementJobAcceptCount = async (req, res) => {
   try {
       const { jobId } = req.params;
-      const { providerId } = req.body; // Provider ID from request body
+      const { providerId } = req.body; 
 
-      // Find the job post
       const job = await JobPost.findById(jobId);
       if (!job) {
           return res.status(404).json({ status: 404, message: "Job not found" });
       }
 
-      // Ensure jobAcceptCount is an array (initialize if not)
       if (!Array.isArray(job.jobAcceptCount)) {
           job.jobAcceptCount = [];
-          console.log(job.jobAcceptCount)
+          job.markModified('jobAcceptCount');
       }
-      // Check if providerId already exists in the jobAcceptCount array
-      if (job.jobAcceptCount.some(item => item.providerId === providerId)) {
+
+      if (job.jobAcceptCount.some(item => item.providerId && item.providerId.equals(providerId))) {
           return res.status(400).json({ 
               status: 400, 
               message: "you had already applied for this job please go to chat section" 
           });
       }
 
-      // Check if the array already has 4 objects
       if (job.jobAcceptCount.length >= 4) {
           return res.status(400).json({ status: 400, message: "Job accept limit reached (4)" });
       }
 
-      // Add the providerId object to the array
       job.jobAcceptCount.push({ providerId });
       await job.save();
 
