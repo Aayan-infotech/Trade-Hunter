@@ -99,9 +99,9 @@ exports.getNotificationsByUserId = async (req, res) => {
 // ReadNotification
 exports.ReadNotification = async (req, res) => {
   const receiverId = req.user.userId;
-  // const notificationId = req.params.notificationId; // Assuming notificationId is passed in the request
+  const notificationId = req.params.notificationId; // Assuming notificationId is passed in the request
 
-  if (!receiverId ) {
+  if (!receiverId || !notificationId) {
     return res.status(400).json({
       status: 400,
       success: false,
@@ -112,7 +112,7 @@ exports.ReadNotification = async (req, res) => {
 
   try {
     // Find the notification by ID and receiverId
-    const notification = await Notification.findOne({ receiverId });
+    const notification = await Notification.findOne({ _id: notificationId, receiverId });
 
     if (!notification) {
       return res.status(404).json({
