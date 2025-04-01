@@ -95,3 +95,96 @@ exports.getNotificationsByUserId = async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error." });
   }
 };
+
+// ReadNotification
+exports.ReadNotification = async (req, res) => {
+  const receiverId = req.user.userId;
+  // const notificationId = req.params.notificationId; // Assuming notificationId is passed in the request
+
+  if (!receiverId ) {
+    return res.status(400).json({
+      status: 400,
+      success: false,
+      message: "Receiver ID and notification ID are required.",
+      data: [],
+    });
+  }
+
+  try {
+    // Find the notification by ID and receiverId
+    const notification = await Notification.findOne({ receiverId });
+
+    if (!notification) {
+      return res.status(404).json({
+        status: 404,
+        success: false,
+        message: "Notification not found.",
+        data: [],
+      });
+    }
+
+    // Update the notification to mark it as read
+    notification.isRead = true;
+    await notification.save();
+
+    return res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Notification marked as read.",
+      data: [notification],
+    });
+  } catch (error) {
+    console.error("Error fetching notification:", error);
+    return res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Internal Server Error.",
+      data: [],
+      error: error.message,
+    });
+  }
+};
+
+// ALL Read Notifications
+exports.AllReadNotifications = async (req, res) => {
+  const receiverId = req.user.userId;
+
+  if (!receiverId) {
+    return res.status(400).json({
+      status: 400,
+      success: false,
+      message: "Receiver ID is required.",
+      data: [],
+    });
+  }
+
+  try {
+    // Fetch all notifications with isRead set to true for the given receiverId
+    const notifications = await Notification.find({ receiverId, isRead: true });
+
+    if (notifications.length === 0) {
+      return res.status(200).json({
+        status: 200,
+        success: false,
+        message: "No read notifications found.",
+        data: [],
+      });
+    }
+
+    return res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Fetched read notifications successfully.",
+      data: notifications,
+    });
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    return res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Internal Server Error.",
+      data: [],
+      error: error.message,
+    });
+  }
+};
