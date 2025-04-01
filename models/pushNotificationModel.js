@@ -15,6 +15,14 @@ const pushNotificationSchema = new Schema(
             type: String,
             required: true,
         },
+        isRead: {
+            type: Boolean,
+            default: false,  
+        },
+        receiverId:{
+            type: mongoose.Schema.Types.ObjectId,
+            required: true,
+        }
     },
     { timestamps: true }
 
