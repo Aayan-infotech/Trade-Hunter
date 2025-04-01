@@ -2,22 +2,48 @@ const DeviceToken = require('../models/devicetokenModel');
 
 const createDeviceToken = async (req, res) => {
     try {
-        const { userId, token } = req.body;
+        const { deviceToken } = req.body;
+        const deviceType = req.headers.platform; 
+        const userId = req.user.userId;
 
-        if (!userId || !token) {
-            return res.status(400).json({ message: "User ID and Token are required." });
+        if (!deviceToken || !deviceType) {
+            return res.status(400).json({ 
+                status: 400,
+                success: false,
+                message: "Device token and platform are required.",
+                data: []
+            });
+        }
+
+        if (!["android", "ios"].includes(deviceType.toLowerCase())) {
+            return res.status(400).json({ 
+                status: 400,
+                success: false,
+                message: "Invalid platform type. Use 'android' or 'ios'.",
+                data: []
+            });
         }
 
         const updatedToken = await DeviceToken.findOneAndUpdate(
             { userId },
-            { token },
+            { deviceToken, deviceType: deviceType.toLowerCase() },
             { new: true, upsert: true }
         );
 
-        return res.status(201).json({ message: "Device Token created/updated successfully.", data: updatedToken });
+        return res.status(201).json({ 
+            status: 201,
+            success: true,
+            message: "Device Token saved successfully.",
+            data: [updatedToken]
+        });
     } catch (error) {
-        console.error("Error creating/updating device token:", error);
-        return res.status(500).json({ message: "Internal Server Error." });
+        console.error("Error saving device token:", error);
+        return res.status(500).json({ 
+            status: 500,
+            success: false,
+            message: "Internal Server Error.",
+            data: []
+        });
     }
 };
 
