@@ -210,6 +210,13 @@ const login = async (req, res) => {
       return res.status(200).json({ status: 200, message: "You are not verified, Please verify your email" });
     }
 
+    if(user.userStatus== Suspended){
+      return res.status(200).json({
+        status: 200,
+        message: "Your account is suspended. Please contact support team",
+      });
+    }
+
     if (userType === "provider" && user.subscriptionStatus !== 1) {
       return res.status(200).json({
         status: 200,
