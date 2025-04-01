@@ -353,5 +353,39 @@ exports.getRetentionRate = async (req, res) => {
   }
 };
 
+// Controller function to get subscription plans by subscription type ID
+exports.getSubscriptionPlansByTypeId = async (req, res) => {
+  try {
+    const { subscriptionTypeId } = req.params; 
+
+    
+    const plans = await SubscriptionPlan.find({ type: subscriptionTypeId });
+    
+    if (!plans || plans.length === 0) {
+      return res.status(404).json({
+        status: 404,
+        success: false,
+        message: "No subscription plans found for the given subscription type ID",
+        data: [],
+      });
+    }
+
+    res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Subscription plans retrieved successfully",
+      data: plans,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+
 
 
