@@ -45,6 +45,7 @@ const voucherRoutes = require("./routes/voucherRoutes")
 const backgroundImgRoutes = require("./routes/backgroundImgRoutes")
 const profilePhotoRoutes = require("./routes/profilePhotoRoute")
 const blogRoute  = require("./routes/blogRoute")
+const ratingRoute = require("./routes/ratingRoute")
 
 
 app.use("/api", apiRoutes);
@@ -70,6 +71,7 @@ app.use("/api/backgroundImg", backgroundImgRoutes);
 app.use("/api/providerPhoto", profilePhotoRoutes)
 
 app.use("/api/blog", blogRoute)
+app.use("/api/rating", ratingRoute)
 
 
 app.listen(PORT, () => {
