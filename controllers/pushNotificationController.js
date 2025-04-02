@@ -192,7 +192,8 @@ exports.AllReadNotifications = async (req, res) => {
 
 exports.sendPushNotification2 = async (req, res) => {
   try {
-    const { userId, title, body, receiverId } = req.body;
+    const {  title, body, receiverId } = req.body;
+    const userId = req.user.userId;
 
     
 
