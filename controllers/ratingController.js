@@ -48,3 +48,39 @@ exports.getRatings = async (req, res) => {
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+exports.getAvgRating = async (req, res) => {
+    try {
+      const { userId } = req.params;
+  
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({ message: "Invalid userId." });
+      }
+  
+      const result = await Rating.aggregate([
+        { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+        { 
+          $group: { 
+            _id: "$userId", 
+            avgRating: { $avg: "$rating" }, 
+            totalRatings: { $sum: 1 } 
+          } 
+        }
+      ]);
+  
+      if (result.length === 0) {
+        return res.status(200).json({
+          message: "No ratings found for the given provider.",
+          data: { avgRating: 0, totalRatings: 0 }
+        });
+      }
+  
+      return res.status(200).json({
+        message: "Average rating retrieved successfully.",
+        data: result[0]
+      });
+    } catch (error) {
+      return res.status(500).json({ message: "Server error", error: error.message });
+    }
+  };
+  

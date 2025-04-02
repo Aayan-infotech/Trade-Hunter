@@ -6,4 +6,6 @@ router.post("/giveRating/:userId", ratingController.giveRating);
 
 router.get("/getRatings/:userId", ratingController.getRatings);
 
+router.get("/getAvgRating/:userId", ratingController.getAvgRating);
+
 module.exports = router;
