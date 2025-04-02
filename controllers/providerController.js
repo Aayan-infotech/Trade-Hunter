@@ -3,6 +3,7 @@ const multer = require("multer");
 const path = require("path");
 const providerModel = require("../models/providerModel");
 const jobpostModel = require("../models/jobpostModel");
+const providerPhotosModel = require("../models/providerPhotos");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -661,21 +662,30 @@ exports.updateProviderById = async (req, res) => {
 exports.getProviderProfile = async (req, res) => {
   try {
     const { providerId } = req.params;
-    // Populate assignedJobs and then populate the 'user' field inside each job
+
+    // Fetch provider details and populate assignedJobs with user details
     const provider = await providerModel.findById(providerId)
       .populate({
         path: "assignedJobs",
         populate: {
           path: "user",
-          select: "name email" 
+          select: "name email"
         }
       });
+
+    // Fetch work gallery with correct query
+    const workgallery = await providerPhotosModel.findOne({ userId: providerId }).select("files");
 
     if (!provider) {
       return res.status(404).json({ success: false, message: "Provider not found" });
     }
 
-    res.status(200).json({ success: true, message: "Provider fetched successfully", data: provider });
+    res.status(200).json({ 
+      success: true, 
+      message: "Provider fetched successfully", 
+      data: provider,
+      workgallery
+    });
   } catch (error) {
     console.error("Error fetching provider profile:", error);
     res.status(500).json({ success: false, message: error.message });
