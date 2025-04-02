@@ -261,14 +261,12 @@ const getJobPostByUserId = async (req, res) => {
 const changeJobStatus = async (req, res) => {
   try {
     const jobId = req.params.jobId;
-    const { jobStatus, providerId } = req.body;
+    const { providerId, jobStatus } = req.body; 
 
-    // Validate if jobId is a valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(jobId)) {
       return res.status(400).json({ error: "Invalid Job ID format" });
     }
 
-    // Validate providerId
     if (!mongoose.Types.ObjectId.isValid(providerId)) {
       return res.status(400).json({ error: "Invalid Provider ID format" });
     }
@@ -282,30 +280,25 @@ const changeJobStatus = async (req, res) => {
       });
     }
 
-    const allowedStatuses = ["Pending", "Assigned", "InProgress", "Completed"];
-
-    // Validate jobStatus
-    if (!allowedStatuses.includes(jobStatus)) {
-      return res.status(400).json({
-        error: "Invalid job status. Allowed values: Pending, Assigned, InProgress, Completed",
-      });
-    }
-
-    // Find job post by ID
     const jobPost = await JobPost.findById(jobId);
     if (!jobPost) {
       return res.status(404).json({ error: "Job post not found" });
     }
 
-    // Update job status and update provider field if the status is Assigned
-    jobPost.jobStatus = jobStatus;
-    if (jobStatus === "Assigned") {
+    if (jobPost.jobStatus === "Pending") {
+      jobPost.jobStatus = "Assigned";
       jobPost.provider = provider._id;
+    } else if (jobPost.jobStatus === "Assigned") {
+      jobPost.jobStatus = "Completed";
+    } else {
+      if (jobStatus) {
+        jobPost.jobStatus = jobStatus;
+      }
     }
+
     await jobPost.save();
 
-    // If job is assigned, store jobId in provider's assignedJobs array
-    if (jobStatus === "Assigned") {
+    if (jobPost.jobStatus === "Assigned") {
       if (!provider.assignedJobs.includes(jobId)) {
         provider.assignedJobs.push(jobId);
         await provider.save();
@@ -779,53 +772,7 @@ const incrementJobAcceptCount = async (req, res) => {
 };
 
 
-const changeJobStatusToCompleted = async (req, res) => {
-  try {
-    const jobId = req.params.jobId;
-    const { providerId } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(jobId)) {
-      return res.status(400).json({ error: "Invalid Job ID format" });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(providerId)) {
-      return res.status(400).json({ error: "Invalid Provider ID format" });
-    }
-
-    const provider = await Provider.findOne({ _id: providerId, isDeleted: false });
-    if (!provider) {
-      return res.status(404).json({
-        success: false,
-        status: 404,
-        message: "Provider not found!",
-      });
-    }
-
-    const jobPost = await JobPost.findById(jobId);
-    if (!jobPost) {
-      return res.status(404).json({ error: "Job post not found" });
-    }
-
-    if (jobPost.jobStatus !== "Assigned") {
-      return res.status(400).json({
-        error: "Job status is not 'Assigned'. It cannot be marked as Completed.",
-      });
-    }
-
-    jobPost.jobStatus = "Completed";
-    await jobPost.save();
-
-   
-
-    return res.status(200).json({
-      message: "Job status updated to Completed successfully",
-      status: 200,
-      jobPost,
-    });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
-  }
-};
 
 
 
@@ -858,5 +805,4 @@ module.exports = {
   jobsByBusinessType,
   deleteJobPost,
   incrementJobAcceptCount,
-  changeJobStatusToCompleted,
 };
