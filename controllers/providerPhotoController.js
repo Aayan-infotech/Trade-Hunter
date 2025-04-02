@@ -60,12 +60,12 @@ const getProviderPhotoByUserId = async (req, res) => {
   try {
     const { userId } = req.params;
     if (!userId) {
-      return res.status(400).json({ message: "Missing userId parameter" });
+      return res.status(400).json({status:400, success:false,  message: "Missing userId parameter" });
     }
 
     const providerPhoto = await ProviderPhoto.findOne({ userId });
     if (!providerPhoto) {
-      return res.status(404).json({ message: "Document not found for the provided userId" });
+      return res.status(201).json({ status:201, success:true,  message: "Document not found for the provided userId" });
     }
     res.status(200).json({ data: providerPhoto });
   } catch (error) {
