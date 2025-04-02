@@ -105,17 +105,34 @@ exports.uploadBackgroundImg = async (req, res) => {
   };
   
 
-exports.getBackgroundImg = async (req, res) => {
+  exports.getBackgroundImg = async (req, res) => {
     try {
         const { userId } = req.params;
         const backgroundImg = await BackgroundImg.findOne({ userId });
 
+        // If no background image is found, return a success response with empty data
         if (!backgroundImg) {
-            return res.status(404).json({ status: 404, success: false, message: "No background image found for this user", data: [] });
+            return res.status(201).json({
+                status: 201,
+                success: true,
+                message: "No background image found for this user",
+                data: []
+            });
         }
 
-        return res.status(200).json({ status: 200, success: true, message: "Background image retrieved successfully", data: [backgroundImg] });
-    } catch (error) {
-        return res.status(500).json({ status: 500, success: false, message: error.message, data: [] });
+        return res.status(200).json({
+            status: 200,
+            success: true,
+            message: "Background image retrieved successfully",
+            data: [backgroundImg]
+        });
+    } 
+    catch (error) {
+        return res.status(500).json({
+            status: 500,
+            success: false,
+            message: error.message,
+            data: []
+        });
     }
 };
