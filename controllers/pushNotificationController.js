@@ -2,6 +2,7 @@ const admin = require('../config/firebaseConfig');
 const Notification = require("../models/pushNotificationModel");
 const DeviceToken = require("../models/devicetokenModel");
 
+
 exports.sendPushNotification = async (req, res) => {
   try {
       const { title, body,receiverId } = req.body;
@@ -188,3 +189,34 @@ exports.AllReadNotifications = async (req, res) => {
     });
   }
 };
+
+exports.sendPushNotification2 = async (req, res) => {
+  try {
+    const { userId, title, body, receiverId } = req.body;
+
+    
+
+    const newNotification = new Notification({
+      userId,
+      receiverId,
+      title,
+      body,
+      createdAt: new Date()
+    });
+
+    await newNotification.save();
+
+    return res.status(201).json({
+      status: 201,
+      success: true,
+      message: "Notification sent successfully",
+      data: newNotification
+    });
+  } catch (error) {
+    console.error("Error sending notification:", error);
+    return res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+

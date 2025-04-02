@@ -7,6 +7,7 @@ router.post('/send-notification',verifyUser, notificationController.sendPushNoti
 router.get('/get-notification',verifyUser, notificationController.getNotificationsByUserId);
 router.get('/Read-notification/:notificationId',verifyUser, notificationController.ReadNotification);
 router.get('/AllRead-notification',verifyUser, notificationController.AllReadNotifications);
+router.post('/sendNotification' , verifyUser, notificationController.sendPushNotification2);
 
 
 
