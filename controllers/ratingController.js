@@ -38,7 +38,7 @@ exports.getRatings = async (req, res) => {
       return res.status(400).json({ message: "Invalid userId." });
     }
 
-    const ratings = await Rating.find({ userId }).populate("userId", "name email");
+    const ratings = await Rating.find({ userId }).populate("userId", "contactName email images");
 
     return res.status(200).json({
       message: "Ratings retrieved successfully.",
