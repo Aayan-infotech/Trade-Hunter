@@ -1,4 +1,4 @@
-// const admin = require('../config/firebaseConfig');
+const admin = require('../config/firebaseConfig');
 const Notification = require("../models/pushNotificationModel");
 const DeviceToken = require("../models/devicetokenModel");
 
