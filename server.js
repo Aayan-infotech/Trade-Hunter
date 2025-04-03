@@ -34,14 +34,12 @@ const softDeleteRoute = require("./routes/softDeleteRoute")
 const StaticContentRoutes = require("./AdmRts/StaticContentRoutes")
 const massNotifcationRts = require("./AdmRts/massNotificationRts")
 const contactUsRts = require("./AdmRts/contactUsRts");
-const notificationAccept = require("./routes/notificationAcceptRoutes")
 const devicetokenRoute = require("./routes/devicetokenRoute")
 const pushNotificationRoutes = require("./routes/pushNotificationRoutes")
 const matchRoutes = require("./routes/matchRoutes")
 const SubscriptionNewRoute = require("./routes/SubscriptionNewRoute")
 const transactionRoutes = require("./routes/transactionRoutes")
 const voucherRoutes = require("./routes/voucherRoutes")
-// const voucherRoutes = require("./routes/voucherRoutes")
 const backgroundImgRoutes = require("./routes/backgroundImgRoutes")
 const profilePhotoRoutes = require("./routes/profilePhotoRoute")
 const blogRoute  = require("./routes/blogRoute")
@@ -60,7 +58,6 @@ app.use("/api/DeleteAccount",softDeleteRoute)
 app.use("/api/StaticContent",StaticContentRoutes)
 app.use("/api/massNotification",massNotifcationRts)
 app.use("/api/contact", contactUsRts);
-app.use("/api/notificationAccept", notificationAccept);
 app.use("/api/devicetoken", devicetokenRoute);
 app.use("/api/pushNotification", pushNotificationRoutes);
 app.use("/api/match", matchRoutes);
