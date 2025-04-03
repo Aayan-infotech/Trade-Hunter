@@ -82,10 +82,9 @@ exports.getNotificationsByUserId = async (req, res) => {
   }
 };
 
-// ReadNotification
 exports.ReadNotification = async (req, res) => {
   const receiverId = req.user.userId;
-  const notificationId = req.params.notificationId; // Assuming notificationId is passed in the request
+  const notificationId = req.params.notificationId; 
 
   if (!receiverId || !notificationId) {
     return res.status(400).json({
@@ -131,7 +130,6 @@ exports.ReadNotification = async (req, res) => {
   }
 };
 
-// ALL Read Notifications
 exports.AllReadNotifications = async (req, res) => {
   const receiverId = req.user.userId;
 

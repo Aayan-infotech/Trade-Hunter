@@ -85,10 +85,6 @@ exports.updateHunterById = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
-    // console.log("Received ID:", id);
-    // console.log("Update Data:", updateData);
-    // console.log("Uploaded File URLs:", req.fileLocations);
-
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ status: 400, success: false, message: "Invalid ID format", data: [] });
     }
@@ -98,17 +94,14 @@ exports.updateHunterById = async (req, res) => {
       return res.status(404).json({ status: 404, success: false, message: "Hunter not found", data: [] });
     }
 
-    // If image is uploaded, update the images field
     if (req.fileLocations && req.fileLocations.length > 0) {
-      updateData.images = req.fileLocations[0]; // Assuming single image upload
+      updateData.images = req.fileLocations[0]; 
     }
 
     const updatedHunter = await Hunter.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true,
     });
-
-    // console.log("Updated Hunter:", updatedHunter);
 
     res.status(200).json({
       status: 200,
@@ -117,20 +110,16 @@ exports.updateHunterById = async (req, res) => {
       data: [updatedHunter]
     });
   } catch (error) {
-    // console.error("Update Error:", error);
     res.status(500).json({ status: 500, success: false, message: "Server Error", error: error.message, data: [] });
   }
 };
 
 
-// update only the radius field
 exports.updateRadius = async (req, res) => {
   try {
-    // Extract user ID from authenticated request
     const id = req.user.userId;
     const { radius } = req.body;
 
-    // Validate radius
     if (typeof radius !== "number" || radius < 0) {
       return res.status(400).json({
         status: 400,
@@ -139,7 +128,6 @@ exports.updateRadius = async (req, res) => {
       });
     }
 
-    // Find and update the hunter's radius field
     const updatedHunter = await Hunter.findByIdAndUpdate(
       id,
       { $set: { "address.radius": radius } },

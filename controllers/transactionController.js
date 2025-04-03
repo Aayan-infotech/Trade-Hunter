@@ -4,8 +4,6 @@ const SubscriptionPlan = require('../models/SubscriptionPlanModel');
 const SubscriptionVoucherUser = require('../models/SubscriptionVoucherUserModel');
 const Provider = require('../models/providerModel'); 
 
-
-// exports.createTransaction = async (req, res) => {
 //     try {
 //         const { userId, subscriptionPlanId, amount, paymentMethod } = req.body;
 
@@ -65,20 +63,16 @@ exports.createTransaction = async (req, res) => {
     try {
         const { userId, subscriptionPlanId, amount, paymentMethod } = req.body;
 
-        // Check if the subscription plan exists
         const subscriptionPlan = await SubscriptionPlan.findById(subscriptionPlanId);
         if (!subscriptionPlan) {
             return res.status(404).json({ status: 404, success: false, message: 'Subscription Plan not found', data: null });
         }
-
-        // Simulating payment success (No real bank API used)
         const paymentSuccess = true;
 
         if (!paymentSuccess) {
             return res.status(400).json({ status: 400, success: false, message: 'Payment failed', data: null });
         }
 
-        // Check if user has an active or expired Voucher-type SubscriptionVoucherUser
         let existingVoucher = await SubscriptionVoucherUser.findOne({
             userId,
             type: "Voucher",
@@ -94,13 +88,11 @@ exports.createTransaction = async (req, res) => {
                     data: null
                 });
             } else if (existingVoucher.status === 'expired') {
-                // If Voucher is expired, proceed to purchase Subscription
                 existingVoucher.status = 'expired';
                 await existingVoucher.save();
             }
         }
 
-        // Check if the user has an active Subscription
         let existingSubscription = await SubscriptionVoucherUser.findOne({
             userId,
             type: "Subscription",
@@ -108,7 +100,6 @@ exports.createTransaction = async (req, res) => {
         });
 
         if (existingSubscription) {
-            // Update the existing active subscription with new details
             existingSubscription.subscriptionPlanId = subscriptionPlanId;
             existingSubscription.startDate = new Date();
             existingSubscription.endDate = new Date();
@@ -124,7 +115,6 @@ exports.createTransaction = async (req, res) => {
             });
         }
 
-        // Create new transaction
         const transaction = new Transaction({
             userId,
             subscriptionPlanId,
@@ -135,7 +125,6 @@ exports.createTransaction = async (req, res) => {
         });
         await transaction.save();
 
-        // Auto-create new subscription for user
         const startDate = new Date();
         const endDate = new Date();
         endDate.setDate(startDate.getDate() + subscriptionPlan.validity);
@@ -154,7 +143,6 @@ exports.createTransaction = async (req, res) => {
         await Provider.findOneAndUpdate(
             { _id: userId }, 
             { $set: { subscriptionStatus: 1, isGuestMode: false } },
-            // { new: true }
         );
 
         res.status(201).json({
@@ -221,16 +209,13 @@ exports.getTotalSubscriptionRevenue = async (req, res) => {
       const { month, financialYear } = req.query;
       let conditions = [];
   
-      // Financial Year Filter (e.g., "2023-2024")
       if (financialYear) {
         const [startYear, endYear] = financialYear.split('-').map(Number);
-        // Financial year: July 1 of startYear to June 30 of endYear (UTC)
         const fyStart = new Date(`${startYear}-07-01T00:00:00.000Z`);
         const fyEnd = new Date(`${endYear}-06-30T23:59:59.999Z`);
         conditions.push({ createdAt: { $gte: fyStart, $lte: fyEnd } });
       }
   
-      // Month Filter (supports numeric values or case-insensitive month names)
       if (month) {
         let monthNum = Number(month);
         if (isNaN(monthNum)) {
@@ -255,7 +240,6 @@ exports.getTotalSubscriptionRevenue = async (req, res) => {
   
       const matchConditions = conditions.length > 0 ? { $and: conditions } : {};
   
-      // Aggregate transactions to sum the 'amount' field
       const totalRevenue = await Transaction.aggregate([
         { $match: matchConditions },
         {
@@ -285,8 +269,7 @@ exports.getTotalSubscriptionRevenue = async (req, res) => {
 
   exports.getSubscriptionByUserId = async (req, res) => {
     try {
-        // Retrieve userId from token middleware
-        const { userId } = req.user;  // Correct extraction
+        const { userId } = req.user; 
 
         const transactions = await Transaction.find({ userId }).populate('subscriptionPlanId');
 

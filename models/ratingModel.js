@@ -1,7 +1,14 @@
 const mongoose = require("mongoose");
 
 const ratingSchema = new mongoose.Schema({
+
+
   userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "hunter",
+    required: true
+  },
+  providerId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Provider",
     required: true
