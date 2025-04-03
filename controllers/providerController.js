@@ -90,6 +90,7 @@ exports.uploadFile = async (req, res) => {
   }
 };
 
+// plz check
 exports.getProviderByUserLocation = async (req, res) => {
   try {
     const RADIUS_OF_EARTH = 6371;
@@ -166,95 +167,6 @@ exports.getProviderByUserLocation = async (req, res) => {
   }
 };
 
-exports.getJobs = async (req, res) => {
-  try {
-    const {
-      latitude,
-      longitude,
-      radius = 5000,
-      businessType,
-      offset = 0,
-      limit = 10,
-    } = req.body;
-
-    let aggregation = [];
-
-    // Use $geoNear as the first stage for geospatial filtering
-    aggregation.push({
-      $geoNear: {
-        near: {
-          type: "Point",
-          coordinates: [longitude, latitude],
-        },
-        distanceField: "distance",
-        maxDistance: radius * 1000, // Convert km to meters
-        spherical: true,
-      },
-    });
-
-    // Filter by job status 'Pending'
-    aggregation.push({
-      $match: { jobStatus: "Pending" },
-    });
-
-    // Filter by business type if provided
-    if (businessType) {
-      aggregation.push({
-        $match: { businessType },
-      });
-    }
-
-    // Ensure the provider is within the job's visibility radius
-    aggregation.push({
-      $match: {
-        $expr: {
-          $lte: [
-            "$distance",
-            { $multiply: ["$jobLocation.jobRadius", 1000] }, // Convert job's radius from km to meters
-          ],
-        },
-      },
-    });
-
-    // Pagination and total count
-    aggregation.push({
-      $facet: {
-        totalData: [{ $skip: offset }, { $limit: limit }],
-        total: [{ $count: "total" }],
-      },
-    });
-
-    // Reshape response
-    aggregation.push({
-      $project: {
-        data: "$totalData",
-        total: { $arrayElemAt: ["$total.total", 0] },
-      },
-    });
-
-    const result = await jobpostModel.aggregate(aggregation);
-
-    const data = result[0]?.data || [];
-    const total = result[0]?.total || 0;
-    const totalPage = Math.ceil(total / limit);
-    const currentPage = Math.floor(offset / limit) + 1;
-
-    res.status(200).json({
-      status: 200,
-      totalPage,
-      currentPage,
-      limit,
-      offset,
-      data,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-      status: 500,
-    });
-  }
-};
-
 // for guest user
 exports.getServicesForGuestLocation = async (req, res) => {
   try {
@@ -309,137 +221,6 @@ exports.getServicesForGuestLocation = async (req, res) => {
     res.status(200).json({
       status: 200,
       data: result,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-      status: 500,
-    });
-  }
-};
-
-// for guest job post
-exports.getServicesForGuestLocation2 = async (req, res) => {
-  try {
-    const RADIUS_OF_EARTH = 6371;
-    const { latitude, longitude, radius } = req.body;
-
-    let aggregation = [];
-
-    aggregation.push({
-      $addFields: {
-        distance: {
-          $multiply: [
-            RADIUS_OF_EARTH,
-            {
-              $acos: {
-                $add: [
-                  {
-                    $multiply: [
-                      { $sin: { $degreesToRadians: "$address.latitude" } },
-                      { $sin: { $degreesToRadians: latitude } },
-                    ],
-                  },
-                  {
-                    $multiply: [
-                      { $cos: { $degreesToRadians: "$address.latitude" } },
-                      { $cos: { $degreesToRadians: latitude } },
-                      {
-                        $cos: {
-                          $subtract: [
-                            { $degreesToRadians: "$address.longitude" },
-                            { $degreesToRadians: longitude },
-                          ],
-                        },
-                      },
-                    ],
-                  },
-                ],
-              },
-            },
-          ],
-        },
-      },
-    });
-
-    aggregation.push({
-      $match: {
-        distance: { $lte: radius },
-      },
-    });
-
-    const result = await jobpostModel.aggregate(aggregation);
-    res.status(200).json({
-      status: 200,
-      data: result,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-      status: 500,
-    });
-  }
-};
-
-exports.getJobsForGuest = async (req, res) => {
-  try {
-    const {
-      latitude,
-      longitude,
-      radius = 5000,
-      offset = 0,
-      limit = 10,
-    } = req.body; // Default radius: 5km
-
-    if (!latitude || !longitude) {
-      return res.status(400).json({
-        message: "Latitude and Longitude are required.",
-        status: 400,
-      });
-    }
-
-    const aggregation = [
-      {
-        $geoNear: {
-          near: {
-            type: "Point",
-            coordinates: [longitude, latitude], // Longitude first
-          },
-          distanceField: "distance",
-          maxDistance: radius * 1000, // Convert km to meters
-          spherical: true,
-          key: "location.location", // Make sure this field is indexed correctly
-        },
-      },
-      {
-        $facet: {
-          totalData: [{ $skip: offset }, { $limit: limit }],
-          total: [{ $count: "total" }],
-        },
-      },
-      {
-        $project: {
-          data: "$totalData",
-          total: { $arrayElemAt: ["$total.total", 0] },
-        },
-      },
-    ];
-
-    // Execute the aggregation query
-    const result = await jobpostModel.aggregate(aggregation);
-
-    const data = result[0]?.data || [];
-    const total = result[0]?.total || 0;
-    const totalPage = Math.ceil(total / limit);
-    const currentPage = Math.floor(offset / limit) + 1;
-
-    res.status(200).json({
-      status: 200,
-      totalPage,
-      currentPage,
-      limit,
-      offset,
-      data,
     });
   } catch (error) {
     res.status(500).json({
@@ -525,7 +306,6 @@ exports.getNearbyJobs = async (req, res) => {
       .json({ status: 500, message: "Error fetching nearby jobs:" + error });
   }
 };
-
 
 exports.getNearbyJobsForGuest = async (req, res) => {
   try {
@@ -656,9 +436,6 @@ exports.updateProviderById = async (req, res) => {
   }
 };
 
-
-
-
 exports.getProviderProfile = async (req, res) => {
   try {
     const { providerId } = req.params;
@@ -691,7 +468,6 @@ exports.getProviderProfile = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 exports.jobAcceptCount = async (req, res) => {
   try {
@@ -809,8 +585,6 @@ exports.completionRate = async (req, res) => {
   }
 };
 
-
-
 exports.deleteFile = async (req, res) => {
   try {
     const { fileId } = req.params;
@@ -900,36 +674,6 @@ exports.getProvidersByBusinessType = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ status: 500, error: error.message });
-  }
-};
-
-// Update Provider Controller
-exports.updateProvider = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updateData = req.body;
-
-    // Handle uploaded file
-    if (req.file) {
-      updateData.images = req.file.path;
-    }
-
-    // Ensure the provider exists
-    const provider = await providerModel.findById(id);
-    if (!provider) {
-      return res.status(404).json({ message: "Provider not found" });
-    }
-
-    // Update provider data
-    const updatedProvider = await providerModel.findByIdAndUpdate(id, updateData, {
-      new: true,
-      runValidators: true,
-    });
-
-    res.status(200).json({ message: "Provider updated successfully", provider: updatedProvider });
-  } catch (error) {
-    console.error("Update error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 

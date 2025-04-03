@@ -102,17 +102,6 @@ router.post("/changePassword/:id", changePassword);
 router.post("/refreshtoken", refreshToken);
 router.get("/getProviderProfile", verifyUser, getProviderProfile);
 router.get("/getHunterProfile", verifyUser, getHunterProfile);
-router.put(
-  "/update/:id",
-  verifyUser,
-  updateUpload.any(),
-  uploadToS3,
-  updateUserById
-);
-
-
-router.get("/recentSignups", getNewSignups)
-
-
+router.get("/recentSignups", getNewSignups);
 module.exports = router;
    

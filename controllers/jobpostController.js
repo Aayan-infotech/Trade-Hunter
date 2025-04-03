@@ -99,32 +99,6 @@ const createJobPost = async (req, res) => {
   }
 };
 
-
-const getAllJobPosts = async (req, res) => {
-  let page = parseInt(req.query.page) || 1;
-  let limit = parseInt(req.query.limit) || 10;
-  let skip = (page - 1) * limit;
-
-  try {
-    const totalJobs = await JobPost.countDocuments();
-
-    const jobPosts = await JobPost.find().skip(skip).limit(limit);
-
-    return apiResponse.success(res, "Job posts retrieved successfully.", {
-      jobPosts,
-      pagination: {
-        totalJobs,
-        currentPage: page,
-        totalPages: Math.ceil(totalJobs / limit),
-      },
-    });
-  } catch (error) {
-    return apiResponse.error(res, "Internal server error.", 500, {
-      error: error.message,
-    });
-  }
-};
-
 const getJobPostById = async (req, res) => {
   try {
     const jobPost = await JobPost.findById(req.params.id);
@@ -143,29 +117,6 @@ const getJobPostById = async (req, res) => {
   }
 };
 
-const updateJobPost = async (req, res) => {
-  try {
-    const updates = req.body;
-
-    if (req.fileLocations) {
-      updates.images = req.fileLocations;
-    }
-
-    const jobPost = await JobPost.findByIdAndUpdate(req.params.id, updates, {
-      new: true,
-    });
-
-    if (!jobPost) {
-      return apiResponse.error(res, "Job post not found.", 404);
-    }
-
-    return apiResponse.success(res, "Job post updated successfully.", jobPost);
-  } catch (error) {
-    return apiResponse.error(res, "Internal server error.", 500, {
-      error: error.message,
-    });
-  }
-};
 
 const deleteJobPost = async (req, res) => {
   try {
@@ -185,30 +136,6 @@ const deleteJobPost = async (req, res) => {
       jobPost,
       deletedBy: deletingUser,
     });
-  } catch (error) {
-    return apiResponse.error(res, "Internal server error.", 500, {
-      error: error.message,
-    });
-  }
-};
-
-const getAllPendingJobPosts = async (req, res) => {
-  try {
-    const jobPosts = await JobPost.find({ jobStatus: "Pending" });
-
-    if (!jobPosts || jobPosts.length === 0) {
-      return res.status(200).json({
-        success: true,
-        status: 200,
-        message: "Job posts fetched successfully!",
-        data: jobPosts,
-      });
-    }
-    return apiResponse.success(
-      res,
-      "All pending Job posts retrieved successfully.",
-      jobPosts
-    );
   } catch (error) {
     return apiResponse.error(res, "Internal server error.", 500, {
       error: error.message,
@@ -313,8 +240,6 @@ const changeJobStatus = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
-
-
 
 const myAcceptedJobs = async (req, res) => {
   try {
@@ -620,9 +545,6 @@ const jobProviderAccept = async (req, res) => {
   }
 };
 
-
-
-
 const getJobCountByBusinessType = async (req, res) => {
   try {
     const jobCounts = await JobPost.aggregate([
@@ -674,7 +596,6 @@ const getJobCountByBusinessType = async (req, res) => {
     return res.status(500).json({ status: 500, error: error.message });
   }
 };
-
 
 const jobsByBusinessType = async (req, res) => {
   try {
@@ -728,7 +649,6 @@ const jobsByBusinessType = async (req, res) => {
   }
 };
 
-
 const incrementJobAcceptCount = async (req, res) => {
   try {
       const { jobId } = req.params;
@@ -768,28 +688,10 @@ const incrementJobAcceptCount = async (req, res) => {
   }
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 module.exports = {
   createJobPost,
-  getAllJobPosts,
   getJobPostById,
-  updateJobPost,
   deleteJobPost,
-  getAllPendingJobPosts,
   getJobPostByUserId,
   changeJobStatus,
   myAcceptedJobs,

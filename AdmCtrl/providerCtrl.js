@@ -37,8 +37,6 @@ exports.getAllProviders = async (req, res) => {
   }
 };
 
-
-
 // Delete a Provider
 exports.deleteProvider = async (req, res) => {
   try {
@@ -84,8 +82,6 @@ exports.updateProvider = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error", error });
   }
 };
-
-
 
 exports.getAllProvidersGuestMode = async (req, res) => {
   try {

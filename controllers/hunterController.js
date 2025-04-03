@@ -80,6 +80,7 @@ exports.getNearbyServiceProviders = async (req, res) => {
   }
 };
 
+// plz check
 exports.updateHunterById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -113,7 +114,6 @@ exports.updateHunterById = async (req, res) => {
     res.status(500).json({ status: 500, success: false, message: "Server Error", error: error.message, data: [] });
   }
 };
-
 
 exports.updateRadius = async (req, res) => {
   try {
