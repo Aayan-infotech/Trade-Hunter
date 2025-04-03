@@ -74,7 +74,7 @@ const hunterSchema = new mongoose.Schema(
     },
     termsAndCondition: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     accountStatus: {
       type: String,

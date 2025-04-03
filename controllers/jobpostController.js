@@ -69,7 +69,7 @@ const createJobPost = async (req, res) => {
       !requirements
     ) {
       return res.status(400).json({
-        error: "All fields are required",
+        message: "All fields are required",
       });
     }
 
@@ -89,37 +89,11 @@ const createJobPost = async (req, res) => {
     await jobPost.save();
 
     return res.status(201).json({
-      message: "Job post created successfully.",
+      message: "Job post created successfully.",  
       jobPost,
     });
   } catch (error) {
     return res.status(500).json({
-      error: error.message,
-    });
-  }
-};
-
-
-const getAllJobPosts = async (req, res) => {
-  let page = parseInt(req.query.page) || 1;
-  let limit = parseInt(req.query.limit) || 10;
-  let skip = (page - 1) * limit;
-
-  try {
-    const totalJobs = await JobPost.countDocuments();
-
-    const jobPosts = await JobPost.find().skip(skip).limit(limit);
-
-    return apiResponse.success(res, "Job posts retrieved successfully.", {
-      jobPosts,
-      pagination: {
-        totalJobs,
-        currentPage: page,
-        totalPages: Math.ceil(totalJobs / limit),
-      },
-    });
-  } catch (error) {
-    return apiResponse.error(res, "Internal server error.", 500, {
       error: error.message,
     });
   }
@@ -143,29 +117,6 @@ const getJobPostById = async (req, res) => {
   }
 };
 
-const updateJobPost = async (req, res) => {
-  try {
-    const updates = req.body;
-
-    if (req.fileLocations) {
-      updates.images = req.fileLocations;
-    }
-
-    const jobPost = await JobPost.findByIdAndUpdate(req.params.id, updates, {
-      new: true,
-    });
-
-    if (!jobPost) {
-      return apiResponse.error(res, "Job post not found.", 404);
-    }
-
-    return apiResponse.success(res, "Job post updated successfully.", jobPost);
-  } catch (error) {
-    return apiResponse.error(res, "Internal server error.", 500, {
-      error: error.message,
-    });
-  }
-};
 
 const deleteJobPost = async (req, res) => {
   try {
@@ -192,50 +143,19 @@ const deleteJobPost = async (req, res) => {
   }
 };
 
-const getAllPendingJobPosts = async (req, res) => {
-  try {
-    const jobPosts = await JobPost.find({ jobStatus: "Pending" });
-
-    if (!jobPosts || jobPosts.length === 0) {
-      return res.status(200).json({
-        success: true,
-        status: 200,
-        message: "Job posts fetched successfully!",
-        data: jobPosts,
-      });
-    }
-    return apiResponse.success(
-      res,
-      "All pending Job posts retrieved successfully.",
-      jobPosts
-    );
-  } catch (error) {
-    return apiResponse.error(res, "Internal server error.", 500, {
-      error: error.message,
-    });
-  }
-};
-
 const getJobPostByUserId = async (req, res) => {
-  const userId = req.user.userId;
-
-  let page = parseInt(req.query.page) || 1;
-  let limit = parseInt(req.query.limit) || 10;
-  let skip = (page - 1) * limit;
-
   try {
+    const userId = req.user.userId;
+
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 10;
+    let skip = (page - 1) * limit;
+
     const totalJobs = await JobPost.countDocuments({ user: userId });
     const jobPosts = await JobPost.find({ user: userId })
       .skip(skip)
       .limit(limit);
-    if (!jobPosts || jobPosts.length === 0) {
-      return res.status(200).json({
-        success: true,
-        status: 200,
-        message: "Job posts fetched successfully!",
-        data: jobPosts,
-      });
-    }
+
     return res.status(200).json({
       success: true,
       status: 200,
@@ -248,67 +168,67 @@ const getJobPostByUserId = async (req, res) => {
       },
     });
   } catch (error) {
-    return apiResponse.error(res, "Internal server error.", 500, {
+    console.error("Error in getJobPostByUserId:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error.",
       error: error.message,
     });
   }
 };
 
+
 const changeJobStatus = async (req, res) => {
   try {
     const jobId = req.params.jobId;
-    const { jobStatus, providerId } = req.body;
+    const { providerId, jobStatus } = req.body; 
 
-    // console.log("Job ID:", jobId);
-    // console.log("Job Status:", jobStatus);
-    // console.log("Provider ID:", providerId);
-
-    // Validate if jobId is a valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(jobId)) {
       return res.status(400).json({ error: "Invalid Job ID format" });
     }
 
-    // Validate providerId
-    if (!mongoose.Types.ObjectId.isValid(providerId)) {
-      return res.status(400).json({ error: "Invalid Provider ID format" });
-    }
-
-    const provider = await Provider.findOne({ _id: providerId, isDeleted: false });
-    if (!provider) {
-      return res.status(404).json({
-        success: false,
-        status: 404,
-        message: "Provider not found!",
-      });
-    }
-
-    const allowedStatuses = ["Pending", "Assigned", "InProgress", "Completed"];
-
-    // Validate jobStatus
-    if (!allowedStatuses.includes(jobStatus)) {
-      return res.status(400).json({
-        error: "Invalid job status. Allowed values: Pending, Assigned, InProgress, Completed",
-      });
-    }
-
-    // Find job post by ID
     const jobPost = await JobPost.findById(jobId);
     if (!jobPost) {
       return res.status(404).json({ error: "Job post not found" });
     }
 
-    // Update job status
-    jobPost.jobStatus = jobStatus;
-    await jobPost.save();
+    if (jobPost.jobStatus === "Pending") {
+      if (!providerId || !mongoose.Types.ObjectId.isValid(providerId)) {
+        return res
+          .status(400)
+          .json({ error: "A valid Provider ID is required when job status is Pending" });
+      }
 
-    // console.log("Updated Job:", jobPost);
+      const provider = await Provider.findOne({ _id: providerId, isDeleted: false });
+      if (!provider) {
+        return res.status(404).json({
+          success: false,
+          status: 404,
+          message: "Provider not found!",
+        });
+      }
+      jobPost.jobStatus = "Assigned";
+      jobPost.provider = provider._id;
+      await jobPost.save();
 
-    // If job is assigned, store jobId in provider's assignedJobs array
-    if (jobStatus === "Assigned") {
       if (!provider.assignedJobs.includes(jobId)) {
         provider.assignedJobs.push(jobId);
         await provider.save();
       }
+    } else if (jobPost.jobStatus === "Assigned") {
+      jobPost.jobStatus = "Completed";
+      await jobPost.save();
+    } else {
+      if (jobStatus) {
+        const allowedStatuses = ["Pending", "Assigned", "InProgress", "Completed"];
+        if (!allowedStatuses.includes(jobStatus)) {
+          return res.status(400).json({
+            error: "Invalid job status. Allowed values: Pending, Assigned, InProgress, Completed",
+          });
+        }
+        jobPost.jobStatus = jobStatus;
+      }
+      await jobPost.save();
     }
 
     return res.status(200).json({
@@ -317,7 +237,6 @@ const changeJobStatus = async (req, res) => {
       jobPost,
     });
   } catch (error) {
-    // console.error("Error:", error.message);
     return res.status(500).json({ error: error.message });
   }
 };
@@ -327,7 +246,6 @@ const myAcceptedJobs = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
 
-    // Fetch only required fields from the Provider model
     const user = await Provider.findById(req.user.userId)
       .select("myServices")
       .lean();
@@ -336,10 +254,8 @@ const myAcceptedJobs = async (req, res) => {
       return res.status(404).json({ message: "No jobs found" });
     }
 
-    // Extract unique job IDs
     const jobIds = [...new Set(user.myServices.map((s) => s.toString()))];
-
-    // Fetch total job count and paginated jobs in parallel
+    
     const [totalJobs, jobs] = await Promise.all([
       JobPost.countDocuments({ _id: { $in: jobIds } }),
       JobPost.find({ _id: { $in: jobIds } })
@@ -556,8 +472,8 @@ const getTopDemandedCities = async (req, res) => {
 };
 const jobProviderAccept = async (req, res) => {
   try {
-    const { jobId } = req.params;        
-    const { providerId } = req.body; 
+    const { jobId } = req.params;
+    const { providerId } = req.body;
 
     if (!providerId) {
       return res.status(400).json({ message: "Provider ID is required." });
@@ -565,13 +481,16 @@ const jobProviderAccept = async (req, res) => {
 
     const hunterId = req.user.userId;
 
+    // Find the job post and verify ownership and status
     const jobPost = await JobPost.findById(jobId);
     if (!jobPost) {
       return res.status(404).json({ message: "Job post not found." });
     }
 
     if (jobPost.user.toString() !== hunterId) {
-      return res.status(403).json({ message: "Unauthorized: You are not the owner of this job post." });
+      return res
+        .status(403)
+        .json({ message: "Unauthorized: You are not the owner of this job post." });
     }
 
     if (jobPost.jobStatus !== "Pending") {
@@ -588,10 +507,14 @@ const jobProviderAccept = async (req, res) => {
       return res.status(404).json({ message: "Hunter not found." });
     }
 
-    jobPost.provider = provider._id;
-    jobPost.jobStatus = "Assigned";
-    await jobPost.save();
+    // Update the job post with the provider id and change the status atomically using $set
+    const updatedJobPost = await JobPost.findByIdAndUpdate(
+      jobId,
+      { $set: { provider: provider._id, jobStatus: "Assigned" } },
+      { new: true, runValidators: true }
+    );
 
+    // Update provider's assignedJobs if not already added
     if (!provider.assignedJobs) {
       provider.assignedJobs = [];
     }
@@ -603,7 +526,7 @@ const jobProviderAccept = async (req, res) => {
     return res.status(200).json({
       message: "Provider accepted successfully.",
       data: {
-        job: jobPost,
+        job: updatedJobPost,
         hunter: {
           _id: hunter._id,
           name: hunter.name,
@@ -613,7 +536,7 @@ const jobProviderAccept = async (req, res) => {
           _id: provider._id,
           contactName: provider.contactName,
           email: provider.email,
-          jobsAssigned: provider.assignedJobs
+          jobsAssigned: provider.assignedJobs,
         },
       },
     });
@@ -621,7 +544,6 @@ const jobProviderAccept = async (req, res) => {
     return res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
-
 
 const getJobCountByBusinessType = async (req, res) => {
   try {
@@ -675,7 +597,6 @@ const getJobCountByBusinessType = async (req, res) => {
   }
 };
 
-
 const jobsByBusinessType = async (req, res) => {
   try {
     const { lat, lng, businessType } = req.query;
@@ -728,24 +649,49 @@ const jobsByBusinessType = async (req, res) => {
   }
 };
 
+const incrementJobAcceptCount = async (req, res) => {
+  try {
+      const { jobId } = req.params;
+      const { providerId } = req.body; 
 
+      const job = await JobPost.findById(jobId);
+      if (!job) {
+          return res.status(404).json({ status: 404, message: "Job not found" });
+      }
 
+      if (!Array.isArray(job.jobAcceptCount)) {
+          job.jobAcceptCount = [];
+          job.markModified('jobAcceptCount');
+      }
 
+      if (job.jobAcceptCount.some(item => item.providerId && item.providerId.equals(providerId))) {
+          return res.status(400).json({ 
+              status: 400, 
+              message: "you had already applied for this job please go to chat section" 
+          });
+      }
 
+      if (job.jobAcceptCount.length >= 4) {
+          return res.status(400).json({ status: 400, message: "Job accept limit reached (4)" });
+      }
 
+      job.jobAcceptCount.push({ providerId });
+      await job.save();
 
-
-
-
-
+      res.status(200).json({ 
+          status: 200, 
+          message: "Job accept count incremented", 
+          jobAcceptCount: job.jobAcceptCount 
+      });
+  } catch (error) {
+      res.status(500).json({ status: 500, message: "Internal server error", error: error.message });
+  }
+};
 
 module.exports = {
   createJobPost,
-  getAllJobPosts,
   getJobPostById,
-  updateJobPost,
   deleteJobPost,
-  getAllPendingJobPosts,
   getJobPostByUserId,
   changeJobStatus,
   myAcceptedJobs,
@@ -756,5 +702,6 @@ module.exports = {
   jobProviderAccept,
   businessTypes,
   jobsByBusinessType,
-  deleteJobPost
+  deleteJobPost,
+  incrementJobAcceptCount,
 };

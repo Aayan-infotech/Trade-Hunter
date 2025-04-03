@@ -3,14 +3,15 @@ const multer = require("multer");
 const path = require("path");
 const providerModel = require("../models/providerModel");
 const jobpostModel = require("../models/jobpostModel");
+const providerPhotosModel = require("../models/providerPhotos");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    console.log("Destination callback called. File received:", file);
+    // console.log("Destination callback called. File received:", file);
     cb(null, "uploads/"); 
   },
   filename: function (req, file, cb) {
-    console.log("Filename callback called. File received:", file);
+    // console.log("Filename callback called. File received:", file);
     if (!file || !file.originalname) {
       return cb(new Error("No file provided or file is undefined."));
     }
@@ -22,7 +23,7 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 1024 * 1024 * 5 },
   fileFilter: function (req, file, cb) {
-    console.log("File filter invoked. File received:", file);
+    // console.log("File filter invoked. File received:", file);
     if (!file) {
       return cb(new Error("No file provided."));
     }
@@ -38,9 +39,9 @@ const upload = multer({
 }).array("file", 10);
 
 exports.uploadFile = async (req, res) => {
-  console.log("Request params:", req.params);
-  console.log("Request body:", req.body);
-  console.log("Request files:", req.files);
+  // console.log("Request params:", req.params);
+  // console.log("Request body:", req.body);
+  // console.log("Request files:", req.files);
 
   const { description } = req.body;
   const { providerId } = req.params;
@@ -51,7 +52,7 @@ exports.uploadFile = async (req, res) => {
 
   try {
     const provider = await providerModel.findById(providerId).exec();
-    console.log("Provider fetched:", provider);
+    // console.log("Provider fetched:", provider);
     if (!provider) {
       return res.status(404).json({ status: 404, message: "Provider not found." });
     }
@@ -89,9 +90,7 @@ exports.uploadFile = async (req, res) => {
   }
 };
 
-
-
-
+// plz check
 exports.getProviderByUserLocation = async (req, res) => {
   try {
     const RADIUS_OF_EARTH = 6371;
@@ -168,95 +167,6 @@ exports.getProviderByUserLocation = async (req, res) => {
   }
 };
 
-exports.getJobs = async (req, res) => {
-  try {
-    const {
-      latitude,
-      longitude,
-      radius = 5000,
-      businessType,
-      offset = 0,
-      limit = 10,
-    } = req.body;
-
-    let aggregation = [];
-
-    // Use $geoNear as the first stage for geospatial filtering
-    aggregation.push({
-      $geoNear: {
-        near: {
-          type: "Point",
-          coordinates: [longitude, latitude],
-        },
-        distanceField: "distance",
-        maxDistance: radius * 1000, // Convert km to meters
-        spherical: true,
-      },
-    });
-
-    // Filter by job status 'Pending'
-    aggregation.push({
-      $match: { jobStatus: "Pending" },
-    });
-
-    // Filter by business type if provided
-    if (businessType) {
-      aggregation.push({
-        $match: { businessType },
-      });
-    }
-
-    // Ensure the provider is within the job's visibility radius
-    aggregation.push({
-      $match: {
-        $expr: {
-          $lte: [
-            "$distance",
-            { $multiply: ["$jobLocation.jobRadius", 1000] }, // Convert job's radius from km to meters
-          ],
-        },
-      },
-    });
-
-    // Pagination and total count
-    aggregation.push({
-      $facet: {
-        totalData: [{ $skip: offset }, { $limit: limit }],
-        total: [{ $count: "total" }],
-      },
-    });
-
-    // Reshape response
-    aggregation.push({
-      $project: {
-        data: "$totalData",
-        total: { $arrayElemAt: ["$total.total", 0] },
-      },
-    });
-
-    const result = await jobpostModel.aggregate(aggregation);
-
-    const data = result[0]?.data || [];
-    const total = result[0]?.total || 0;
-    const totalPage = Math.ceil(total / limit);
-    const currentPage = Math.floor(offset / limit) + 1;
-
-    res.status(200).json({
-      status: 200,
-      totalPage,
-      currentPage,
-      limit,
-      offset,
-      data,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-      status: 500,
-    });
-  }
-};
-
 // for guest user
 exports.getServicesForGuestLocation = async (req, res) => {
   try {
@@ -320,137 +230,6 @@ exports.getServicesForGuestLocation = async (req, res) => {
   }
 };
 
-// for guest job post
-exports.getServicesForGuestLocation2 = async (req, res) => {
-  try {
-    const RADIUS_OF_EARTH = 6371;
-    const { latitude, longitude, radius } = req.body;
-
-    let aggregation = [];
-
-    aggregation.push({
-      $addFields: {
-        distance: {
-          $multiply: [
-            RADIUS_OF_EARTH,
-            {
-              $acos: {
-                $add: [
-                  {
-                    $multiply: [
-                      { $sin: { $degreesToRadians: "$address.latitude" } },
-                      { $sin: { $degreesToRadians: latitude } },
-                    ],
-                  },
-                  {
-                    $multiply: [
-                      { $cos: { $degreesToRadians: "$address.latitude" } },
-                      { $cos: { $degreesToRadians: latitude } },
-                      {
-                        $cos: {
-                          $subtract: [
-                            { $degreesToRadians: "$address.longitude" },
-                            { $degreesToRadians: longitude },
-                          ],
-                        },
-                      },
-                    ],
-                  },
-                ],
-              },
-            },
-          ],
-        },
-      },
-    });
-
-    aggregation.push({
-      $match: {
-        distance: { $lte: radius },
-      },
-    });
-
-    const result = await jobpostModel.aggregate(aggregation);
-    res.status(200).json({
-      status: 200,
-      data: result,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-      status: 500,
-    });
-  }
-};
-
-exports.getJobsForGuest = async (req, res) => {
-  try {
-    const {
-      latitude,
-      longitude,
-      radius = 5000,
-      offset = 0,
-      limit = 10,
-    } = req.body; // Default radius: 5km
-
-    if (!latitude || !longitude) {
-      return res.status(400).json({
-        message: "Latitude and Longitude are required.",
-        status: 400,
-      });
-    }
-
-    const aggregation = [
-      {
-        $geoNear: {
-          near: {
-            type: "Point",
-            coordinates: [longitude, latitude], // Longitude first
-          },
-          distanceField: "distance",
-          maxDistance: radius * 1000, // Convert km to meters
-          spherical: true,
-          key: "location.location", // Make sure this field is indexed correctly
-        },
-      },
-      {
-        $facet: {
-          totalData: [{ $skip: offset }, { $limit: limit }],
-          total: [{ $count: "total" }],
-        },
-      },
-      {
-        $project: {
-          data: "$totalData",
-          total: { $arrayElemAt: ["$total.total", 0] },
-        },
-      },
-    ];
-
-    // Execute the aggregation query
-    const result = await jobpostModel.aggregate(aggregation);
-
-    const data = result[0]?.data || [];
-    const total = result[0]?.total || 0;
-    const totalPage = Math.ceil(total / limit);
-    const currentPage = Math.floor(offset / limit) + 1;
-
-    res.status(200).json({
-      status: 200,
-      totalPage,
-      currentPage,
-      limit,
-      offset,
-      data,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: error.message,
-      status: 500,
-    });
-  }
-};
-
 exports.getNearbyJobs = async (req, res) => {
   try {
     const {
@@ -469,37 +248,45 @@ exports.getNearbyJobs = async (req, res) => {
         .json({ status: 400, message: "Missing required fields" });
     }
 
+    let businessTypeCondition;
+    if (Array.isArray(businessType)) {
+      businessTypeCondition = {
+        $in: businessType.map((bt) => new RegExp(`^${bt}$`, "i")),
+      };
+    } else {
+      businessTypeCondition = new RegExp(`^${businessType}$`, "i");
+    }
+
     const jobs = await jobpostModel.aggregate([
       {
         $geoNear: {
           near: { type: "Point", coordinates: [longitude, latitude] },
           distanceField: "distance",
-          maxDistance: radius * 1000, // Convert km to meters
+          maxDistance: radius * 1000, 
           spherical: true,
           key: "jobLocation.location",
         },
       },
       {
         $match: {
-          businessType: { $regex: new RegExp(`^${businessType}$`, "i") }, // Case-insensitive match
+          businessType: businessTypeCondition,
           jobStatus: "Pending",
-          ...(services ? { services } : {}), // Match services if provided
+          ...(services ? { services } : {}),
         },
       },
       {
-        $sort: { distance: 1 }, // Sort by closest jobs first
+        $sort: { distance: 1 }, 
       },
       {
-        $skip: (page - 1) * limit, // Skip previous pages
+        $skip: (page - 1) * limit, 
       },
       {
-        $limit: limit, // Limit results per page
+        $limit: limit, 
       },
     ]);
 
-    // Get total job count for pagination metadata
     const totalJobs = await jobpostModel.countDocuments({
-      businessType: { $regex: new RegExp(`^${businessType}$`, "i") },
+      businessType: businessTypeCondition,
       jobStatus: "Pending",
     });
 
@@ -577,7 +364,6 @@ exports.getNearbyJobsForGuest = async (req, res) => {
   }
 };
 
-
 exports.getJobByIdForGuest = async (req, res) => {
   try {
     const { jobId } = req.params;
@@ -598,26 +384,54 @@ exports.getJobByIdForGuest = async (req, res) => {
     return res.status(500).json({ status: 500, message: "Error fetching job: " + error });
   }
 };
+
 exports.updateProviderById = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    let updateData = { ...req.body };
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid ID format" });
     }
 
-    const updatedProvider = await providerModel.findByIdAndUpdate(id, updateData, {
-      new: true,
-      runValidators: true,
-    });
+    if (updateData.addressLine !== undefined) {
+      updateData["address.addressLine"] = updateData.addressLine;
+      delete updateData.addressLine;
+    }
+    if (updateData.latitude !== undefined && updateData.longitude !== undefined) {
+      updateData["address.location.coordinates"] = [
+        Number(updateData.longitude), 
+        Number(updateData.latitude)
+      ];
+      updateData["address.location.type"] = 'Point';
+      delete updateData.latitude;
+      delete updateData.longitude;
+    }
+    if (updateData.radius !== undefined) {
+      updateData["address.radius"] = Number(updateData.radius);
+      delete updateData.radius;
+    }
+
+    if (req.fileLocations && req.fileLocations.length > 0) {
+      updateData.images = req.fileLocations[0];
+    }
+
+    const updatedProvider = await providerModel.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
 
     if (!updatedProvider) {
       return res.status(404).json({ message: "Provider not found" });
     }
 
-    res.status(200).json({ message: "Provider updated successfully", updatedProvider });
+    res.status(200).json({
+      message: "Provider updated successfully",
+      updatedProvider,
+    });
   } catch (error) {
+    console.error("Update Error:", error);
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
@@ -625,27 +439,35 @@ exports.updateProviderById = async (req, res) => {
 exports.getProviderProfile = async (req, res) => {
   try {
     const { providerId } = req.params;
-    // Populate assignedJobs and then populate the 'user' field inside each job
+
+    // Fetch provider details and populate assignedJobs with user details
     const provider = await providerModel.findById(providerId)
       .populate({
         path: "assignedJobs",
         populate: {
           path: "user",
-          select: "name email" 
+          select: "name email"
         }
       });
+
+    // Fetch work gallery with correct query
+    const workgallery = await providerPhotosModel.findOne({ userId: providerId }).select("files");
 
     if (!provider) {
       return res.status(404).json({ success: false, message: "Provider not found" });
     }
 
-    res.status(200).json({ success: true, message: "Provider fetched successfully", data: provider });
+    res.status(200).json({ 
+      success: true, 
+      message: "Provider fetched successfully", 
+      data: provider,
+      workgallery
+    });
   } catch (error) {
     console.error("Error fetching provider profile:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
 
 exports.jobAcceptCount = async (req, res) => {
   try {
@@ -673,10 +495,10 @@ exports.jobAcceptCount = async (req, res) => {
     return res.status(200).json({
       status: 200,
       message: "Job accept count incremented successfully!",
-      jobAcceptCount : updatedProvider.jobAcceptCount,
+      jobAcceptCount: updatedProvider.jobAcceptCount,
     });
   } catch (error) {
-    console.error("Error in incrementJobAcceptCount:", error);
+    console.error("Error in jobAcceptCount:", error);
     return res.status(500).json({ 
       status: 500, 
       message: "Internal server error", 
@@ -685,10 +507,10 @@ exports.jobAcceptCount = async (req, res) => {
   }
 };
 
+// Increment job complete count for a provider
 exports.jobCompleteCount = async (req, res) => {
   try {
     const { providerId } = req.params;
-
     if (!mongoose.Types.ObjectId.isValid(providerId)) {
       return res.status(400).json({ 
         status: 400, 
@@ -712,10 +534,10 @@ exports.jobCompleteCount = async (req, res) => {
     return res.status(200).json({
       status: 200,
       message: "Job complete count incremented successfully!",
-      jobCompleteCount : updatedProvider.jobCompleteCount,
+      jobCompleteCount: updatedProvider.jobCompleteCount,
     });
   } catch (error) {
-    console.error("Error in incrementJobCompleteCount:", error);
+    console.error("Error in jobCompleteCount:", error);
     return res.status(500).json({ 
       status: 500, 
       message: "Internal server error", 
@@ -723,6 +545,46 @@ exports.jobCompleteCount = async (req, res) => {
     });
   }
 };
+
+exports.completionRate = async (req, res) => {
+  try {
+    const { providerId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(providerId)) {
+      return res.status(400).json({ 
+        status: 400, 
+        message: "Invalid provider id." 
+      });
+    }
+
+    const provider = await providerModel.findById(providerId);
+    if (!provider) {
+      return res.status(404).json({ 
+        status: 404, 
+        message: "Provider not found." 
+      });
+    }
+
+    const { jobAcceptCount, jobCompleteCount } = provider;
+    // Prevent division by zero; if no accepted jobs, completion rate is 0%
+    const completionRate = jobAcceptCount > 0 
+      ? (jobCompleteCount / jobAcceptCount) * 100 
+      : 0;
+
+    return res.status(200).json({
+      status: 200,
+      message: "Completion rate computed successfully!",
+      completionRate: completionRate
+    });
+  } catch (error) {
+    console.error("Error computing completion rate:", error);
+    return res.status(500).json({ 
+      status: 500, 
+      message: "Internal server error", 
+      error: error.message 
+    });
+  }
+};
+
 exports.deleteFile = async (req, res) => {
   try {
     const { fileId } = req.params;
@@ -815,37 +677,76 @@ exports.getProvidersByBusinessType = async (req, res) => {
   }
 };
 
-
-// upadte 
-
-
-
-// Update Provider Controller
-exports.updateProvider = async (req, res) => {
+// Create or Update "about" field
+exports.upsertAbout = async (req, res) => {
   try {
+    const { about } = req.body;
     const { id } = req.params;
-    const updateData = req.body;
 
-    // Handle uploaded file
-    if (req.file) {
-      updateData.images = req.file.path;
+    if (!about) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "About field is required",
+
+      });
     }
 
-    // Ensure the provider exists
-    const provider = await providerModel.findById(id);
+    const provider = await providerModel.findByIdAndUpdate(
+      id,
+      { about },
+      { new: true, upsert: false, select: "about" }
+    );
+
     if (!provider) {
-      return res.status(404).json({ message: "Provider not found" });
+      return res.status(404).json({
+        status: 404,
+        success: false,
+        message: "Provider not found",
+      });
     }
 
-    // Update provider data
-    const updatedProvider = await providerModel.findByIdAndUpdate(id, updateData, {
-      new: true,
-      runValidators: true,
+    res.status(200).json({
+      status: 200,
+      success: true,
+      message: "About updated successfully",
+      data: [provider],
     });
-
-    res.status(200).json({ message: "Provider updated successfully", provider: updatedProvider });
   } catch (error) {
-    console.error("Update error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Error updating about",
+      error: error.message,
+    });
+  }
+};
+
+// Get "about" field
+exports.getAbout = async (req, res) => {
+  try {
+    const provider = await providerModel.findById(req.params.id, "about");
+
+    if (!provider) {
+      return res.status(404).json({
+        status: 404,
+        success: false,
+        message: "Provider not found",
+      });
+    }
+
+    res.status(200).json({
+      status: 200,
+      success: true,
+      message: "About fetched successfully",
+      data: [provider],
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Error fetching about",
+      error: error.message,
+    });
   }
 };

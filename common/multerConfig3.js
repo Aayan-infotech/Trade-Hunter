@@ -17,7 +17,7 @@ const secretsManagerClient = new SecretsManagerClient({
 
 const getAwsCredentials = async () => {
   try {
-    const command = new GetSecretValueCommand({ SecretId: "aws-7jan" });
+    const command = new GetSecretValueCommand({ SecretId: "aws-secret" });
     const data = await secretsManagerClient.send(command);
 
     if (data.SecretString) {
@@ -89,6 +89,8 @@ const uploadToS3 = multer({
       cb(new Error("Error: Only images or PDF files are allowed!"));
     }
   },
-}).array("file", 10);
+}).any();
 
 module.exports = { uploadToS3 };
+
+

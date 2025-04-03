@@ -12,7 +12,7 @@ const secretsManagerClient = new SecretsManagerClient({
 
 const getAwsCredentials = async () => {
   try {
-    const command = new GetSecretValueCommand({ SecretId: "aayan-config" });
+    const command = new GetSecretValueCommand({ SecretId: "aws-secret" });
     const data = await secretsManagerClient.send(command);
 
     if (data.SecretString) {
@@ -45,6 +45,12 @@ const getS3Client = async () => {
 
 const uploadToS3 = async (req, res, next) => {
   const s3 = await getS3Client();
+
+  if (!req.file) {
+    console.log("No file uploaded, skipping S3 upload.");
+    return next();
+  }
+
 
   try {
     console.log(req.file)

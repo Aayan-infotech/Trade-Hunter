@@ -2,13 +2,14 @@ const Provider = require("../models/providerModel");
 
 exports.getAllProviders = async (req, res) => {
   try {
-    const { limit = 10, page = 1, search = "", userStatus, isGuestMode = false } = req.query;
+    const { search = "", userStatus } = req.query;
 
     let query = {
       isGuestMode: false,
       $or: [
-        { contactName: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
+        { contactName: { $regex: `.*${search}.*`, $options: "i" } },
+        { email: { $regex: `.*${search}.*`, $options: "i" } },
+        { "address.addressLine": { $regex: `.*${search}.*`, $options: "i" } },
       ],
     };
 
@@ -17,29 +18,24 @@ exports.getAllProviders = async (req, res) => {
       query.userStatus = userStatus;
     }
 
-    // Find providers and populate the assignedJobs field with job details
+    // Fetch all providers without pagination
     const providers = await Provider.find(query)
-      .populate("assignedJobs") // This will replace the ObjectIds in assignedJobs with full JobPost details
-      .skip((page - 1) * parseInt(limit))
-      .limit(parseInt(limit));
+      .sort({ createdAt: -1 })
+      .populate("assignedJobs");
 
-    const totalProviders = await Provider.countDocuments(query);
+    const totalProviders = providers.length;
 
     res.status(200).json({
       success: true,
       data: providers,
       metadata: {
         total: totalProviders,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(totalProviders / limit),
       },
     });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error", error });
   }
 };
-
 
 // Delete a Provider
 exports.deleteProvider = async (req, res) => {
@@ -63,9 +59,14 @@ exports.updateProvider = async (req, res) => {
     const { id } = req.params;
     const updatedData = req.body;
 
+    if (updatedData.businessType) {
+      updatedData.$set = { businessType: updatedData.businessType };
+      delete updatedData.businessType;
+    }
+
     const updatedProvider = await Provider.findByIdAndUpdate(id, updatedData, {
-      new: true, // Return the updated document
-      runValidators: true, // Ensure the updated data follows schema validations
+      new: true,
+      runValidators: true,
     });
 
     if (!updatedProvider) {
@@ -82,7 +83,6 @@ exports.updateProvider = async (req, res) => {
   }
 };
 
-
 exports.getAllProvidersGuestMode = async (req, res) => {
   try {
     const { limit = 10, page = 1, search = "", userStatus, isGuestMode = false } = req.query;
@@ -90,8 +90,9 @@ exports.getAllProvidersGuestMode = async (req, res) => {
     let query = {
       isGuestMode: true,
       $or: [
-        { contactName: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
+        { contactName: { $regex: `.*${search}.*`, $options: "i" } },
+        { email: { $regex: `.*${search}.*`, $options: "i" } },
+        { "address.addressLine": { $regex: `.*${search}.*`, $options: "i" } },
       ],
     };
 
@@ -100,9 +101,11 @@ exports.getAllProvidersGuestMode = async (req, res) => {
       query.userStatus = userStatus;
     }
 
+    // Apply sorting first, then pagination
     const providers = await Provider.find(query)
+      .sort({ createdAt: -1 }) // Sort by creation date descending (latest first)
       .skip((page - 1) * parseInt(limit))
-      .limit(parseInt(limit))
+      .limit(parseInt(limit));
 
     const totalProviders = await Provider.countDocuments(query);
 
@@ -116,13 +119,6 @@ exports.getAllProvidersGuestMode = async (req, res) => {
         totalPages: Math.ceil(totalProviders / limit),
       },
     });
-
-//provider cotroller 
-
-
-
-
-
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error", error });
   }

@@ -1,6 +1,6 @@
 
 const mongoose = require('mongoose');
-const User = require("../models/hunterModel"); // Ensure correct path
+const User = require("../models/hunterModel"); 
 const Provider = require("../models/providerModel");
 
 exports.getTotalCount = async (req, res) => {

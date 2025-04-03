@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const User = require("../models/hunterModel");
-const JobPost = require('../models/jobpostModel');  // Ensure correct path
-const Provider = require("../models/providerModel");  // Ensure correct path
+const JobPost = require('../models/jobpostModel');  
+const Provider = require("../models/providerModel");  
 // Get all users
 exports.getAllUsers = async (req, res) => {
   try {
@@ -12,7 +12,7 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// Get user by ID
+// Get user by ID`
 exports.getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -54,50 +54,6 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
-
-// exports.getUsersByType = async (req, res) => {
-//   try {
-//     const { hunte } = req.params; // Extract userType from params
-//     const limit = parseInt(req.params.limit) || 10; // Extract limit from params
-//     const page = parseInt(req.query.page) || 1; // Extract page number from query
-//     const search = req.query.search || ""; // Extract search query from query
-
-//     // Validate userType
-//     const userType = hunte.toLowerCase();
-//     if (!["provider", "hunter"].includes(userType)) {
-//       return res.status(400).json({ message: "Invalid or missing userType" });
-//     }
-
-//     // Construct query with search
-//     const query = {
-//       userType,
-//       $or: [
-//         { name: { $regex: search, $options: "i" } }, // Search by name (case-insensitive)
-//         { email: { $regex: search, $options: "i" } }, // Search by email (case-insensitive)
-//       ],
-//     };
-
-//     // Fetch users with pagination
-//     const users = await User.find(query)
-//       .skip((page - 1) * limit)
-//       .limit(limit)
-//       .select("name email phoneNo userType userStatus emailVerified documentStatus subscriptionStatus");
-
-//     // Count total users for pagination metadata
-//     const totalUsers = await User.countDocuments(query);
-
-//     res.status(200).json({
-//       page,
-//       limit,
-//       totalUsers,
-//       totalPages: Math.ceil(totalUsers / limit),
-//       users,
-//     });
-//   } catch (error) {
-//     res.status(500).json({ message: "Error retrieving users", error });
-//   }
-// };
-
 exports.getUsersByType = async (req, res) => {
   try {
     const { type } = req.params; // Extract user type from params
@@ -110,14 +66,14 @@ exports.getUsersByType = async (req, res) => {
       return res.status(400).json({ message: "User type is required" });
     }
 
-    const lowerUserType = type.toLowerCase(); // Convert type to lowercase
+    const lowerUserType = type.toLowerCase(); 
 
-    // Construct query with search filters
     let query = {
       userType: lowerUserType,
       $or: [
-        { name: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
+        { name: { $regex: `.*${search}.*`, $options: "i" } },
+        { email: { $regex: `.*${search}.*`, $options: "i" } },
+        { "address.addressLine": { $regex: `.*${search}.*`, $options: "i" } },
       ],
     };
 
@@ -126,12 +82,13 @@ exports.getUsersByType = async (req, res) => {
       query.userStatus = userStatusFilter;
     }
 
-    console.log("Query:", query);
+    // console.log("Query:", query);
 
-    // Fetch users with pagination
+    // Apply sorting first, then pagination (skip & limit)
     const users = await User.find(query)
+      .sort({ createdAt: -1 }) // Sort by creation date descending (latest first)
       .skip((page - 1) * limit)
-      .limit(limit)
+      .limit(limit);
 
     const totalUsers = await User.countDocuments(query);
 
@@ -147,32 +104,28 @@ exports.getUsersByType = async (req, res) => {
     res.status(500).json({ message: "Error retrieving users", error });
   }
 };
-;
-
-
 
 // GET Job Posts By User Id
 exports.getJobPostsByUser = async (req, res) => {
   try {
     const userId = req.params.userId;
 
-    // Check if userId is valid ObjectId
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ message: 'Invalid User ID' });
+      return res.status(400).json({ message: "Invalid User ID" });
     }
 
-    // Fetch job posts by user (ensure type matches database)
-    const jobPosts = await JobPost.find({ user: userId }); // No conversion if user is stored as a string
-    // If user is stored as ObjectId, uncomment the following line:
-    // const jobPosts = await JobPost.find({ user: mongoose.Types.ObjectId(userId) });
+    const jobPosts = await JobPost.find({ user: userId })
+      .populate({
+        path: "provider",
+        select: "contactName email"
+      });
 
     if (!jobPosts || jobPosts.length === 0) {
-      return res.status(404).json({ message: 'No job posts found for this user' });
+      return res.status(404).json({ message: "No job posts found for this user" });
     }
 
-    // Send matching job posts
     return res.status(200).json({ data: jobPosts });
   } catch (error) {
-    return res.status(500).json({ message: 'Internal Server Error' });
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 };

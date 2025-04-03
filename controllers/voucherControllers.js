@@ -1,32 +1,6 @@
 const Voucher = require('../models/voucherModels');
-const VoucherUser = require('../models/VoucherUserModels');
-
-
-// Apply a voucher
-// exports.applyVoucher = async (req, res) => {
-//     try {
-//         const { code } = req.body;
-//         const voucher = await Voucher.findOne({ code });
-
-//         if (!voucher) {
-//             return res.status(404).json({ status: 404, success: false, message: "Voucher not found", data: null });
-//         }
-
-//         if (!voucher.isValid()) {
-//             return res.status(400).json({ status: 400, success: false, message: "Voucher is not valid or expired", data: null });
-//         }
-
-//         voucher.usedCount += 1;
-//         if (voucher.usedCount >= voucher.usageLimit) {
-//             voucher.isActive = false;
-//         }
-
-//         await voucher.save();
-//         return res.status(200).json({ status: 200, success: true, message: "Voucher applied successfully", data: voucher });
-//     } catch (error) {
-//         return res.status(500).json({ status: 500, success: false, message: "Server error", data: error.message });
-//     }
-// };
+const SubscriptionVoucherUser = require('../models/SubscriptionVoucherUserModel');
+const Provider = require('../models/providerModel'); 
 
 exports.applyVoucher = async (req, res) => {
     try {
@@ -37,56 +11,66 @@ exports.applyVoucher = async (req, res) => {
         }
 
         const voucher = await Voucher.findOne({ code });
-
         if (!voucher) {
             return res.status(404).json({ status: 404, success: false, message: "Voucher not found", data: null });
         }
 
-        if (!voucher.isValid()) {
-            return res.status(400).json({ status: 400, success: false, message: "Voucher is not valid or expired", data: null });
+        const activeSubscription = await SubscriptionVoucherUser.findOne({
+            userId,
+            type: "Subscription",
+            status: "active"
+        });
+
+        if (activeSubscription) {
+            const currentDate = new Date();
+            if (activeSubscription.startDate <= currentDate && activeSubscription.endDate >= currentDate) {
+                return res.status(400).json({
+                    status: 400,
+                    success: false,
+                    message: "User has an active subscription. Cannot apply voucher.",
+                    data: null
+                });
+            }
         }
 
-        // Check if the user has already used this voucher
-        const existingUsage = await VoucherUser.findOne({ userId, voucherId: voucher._id });
-
+        const existingUsage = await SubscriptionVoucherUser.findOne({ userId, voucherId: voucher._id });
         if (existingUsage) {
             return res.status(400).json({ status: 400, success: false, message: "Voucher already used by this user", data: null });
         }
 
-        // Increase usage count
         voucher.usedCount += 1;
-
-        // Deactivate if limit reached
         if (voucher.usedCount >= voucher.usageLimit) {
             voucher.isActive = false;
         }
 
         await voucher.save();
 
-        // Store voucher usage in VoucherUser
-        const voucherUser = new VoucherUser({
+        const newVoucherUsage = new SubscriptionVoucherUser({
             userId,
+            type: "Voucher",
             voucherId: voucher._id,
             code: voucher.code,
             startDate: voucher.startDate,
             endDate: voucher.endDate,
-            isActive: voucher.isActive
+            status: 'active'
         });
-
-        await voucherUser.save();
+        await newVoucherUsage.save();
+        await Provider.findOneAndUpdate(
+            { _id: userId },
+            { $set: { subscriptionStatus: 1, isGuestMode: false } },
+        );
 
         return res.status(200).json({
             status: 200,
             success: true,
             message: "Voucher applied successfully",
-            data: { voucher, voucherUser }
+            data: { voucher, newVoucherUsage }
         });
     } catch (error) {
         return res.status(500).json({ status: 500, success: false, message: "Server error", data: error.message });
     }
 };
 
-// Create a new voucher
 exports.createVoucher = async (req, res) => {
     try {
         const { code, startDate, endDate, usageLimit } = req.body;
@@ -104,7 +88,6 @@ exports.createVoucher = async (req, res) => {
     }
 };
 
-// Get all vouchers
 exports.getVouchers = async (req, res) => {
     try {
         const vouchers = await Voucher.find();
@@ -114,7 +97,6 @@ exports.getVouchers = async (req, res) => {
     }
 };
 
-// Delete a voucher
 exports.deleteVoucher = async (req, res) => {
     try {
         const { id } = req.params;
@@ -131,55 +113,53 @@ exports.deleteVoucher = async (req, res) => {
 };
 
 
-//update voucher 
 
 exports.updateVoucher = async (req, res) => {
     try {
-      const { id } = req.params;
-      const { code, startDate, endDate, usageLimit } = req.body;
+        const { id } = req.params;
+        const { code, startDate, endDate, usageLimit } = req.body;
 
-      const voucher = await Voucher.findById(id);
-      if (!voucher) {
-        return res.status(404).json({
-          status: 404,
-          success: false,
-          message: "Voucher not found",
-          data: null,
-        });
-      }
-  
-      if (code && code !== voucher.code) {
-        const existingVoucher = await Voucher.findOne({ code });
-        if (existingVoucher) {
-          return res.status(400).json({
-            status: 400,
-            success: false,
-            message: "Voucher code already exists",
-            data: null,
-          });
+        const voucher = await Voucher.findById(id);
+        if (!voucher) {
+            return res.status(404).json({
+                status: 404,
+                success: false,
+                message: "Voucher not found",
+                data: null,
+            });
         }
-        voucher.code = code;
-      }
-  
-      voucher.startDate = startDate || voucher.startDate;
-      voucher.endDate = endDate || voucher.endDate;
-      voucher.usageLimit = usageLimit || voucher.usageLimit;
-  
-      await voucher.save();
-  
-      return res.status(200).json({
-        status: 200,
-        success: true,
-        message: "Voucher updated successfully",
-        data: voucher,
-      });
+
+        if (code && code !== voucher.code) {
+            const existingVoucher = await Voucher.findOne({ code });
+            if (existingVoucher) {
+                return res.status(400).json({
+                    status: 400,
+                    success: false,
+                    message: "Voucher code already exists",
+                    data: null,
+                });
+            }
+            voucher.code = code;
+        }
+
+        voucher.startDate = startDate || voucher.startDate;
+        voucher.endDate = endDate || voucher.endDate;
+        voucher.usageLimit = usageLimit || voucher.usageLimit;
+
+        await voucher.save();
+
+        return res.status(200).json({
+            status: 200,
+            success: true,
+            message: "Voucher updated successfully",
+            data: voucher,
+        });
     } catch (error) {
-      return res.status(500).json({
-        status: 500,
-        success: false,
-        message: "Server error",
-        data: error.message,
-      });
+        return res.status(500).json({
+            status: 500,
+            success: false,
+            message: "Server error",
+            data: error.message,
+        });
     }
-  };
-  
+};

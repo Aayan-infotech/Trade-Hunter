@@ -71,23 +71,27 @@ const {
 const router = express.Router();
 const multer = require("multer");
 const upload = multer();
+
+const updateStorage = multer.memoryStorage();
+
+// Create a multer instance for update route that accepts any file field
+const updateUpload = multer({
+  storage: updateStorage,
+  fileFilter: (req, file, cb) => {
+    // Accept all files; you can add further filtering if needed.
+    cb(null, true);
+  },
+});
+
 const { uploadToS3 } = require("../common/multerConfig");
 const { refreshToken } = require("../middlewares/auth");
 const { verifyUser } = require("../middlewares/auth");
-router.post("/signup", 
-  upload.single("images"),
-  async (req, res, next) => {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded." });
-    }
-    next();
-  },
-  uploadToS3,
-  signUp
+router.post(
+  "/signup", 
+  upload.single("images"),  
+  uploadToS3,             
+  signUp               
 );
-
-
-
 router.post("/login", login);
 router.post("/logout", verifyUser, logout);
 router.post("/verify-email", verifyEmail);
@@ -98,9 +102,6 @@ router.post("/changePassword/:id", changePassword);
 router.post("/refreshtoken", refreshToken);
 router.get("/getProviderProfile", verifyUser, getProviderProfile);
 router.get("/getHunterProfile", verifyUser, getHunterProfile);
-router.put("/update/:id",upload.single("images"), verifyUser, updateUserById)
-router.get("/recentSignups", getNewSignups)
-
-
+router.get("/recentSignups", getNewSignups);
 module.exports = router;
    
