@@ -42,7 +42,7 @@ pipeline {
                         -v $(pwd):/usr/src \
                         --network host \
                         sonarsource/sonar-scanner-cli:latest \
-                        -Dsonar.projectKey=bitcoin-admin \
+                        -Dsonar.projectKey=trade-hunter \
                         -Dsonar.sources=/usr/src \
                         -Dsonar.host.url=http://3.223.253.106:9000 \
                         -Dsonar.login=${SONARTOKEN}
