@@ -1,11 +1,8 @@
 const express = require("express");
 const {
   createJobPost,
-  getAllJobPosts,
   getJobPostById,
-  updateJobPost,
   deleteJobPost,
-  getAllPendingJobPosts,
   getJobPostByUserId,
   changeJobStatus,
   myAcceptedJobs,
