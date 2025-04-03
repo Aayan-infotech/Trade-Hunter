@@ -22,27 +22,24 @@ const createJobPost = async (req, res) => {
     const userId = req.user.userId;
     const documents = req.files || [];
 
-    // Correctly structure jobLocation
     const jobLocation = {
       location: {
-        type: "Point", // Ensure type is set here
+        type: "Point",
         coordinates: [
-          parseFloat(longitude), // Longitude
-          parseFloat(latitude), // Latitude
+          parseFloat(longitude), 
+          parseFloat(latitude), 
         ],
       },
       jobAddressLine: jobAddressLine,
       jobRadius: parseFloat(jobRadius),
     };
 
-    // Parse timeframe (Ensure numeric values)
     const timeframeRaw = req.body.timeframe;
     const timeframe = {
       from: Number(timeframeRaw?.from),
       to: Number(timeframeRaw?.to),
     };
 
-    // Validate required fields
     if (
       !title ||
       !jobLocation.location.coordinates[0] ||
@@ -61,7 +58,6 @@ const createJobPost = async (req, res) => {
       });
     }
 
-    // Create new job post object
     const jobPost = new JobPost({
       title,
       jobLocation,
@@ -75,7 +71,6 @@ const createJobPost = async (req, res) => {
       jobStatus: "Pending",
     });
 
-    // Save the job post in the database
     await jobPost.save();
 
     return res.status(201).json({
@@ -128,10 +123,8 @@ const getAllJobPosts = async (req, res) => {
       $unwind: { path: "$providerDetails", preserveNullAndEmptyArrays: true },
     });
 
-    // Sort first so that pagination happens on the sorted data
     pipeline.push({ $sort: { createdAt: -1 } });
 
-    // Count total jobs from the sorted pipeline
     const countPipeline = [...pipeline, { $count: "totalJobs" }];
     const countResult = await JobPost.aggregate(countPipeline);
     const totalJobs = countResult[0] ? countResult[0].totalJobs : 0;
@@ -210,7 +203,6 @@ const updateJobPost = async (req, res) => {
   try {
     const updates = req.body;
 
-    // Update images if new files are uploaded
     if (req.fileLocations) {
       updates.images = req.fileLocations;
     }

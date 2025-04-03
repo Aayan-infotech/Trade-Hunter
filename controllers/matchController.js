@@ -2,9 +2,6 @@ const JobPost = require('../models/jobpostModel');
 const Hunter = require('../models/hunterModel');
 const Provider = require('../models/providerModel');
 
-// jobPostId
-//senderId   Hunter/Provider
-//receiverId  Hunter/Provider
 exports.getMatchedData = async (req, res) => {
     try {
         const { jobPostId, senderId, receiverId } = req.body;
@@ -13,7 +10,6 @@ exports.getMatchedData = async (req, res) => {
             return res.status(400).json({ message: "All three IDs are required.", status: false, data: {} });
         }
 
-        // Fetch documents from DB
         const jobPost = await JobPost.findById(jobPostId);
         
         const senderHunter = await Hunter.findById(senderId);

@@ -53,31 +53,6 @@ exports.sendPushNotification = async (req, res) => {
   }
 };
 
-// exports.sendPushNotification = async (req, res) => {
-//   const { userId, token, title, body } = req.body; 
-
-//   if (!userId || !token || !title || !body) {
-//     return res.status(400).json({ message: "All fields are required." });
-//   }
-
-//   const message = {
-//     notification: {
-//       title: title,
-//       body: body,
-//     },
-//     token: token,
-//   };
-
-//   try {
-//     await admin.messaging().send(message);
-//     const notificationData = await Notification.create({ userId, title, body });
-//     res.status(200).json({ message: "Notification sent successfully", data: notificationData });
-//   } catch (error) {
-//     console.error("Error sending notification:", error);
-//     res.status(500).json({ message: "Failed to send notification", error });
-//   }
-// };
-
 exports.getNotificationsByUserId = async (req, res) => {
   const receiverId = req.user.userId;
 
@@ -97,10 +72,9 @@ exports.getNotificationsByUserId = async (req, res) => {
   }
 };
 
-// ReadNotification
 exports.ReadNotification = async (req, res) => {
   const receiverId = req.user.userId;
-  const notificationId = req.params.notificationId; // Assuming notificationId is passed in the request
+  const notificationId = req.params.notificationId; 
 
   if (!receiverId || !notificationId) {
     return res.status(400).json({
@@ -146,7 +120,6 @@ exports.ReadNotification = async (req, res) => {
   }
 };
 
-// ALL Read Notifications
 exports.AllReadNotifications = async (req, res) => {
   const receiverId = req.user.userId;
 

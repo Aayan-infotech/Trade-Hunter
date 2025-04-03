@@ -218,24 +218,16 @@ const getAllPendingJobPosts = async (req, res) => {
 
 const getJobPostByUserId = async (req, res) => {
   try {
-    // Log the authenticated user details for debugging
-    // console.log("Authenticated user:", req.user);
     const userId = req.user.userId;
-    // console.log("Querying JobPosts for userId:", userId);
 
     let page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 10;
     let skip = (page - 1) * limit;
 
-    // Count total job posts for the user
     const totalJobs = await JobPost.countDocuments({ user: userId });
-    // Retrieve paginated job posts for the user
     const jobPosts = await JobPost.find({ user: userId })
       .skip(skip)
       .limit(limit);
-
-    // Log the retrieved job posts for debugging
-    // console.log("Retrieved job posts:", jobPosts);
 
     return res.status(200).json({
       success: true,
@@ -329,7 +321,6 @@ const myAcceptedJobs = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
 
-    // Fetch only required fields from the Provider model
     const user = await Provider.findById(req.user.userId)
       .select("myServices")
       .lean();
@@ -338,10 +329,8 @@ const myAcceptedJobs = async (req, res) => {
       return res.status(404).json({ message: "No jobs found" });
     }
 
-    // Extract unique job IDs
     const jobIds = [...new Set(user.myServices.map((s) => s.toString()))];
-
-    // Fetch total job count and paginated jobs in parallel
+    
     const [totalJobs, jobs] = await Promise.all([
       JobPost.countDocuments({ _id: { $in: jobIds } }),
       JobPost.find({ _id: { $in: jobIds } })

@@ -3,7 +3,6 @@ const SubscriptionPlan = require("../models/SubscriptionPlanModel");
 const SubscriptionUser = require("../models/SubscriptionVoucherUserModel");
 
 
-// Controller function to create a new subscription type
 exports.createSubscriptionType = async (req, res) => {
   try {
     const { type } = req.body;
@@ -54,8 +53,6 @@ exports.deleteSubscriptionType = async (req, res) => {
 };
 
 
-// SubscriptionPlan
-// Controller function to create a new subscription plan
 exports.createSubscriptionPlan = async (req, res) => {
   try {
     const { type, planName, amount, validity, description, kmRadius, status } = req.body;
@@ -82,7 +79,6 @@ exports.createSubscriptionPlan = async (req, res) => {
   }
 };
 
-// Controller function to get all subscription plans
 exports.getAllSubscriptionPlans = async (req, res) => {
   try {
     const plans = await SubscriptionPlan.find();
@@ -109,7 +105,6 @@ exports.getAllSubscriptionPlans = async (req, res) => {
 };
 
 
-// Controller function to get a single subscription plan by ID
 exports.getSubscriptionPlanById = async (req, res) => {
   try {
     const plan = await SubscriptionPlan.findById(req.params.id);
@@ -122,7 +117,6 @@ exports.getSubscriptionPlanById = async (req, res) => {
   }
 };
 
-// Controller function to update a subscription plan
 exports.updateSubscriptionPlan = async (req, res) => {
   try {
     const updatedPlan = await SubscriptionPlan.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -135,7 +129,6 @@ exports.updateSubscriptionPlan = async (req, res) => {
   }
 };
 
-// Controller function to delete a subscription plan
 exports.deleteSubscriptionPlan = async (req, res) => {
   try {
     const deletedPlan = await SubscriptionPlan.findByIdAndDelete(req.params.id);
@@ -148,10 +141,6 @@ exports.deleteSubscriptionPlan = async (req, res) => {
   }
 };
 
-
-// subscription user api
-
-// Controller function to create a new subscription user
 exports.createSubscriptionUser = async (req, res) => {
   try {
     const { userId, subscriptionPlanId, startDate, endDate, status, kmRadius } = req.body;
@@ -177,7 +166,6 @@ exports.createSubscriptionUser = async (req, res) => {
   }
 };
 
-// Controller function to get all subscription users
 exports.getAllSubscriptionUsers = async (req, res) => {
   try {
     const users = await SubscriptionUser.find()
@@ -203,7 +191,6 @@ exports.getAllSubscriptionUsers = async (req, res) => {
 };
 
 
-// Controller function to get a single subscription user by ID
 exports.getSubscriptionUserById = async (req, res) => {
   try {
     const user = await SubscriptionUser.findById(req.params.id).populate("userId subscriptionPlanId");
@@ -216,7 +203,6 @@ exports.getSubscriptionUserById = async (req, res) => {
   }
 };
 
-// Controller function to update a subscription user
 exports.updateSubscriptionUser = async (req, res) => {
   try {
     const updatedUser = await SubscriptionUser.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -229,7 +215,6 @@ exports.updateSubscriptionUser = async (req, res) => {
   }
 };
 
-// Controller function to delete a subscription user
 exports.deleteSubscriptionUser = async (req, res) => {
   try {
     const deletedUser = await SubscriptionUser.findByIdAndDelete(req.params.id);
@@ -242,10 +227,6 @@ exports.deleteSubscriptionUser = async (req, res) => {
   }
 };
 
-
-
-
-// SubscriptionUser
 
 exports.getAllSubscriptions = async (req, res) => {
   try {
@@ -296,7 +277,6 @@ exports.deleteSubscription = async (req, res) => {
   }
 };
 
-// Retention API Endpoint using SubscriptionUser model
 exports.getRetentionRate = async (req, res) => {
   try {
     const currentDate = new Date();
@@ -353,7 +333,6 @@ exports.getRetentionRate = async (req, res) => {
   }
 };
 
-// Controller function to get subscription plans by subscription type ID
 exports.getSubscriptionPlansByTypeId = async (req, res) => {
   try {
     const { subscriptionTypeId } = req.params; 

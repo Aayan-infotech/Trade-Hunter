@@ -1,7 +1,6 @@
 const Provider = require("../models/providerModel");
 const Hunter = require("../models/hunterModel");
 
-// Soft delete Provider
 const softDeleteProvider = async (req, res) => {
   try {
     const { providerId } = req.params;
@@ -22,7 +21,6 @@ const softDeleteProvider = async (req, res) => {
   }
 };
 
-// Soft delete Hunter
 const softDeleteHunter = async (req, res) => {
   try {
     const { hunterId } = req.params;
