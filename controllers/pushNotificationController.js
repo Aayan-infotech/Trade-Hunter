@@ -5,51 +5,61 @@ const DeviceToken = require("../models/devicetokenModel");
 
 exports.sendPushNotification = async (req, res) => {
   try {
-      const { title, body,receiverId } = req.body;
-      const userId = req.user.userId;
+    const { title, body, receiverId, notificationType } = req.body;
+    const userId = req.user.userId;
 
-      if (!title || !body || !receiverId) {
-          return res.status(400).json({ 
-              status: 400, 
-              success: false, 
-              message: "Title and body are required.", 
-              data: [] 
-          });
-      }
-
-      const device = await DeviceToken.findOne({ userId });
-      if (!device) {
-          return res.status(404).json({ 
-              status: 404, 
-              success: false, 
-              message: "Device token not found for the user.", 
-              data: [] 
-          });
-      }
-
-      const message = {
-          notification: { title, body },
-          token: device.deviceToken,
-      };
-
-      await admin.messaging().send(message);
-      const notificationData = await Notification.create({ userId, title, body,receiverId});
-
-      res.status(200).json({ 
-          status: 200, 
-          success: true, 
-          message: "Notification sent successfully.", 
-          data: [notificationData] 
+    if (!title || !body || !receiverId || !notificationType) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Title and body are required.",
+        data: []
       });
+    }
+    // Validate notificationType
+    const validTypes = ['job_alert', 'voucher_update', 'job_accept', 'system_alert'];
+    if (!validTypes.includes(notificationType)) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Invalid notificationType. Allowed types: " + validTypes.join(", "),
+        data: []
+      });
+    }
+
+    const device = await DeviceToken.findOne({ userId });
+    if (!device) {
+      return res.status(404).json({
+        status: 404,
+        success: false,
+        message: "Device token not found for the user.",
+        data: []
+      });
+    }
+
+    const message = {
+      notification: { title, body },
+      token: device.deviceToken,
+    };
+
+    await admin.messaging().send(message);
+    const notificationData = await Notification.create({ userId, title, body, receiverId,notificationType });
+
+    res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Notification sent successfully.",
+      data: [notificationData]
+    });
   } catch (error) {
-      console.error("Error sending notification:", error);
-      res.status(500).json({ 
-          status: 500, 
-          success: false, 
-          message: "Failed to send notification.", 
-          data: [], 
-          error: error.message 
-      });
+    console.error("Error sending notification:", error);
+    res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Failed to send notification.",
+      data: [],
+      error: error.message
+    });
   }
 };
 
@@ -192,16 +202,15 @@ exports.AllReadNotifications = async (req, res) => {
 
 exports.sendPushNotification2 = async (req, res) => {
   try {
-    const {  title, body, receiverId } = req.body;
+    const { title, body, receiverId,notificationType } = req.body;
     const userId = req.user.userId;
-
-    
 
     const newNotification = new Notification({
       userId,
       receiverId,
       title,
       body,
+      notificationType,
       createdAt: new Date()
     });
 
