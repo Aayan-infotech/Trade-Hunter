@@ -22,7 +22,6 @@ const upload = multer();
 connectDB();
 require("./middlewares/cron"); // 🔥 Import cron job
 
-const apiRoutes = require("./apiRoutes");
 const authAdmin = require("./AdmRts/authAdmin");
 const userRoutes = require("./AdmRts/userRoutes");
 const providerRts = require("./AdmRts/providerRts");
@@ -44,9 +43,14 @@ const backgroundImgRoutes = require("./routes/backgroundImgRoutes")
 const profilePhotoRoutes = require("./routes/profilePhotoRoute")
 const blogRoute  = require("./routes/blogRoute")
 const ratingRoute = require("./routes/ratingRoute")
+const authroutes = require("./routes/authRoutes");
+const serviceRoutes = require("./routes/serviceRoutes");
+const providerRoutes = require("./routes/providerRoutes");
+const jobpostRoutes = require("./routes/jobpostRoutes");
+const addressRoutes = require("./routes/addressRoute");
 
 
-app.use("/api", apiRoutes);
+
 app.use("/api/authAdmin", authAdmin);
 app.use("/api/users", userRoutes);
 app.use("/api/Prvdr", providerRts);
@@ -69,6 +73,12 @@ app.use("/api/providerPhoto", profilePhotoRoutes)
 
 app.use("/api/blog", blogRoute)
 app.use("/api/rating", ratingRoute)
+app.use("/api/auth", authroutes);
+app.use("/api/service", serviceRoutes);
+app.use("/api/provider", providerRoutes);
+app.use("/api/jobpost",jobpostRoutes);
+app.use("/api/address", addressRoutes);
+
 
 
 app.listen(PORT, () => {
