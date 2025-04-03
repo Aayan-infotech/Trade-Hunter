@@ -17,7 +17,7 @@ exports.sendPushNotification = async (req, res) => {
       });
     }
     // Validate notificationType
-    const validTypes = ['job_alert', 'voucher_update', 'job_accept', 'system_alert'];
+    const validTypes = ['job_alert', 'voucher_update', 'job_accept', 'job_complete'];
     if (!validTypes.includes(notificationType)) {
       return res.status(400).json({
         status: 400,
