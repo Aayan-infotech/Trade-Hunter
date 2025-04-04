@@ -5,7 +5,7 @@ const pushNotificationSchema = new Schema(
     {
         userId: {
             type: mongoose.Schema.Types.ObjectId,
-            required: true,
+            required: false,
         },
         title: {
             type: String,

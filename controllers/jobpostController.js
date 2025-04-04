@@ -156,15 +156,6 @@ const getJobPostByUserId = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
-    if (!jobPosts || jobPosts.length === 0) {
-      return res.status(404).json({
-        success: true,
-        status: 404,
-        message: "no jobPosts by hunter",
-        data: []
-      });
-    }
-
     return res.status(200).json({
       success: true,
       status: 200,
