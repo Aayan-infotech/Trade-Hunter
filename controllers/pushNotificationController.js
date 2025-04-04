@@ -71,14 +71,19 @@ exports.getNotificationsByUserId = async (req, res) => {
 
     const userNotifications = await Notification.find({ receiverId });
     const massNotifications = await massNotification.find({ userType });
-    const allNotifications = [...userNotifications, ...massNotifications];
+    const formattedMassNotifications = massNotifications.map((notif) => ({
+      ...notif._doc,
+      isRead: notif.readBy.includes(receiverId),
+    }));
+
+    const allNotifications = [...userNotifications, ...formattedMassNotifications];
     allNotifications.sort((a, b) => b.createdAt - a.createdAt);
-    res.status(200).json({ 
-      status:200,
+    res.status(200).json({
+      status: 200,
       success: true,
       data: allNotifications,
-      message:"get all notification!"
-     });
+      message: "get all notification!"
+    });
   } catch (error) {
     res.status(500).json({
       status: 500,
@@ -89,38 +94,59 @@ exports.getNotificationsByUserId = async (req, res) => {
 };
 
 exports.ReadNotification = async (req, res) => {
-  const receiverId = req.user.userId;
-  const notificationId = req.params.notificationId;
-
-  if (!receiverId || !notificationId) {
-    return res.status(400).json({
-      status: 400,
-      success: false,
-      message: "Receiver ID and notification ID are required.",
-      data: [],
-    });
-  }
-
   try {
-    const notification = await Notification.findOne({ _id: notificationId, receiverId });
+    const receiverId = req.user.userId;
+    const { notificationId, type } = req.params;
 
-    if (!notification) {
-      return res.status(404).json({
-        status: 404,
+    if (!receiverId || !notificationId) {
+      return res.status(400).json({
+        status: 400,
         success: false,
-        message: "Notification not found.",
+        message: "Receiver ID and notification ID are required.",
         data: [],
       });
     }
 
-    notification.isRead = true;
-    await notification.save();
+    if (type === "push") {
+      const notification = await Notification.findOne({ _id: notificationId, receiverId: receiverId });
+
+      if (!notification) {
+        return res.status(404).json({
+          status: 404,
+          success: false,
+          message: "Notification not found.",
+        });
+      }
+
+      notification.isRead = true;
+      await notification.save();
+    } else if (type === "mass") {
+      const notification = await massNotification.findOne({ _id: notificationId });
+
+      if (!notification) {
+        return res.status(404).json({
+          status: 404,
+          success: false,
+          message: "Mass notification not found.",
+        });
+      }
+
+      if (!notification.readBy.includes(receiverId)) {
+        notification.readBy.push(receiverId);
+        await notification.save();
+      }
+    } else {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Invalid notification type.",
+      });
+    }
 
     return res.status(200).json({
       status: 200,
       success: true,
       message: "Notification marked as read.",
-      data: [notification],
     });
   } catch (error) {
     console.error("Error fetching notification:", error);

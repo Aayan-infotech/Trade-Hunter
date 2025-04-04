@@ -1,4 +1,3 @@
-
 const mongoose = require("mongoose");
 
 const MassNotificationSchema = new mongoose.Schema({
@@ -7,13 +6,22 @@ const MassNotificationSchema = new mongoose.Schema({
     enum: ["hunter", "provider"],
     required: true,
   },
-  title:{
-    type:String,
-    required:true,
+  title: {
+    type: String,
+    required: true,
   },
   body: {
     type: String,
     required: true,
+  },
+  type: {
+    type: String,
+    default: 'mass'
+  },
+  readBy: [{ type: mongoose.Schema.Types.ObjectId }],
+  isRead: {
+    type: Boolean,
+    default: false,
   },
   createdAt: {
     type: Date,
