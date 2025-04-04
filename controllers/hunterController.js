@@ -84,19 +84,49 @@ exports.getNearbyServiceProviders = async (req, res) => {
 exports.updateHunterById = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    let updateData = { ...req.body };
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ status: 400, success: false, message: "Invalid ID format", data: [] });
+      return res.status(400).json({ 
+        status: 400, 
+        success: false, 
+        message: "Invalid ID format", 
+        data: [] 
+      });
     }
 
     const hunterExists = await Hunter.findById(id);
     if (!hunterExists) {
-      return res.status(404).json({ status: 404, success: false, message: "Hunter not found", data: [] });
+      return res.status(404).json({ 
+        status: 404, 
+        success: false, 
+        message: "Hunter not found", 
+        data: [] 
+      });
     }
 
+    // Process address fields similar to provider update API
+    if (updateData.addressLine !== undefined) {
+      updateData["address.addressLine"] = updateData.addressLine;
+      delete updateData.addressLine;
+    }
+    if (updateData.latitude !== undefined && updateData.longitude !== undefined) {
+      updateData["address.location.coordinates"] = [
+        Number(updateData.longitude), 
+        Number(updateData.latitude)
+      ];
+      updateData["address.location.type"] = 'Point';
+      delete updateData.latitude;
+      delete updateData.longitude;
+    }
+    if (updateData.radius !== undefined) {
+      updateData["address.radius"] = Number(updateData.radius);
+      delete updateData.radius;
+    }
+
+    // Handle image update if any fileLocations are provided
     if (req.fileLocations && req.fileLocations.length > 0) {
-      updateData.images = req.fileLocations[0]; 
+      updateData.images = req.fileLocations[0];
     }
 
     const updatedHunter = await Hunter.findByIdAndUpdate(id, updateData, {
@@ -108,12 +138,19 @@ exports.updateHunterById = async (req, res) => {
       status: 200,
       success: true,
       message: "Hunter updated successfully",
-      data: [updatedHunter]
+      data: [updatedHunter],
     });
   } catch (error) {
-    res.status(500).json({ status: 500, success: false, message: "Server Error", error: error.message, data: [] });
+    res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Server Error",
+      error: error.message,
+      data: [],
+    });
   }
 };
+
 
 exports.updateRadius = async (req, res) => {
   try {
