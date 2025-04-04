@@ -38,7 +38,7 @@ exports.sendMassNotification = async (req, res) => {
       return res.status(400).json({ error: 'Missing userType or message.' });
     }
 
-    const notification = new Notification({ userType,subject, message });
+    const notification = new Notification({ userType,title:subject, body:message });
     await notification.save();
 
     const aggregation=[];
