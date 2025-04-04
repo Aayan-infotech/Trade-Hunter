@@ -23,6 +23,10 @@ const pushNotificationSchema = new Schema(
             type: mongoose.Schema.Types.ObjectId,
             required: true,
         },
+        type:{
+            type:String,
+            default:'push'
+        },
         notificationType: { 
             type: String,
             enum: ['job_alert', 'voucher_update', 'job_accept', 'job_complete','admin_message'], 
