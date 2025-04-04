@@ -639,6 +639,11 @@ exports.getProvidersByBusinessType = async (req, res) => {
     const longitude = parseFloat(lng);
     const maxDistance = parseFloat(radius);
 
+    // Ensure businessType is an array
+    const businessTypesArray = Array.isArray(businessType)
+      ? businessType
+      : [businessType];
+
     const providers = await providerModel.aggregate([
       {
         $geoNear: {
@@ -651,7 +656,7 @@ exports.getProvidersByBusinessType = async (req, res) => {
       },
       {
         $match: {
-          businessType: { $in: [businessType] },
+          businessType: { $in: businessTypesArray },
         },
       },
       {
@@ -676,6 +681,7 @@ exports.getProvidersByBusinessType = async (req, res) => {
     return res.status(500).json({ status: 500, error: error.message });
   }
 };
+
 
 // Create or Update "about" field
 exports.upsertAbout = async (req, res) => {
