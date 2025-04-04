@@ -202,4 +202,60 @@ exports.sendPushNotification2 = async (req, res) => {
 };
 
 
+exports.sendAdminNotification = async (req, res) => {
+  try {
+    const { title, body } = req.body;
+    const { receiverId } = req.params;
+
+    // Ensure notificationType is always 'admin_message'
+    const notificationType = 'admin_message';
+
+    if (!title || !body || !receiverId) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Title, body, and receiverId are required.",
+        data: []
+      });
+    }
+    // Create notification record in the database
+    const notificationData = await Notification.create({ title, body, receiverId, notificationType });
+
+    // Find the device token for the receiver
+    const device = await DeviceToken.findOne({ userId: receiverId });
+    if (!device) {
+      return res.status(404).json({
+        status: 404,
+        success: false,
+        message: "Device token not found for the user.",
+        data: []
+      });
+    }
+
+    // Construct Firebase message
+    const message = {
+      notification: { title, body },
+      token: device.deviceToken,
+    };
+
+    // Send push notification via Firebase
+    await admin.messaging().send(message);
+    
+    res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Notification sent successfully.",
+      data: [notificationData]
+    });
+  } catch (error) {
+    console.error("Error sending notification:", error);
+    res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Failed to send notification.",
+      data: [],
+      error: error.message
+    });
+  }
+};
 
