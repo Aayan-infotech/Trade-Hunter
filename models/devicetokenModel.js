@@ -14,7 +14,12 @@ const devicetokenSchema = new Schema({
         type: String,
         enum: ['android', 'ios'], 
         required: true
-    }
+    },
+    userType: {
+        type: String,
+        enum: ["hunter", "provider"],
+        required: true,
+      }
 });
 
 module.exports = mongoose.model('DeviceToken', devicetokenSchema);

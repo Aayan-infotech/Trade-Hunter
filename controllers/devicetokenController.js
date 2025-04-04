@@ -2,11 +2,11 @@ const DeviceToken = require('../models/devicetokenModel');
 
 const createDeviceToken = async (req, res) => {
     try {
-        const { deviceToken } = req.body;
+        const { deviceToken,userType } = req.body;
         const deviceType = req.headers.platform; 
         const userId = req.user.userId;
 
-        if (!deviceToken || !deviceType) {
+        if (!deviceToken || !deviceType || !userType) {
             return res.status(400).json({ 
                 status: 400,
                 success: false,
@@ -26,7 +26,7 @@ const createDeviceToken = async (req, res) => {
 
         const updatedToken = await DeviceToken.findOneAndUpdate(
             { userId },
-            { deviceToken, deviceType: deviceType.toLowerCase() },
+            { deviceToken, deviceType: deviceType.toLowerCase(),userType: userType.toLowerCase() },
             { new: true, upsert: true }
         );
 
