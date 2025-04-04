@@ -217,29 +217,34 @@ exports.sendAdminNotification = async (req, res) => {
     }
     const notificationData = await Notification.create({ title, body, receiverId, notificationType });
 
+    // Find device token (optional)
     const device = await DeviceToken.findOne({ userId: receiverId });
+
+    // If device token is not found, just return success without sending notification
     if (!device) {
-      return res.status(404).json({
-        status: 404,
-        success: false,
-        message: "Device token not found for the user.",
-        data: []
+      return res.status(200).json({
+        status: 200,
+        success: true,
+        message: "Notification saved but not sent (device token not found).",
+        data: [notificationData]
       });
     }
 
+    // Send notification if device token exists
     const message = {
       notification: { title, body },
       token: device.deviceToken,
     };
 
     await admin.messaging().send(message);
-    
+
     res.status(200).json({
       status: 200,
       success: true,
       message: "Notification sent successfully.",
       data: [notificationData]
     });
+
   } catch (error) {
     console.error("Error sending notification:", error);
     res.status(500).json({
