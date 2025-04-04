@@ -17,7 +17,7 @@ exports.createContact = async (req, res) => {
     res
       .status(201)
       .json({
-        message: "Message send to Admin , We will Reach you Soon.",
+        message: "Thank You for Contacting , We will get back to you soon :",
         contact: newContact,
       });
   } catch (error) {

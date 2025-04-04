@@ -639,7 +639,6 @@ exports.getProvidersByBusinessType = async (req, res) => {
     const longitude = parseFloat(lng);
     const maxDistance = parseFloat(radius);
 
-    // Ensure businessType is an array
     const businessTypesArray = Array.isArray(businessType)
       ? businessType
       : [businessType];
