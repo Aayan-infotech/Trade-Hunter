@@ -177,6 +177,8 @@ const getJobPostByUserId = async (req, res) => {
   }
 };
 
+//change job status
+
 
 
 const changeJobStatus = async (req, res) => {
