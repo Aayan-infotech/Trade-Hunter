@@ -25,7 +25,7 @@ const pushNotificationSchema = new Schema(
         },
         notificationType: { 
             type: String,
-            enum: ['job_alert', 'voucher_update', 'job_accept', 'job_complete'], 
+            enum: ['job_alert', 'voucher_update', 'job_accept', 'job_complete','admin_message'], 
             required: false
         }
     },
