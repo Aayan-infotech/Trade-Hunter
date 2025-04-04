@@ -626,7 +626,7 @@ exports.deleteFile = async (req, res) => {
 
 exports.getProvidersByBusinessType = async (req, res) => {
   try {
-    const { lat, lng, radius, businessType } = req.query;
+    const { lat, lng, radius, businessType } = req.body;
     if (!lat || !lng || !radius || !businessType) {
       return res.status(400).json({
         status: 400,
