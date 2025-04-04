@@ -1,17 +1,38 @@
 const express = require('express');
 const router = express.Router();
-
 const Hunter = require('../models/hunterModel');
 const Provider = require('../models/providerModel');
 const Notification = require('../models/massNotification');
+const admin =require('../config/firebaseConfig')
+const deviceTokenModel=require('../models/devicetokenModel');
 
-const sendNotificationToUser = (user,subject, message) => {
-  console.log(`Sending notification to ${user.email}: ${message}`);
+
+const pushNotification = async (subject, message, deviceToken)=>{
+  try {
+    const sendmessage = {
+        notification: {
+          title: subject,
+          body: message,
+        },
+        token:deviceToken
+      };
+
+      await admin.messaging().send(sendmessage)
+      .then((response) => {
+        console.log('Successfully sent message:', response);
+      })
+      .catch((error) => {
+        console.log('Error sending message:', error);
+      });
+  } catch (e) {
+    return e.message
+  }
 };
 
 exports.sendMassNotification = async (req, res) => {
   try {
     const { userType,subject, message } = req.body;
+    const notificationsPromises = [];
 
     if (!userType ||!subject || !message) {
       return res.status(400).json({ error: 'Missing userType or message.' });
@@ -20,25 +41,37 @@ exports.sendMassNotification = async (req, res) => {
     const notification = new Notification({ userType,subject, message });
     await notification.save();
 
-    let users = [];
-    if (userType === "hunter") {
-      users = await Hunter.find();
-    } else if (userType === "provider") {
-      users = await Provider.find();
-    } else {
-      return res.status(400).json({ error: 'Invalid userType provided.' });
+    const aggregation=[];
+
+    aggregation.push({
+      $match:{
+        userType:userType
+      }
+    });
+
+    const users=await deviceTokenModel.aggregate(aggregation);
+    
+    for (const user of users) {
+      const userId = user.userId;
+      const deviceToken = user.deviceToken;
+    
+      if (deviceToken) {
+        const promise = await pushNotification(subject, message, deviceToken)
+          .catch(error => {
+            console.error(error);
+          });
+    
+        notificationsPromises.push(promise);
+      } else {
+        console.warn(`User with ID ${userId} does not have a deviceToken.`);
+      }
     }
 
-    if (!users.length) {
-      return res.status(404).json({ error: 'No users found for the given userType.' });
-    }
-
-    users.forEach(user => sendNotificationToUser(user, subject, message));
-
-    notification.status = 'sent';
-    await notification.save();
-
-    return res.status(200).json({ message: 'Notifications sent successfully.' });
+    await Promise.all(notificationsPromises);
+    res.status(200).json({
+      status: 200,
+      message: 'Notifications sent successfully',
+    });
   } catch (error) {
     console.error("Error in sending notifications:", error);
     return res.status(500).json({ error: 'Internal server error.' });
