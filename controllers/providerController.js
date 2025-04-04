@@ -262,7 +262,7 @@ exports.getNearbyJobs = async (req, res) => {
         $geoNear: {
           near: { type: "Point", coordinates: [longitude, latitude] },
           distanceField: "distance",
-          maxDistance: radius * 1000, 
+          maxDistance: radius, 
           spherical: true,
           key: "jobLocation.location",
         },
