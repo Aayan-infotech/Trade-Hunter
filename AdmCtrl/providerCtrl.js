@@ -3,6 +3,9 @@ const Provider = require("../models/providerModel");
 exports.getAllProviders = async (req, res) => {
   try {
     const { search = "", userStatus } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
 
     let query = {
       isGuestMode: false,
@@ -18,24 +21,29 @@ exports.getAllProviders = async (req, res) => {
       query.userStatus = userStatus;
     }
 
-    // Fetch all providers without pagination
-    const providers = await Provider.find(query)
-      .sort({ createdAt: -1 })
-      .populate("assignedJobs");
+    const totalProviders = await Provider.countDocuments(query);
 
-    const totalProviders = providers.length;
+    const providers = await Provider.find(query)
+      .sort({ createdAt: -1 })  
+      .skip(skip)
+      .limit(limit)
+      .populate("assignedJobs");
 
     res.status(200).json({
       success: true,
       data: providers,
       metadata: {
         total: totalProviders,
+        currentPage: page,
+        totalPages: Math.ceil(totalProviders / limit),
       },
     });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error", error });
   }
 };
+
+
 
 // Delete a Provider
 exports.deleteProvider = async (req, res) => {
