@@ -2,19 +2,21 @@ const DeviceToken = require('../models/devicetokenModel');
 
 const createDeviceToken = async (req, res) => {
     try {
-        const { deviceToken,userType } = req.body;
+        const { deviceToken, userType } = req.body;
         const deviceType = req.headers.platform; 
         const userId = req.user.userId;
 
-        if (!deviceToken || !deviceType || !userType) {
+        // ✅ Validation: Required Fields Check
+        if (!deviceType || !userType) {
             return res.status(400).json({ 
                 status: 400,
                 success: false,
-                message: "Device token and platform are required.",
+                message: "Platform and user type are required.",
                 data: []
             });
         }
 
+        // ✅ Validation: Ensure valid deviceType
         if (!["android", "ios"].includes(deviceType.toLowerCase())) {
             return res.status(400).json({ 
                 status: 400,
@@ -24,9 +26,20 @@ const createDeviceToken = async (req, res) => {
             });
         }
 
+        // ✅ Prevent Empty `deviceToken`
+        let updateData = {
+            deviceType: deviceType.toLowerCase(),
+            userType: userType.toLowerCase()
+        };
+
+        if (deviceToken && deviceToken.trim() !== "") {
+            updateData.deviceToken = deviceToken;
+        }
+
+        // ✅ Find by `userId` & Update or Insert New Entry
         const updatedToken = await DeviceToken.findOneAndUpdate(
-            { userId },
-            { deviceToken, deviceType: deviceType.toLowerCase(),userType: userType.toLowerCase() },
+            { userId }, 
+            { $set: updateData },
             { new: true, upsert: true }
         );
 
