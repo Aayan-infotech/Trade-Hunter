@@ -6,6 +6,7 @@ const { verifyUser } = require("../middlewares/auth");
 const multer = require("multer");
 const upload = multer();
 // Route to handle file upload
+router.post('/getNearbyJobs',fileController.getNearbyJobs);
 router.get('/byBusinessType', fileController.getProvidersByBusinessType)
 router.post('/upload/:providerId',uploadToS3, fileController.uploadFile);
 router.post('/getProviderLocation',fileController.getProviderByUserLocation);
