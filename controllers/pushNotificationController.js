@@ -1,5 +1,6 @@
 const admin = require('../config/firebaseConfig');
 const Notification = require("../models/pushNotificationModel");
+const massNotification = require('../models/massNotification');
 const DeviceToken = require("../models/devicetokenModel");
 
 
@@ -43,7 +44,7 @@ exports.sendPushNotification = async (req, res) => {
     };
 
     await admin.messaging().send(message);
-    const notificationData = await Notification.create({ userId, title, body, receiverId,notificationType });
+    const notificationData = await Notification.create({ userId, title, body, receiverId, notificationType });
 
     res.status(200).json({
       status: 200,
@@ -64,27 +65,32 @@ exports.sendPushNotification = async (req, res) => {
 };
 
 exports.getNotificationsByUserId = async (req, res) => {
-  const receiverId = req.user.userId;
-
-  if (!receiverId) {
-    return res.status(400).json({ message: "User ID is required." });
-  }
-
   try {
-    const notifications = await Notification.find({ receiverId }).sort({ createdAt: -1 });
-    if (notifications.length === 0) {
-      return res.status(200).json({ message: "No notifications found for this user.", data: [] });
-    }
-    return res.status(200).json({ message: "Notifications fetched successfully.", data: notifications });
+    const receiverId = req.user.userId;
+    const userType = req.params.userType;
+
+    const userNotifications = await Notification.find({ receiverId });
+    const massNotifications = await massNotification.find({ userType });
+    const allNotifications = [...userNotifications, ...massNotifications];
+    allNotifications.sort((a, b) => b.createdAt - a.createdAt);
+    res.status(200).json({ 
+      status:200,
+      success: true,
+      data: allNotifications,
+      message:"get all notification!"
+     });
   } catch (error) {
-    console.error("Error fetching notifications:", error);
-    return res.status(500).json({ message: "Internal Server Error." });
+    res.status(500).json({
+      status: 500,
+      message: error.message,
+      success: false
+    })
   }
 };
 
 exports.ReadNotification = async (req, res) => {
   const receiverId = req.user.userId;
-  const notificationId = req.params.notificationId; 
+  const notificationId = req.params.notificationId;
 
   if (!receiverId || !notificationId) {
     return res.status(400).json({
@@ -173,7 +179,7 @@ exports.AllReadNotifications = async (req, res) => {
 
 exports.sendPushNotification2 = async (req, res) => {
   try {
-    const { title, body, receiverId,notificationType } = req.body;
+    const { title, body, receiverId, notificationType } = req.body;
     const userId = req.user.userId;
 
     const newNotification = new Notification({
@@ -259,7 +265,7 @@ exports.sendAdminNotification = async (req, res) => {
 
 exports.getAdminNotification = async (req, res) => {
   try {
-    const {receiverId} = req.params;
+    const { receiverId } = req.params;
 
     if (!receiverId) {
       return res.status(400).json({
@@ -270,9 +276,9 @@ exports.getAdminNotification = async (req, res) => {
       });
     }
 
-    const notifications = await Notification.find({ 
-      receiverId, 
-      notificationType: 'admin_message' 
+    const notifications = await Notification.find({
+      receiverId,
+      notificationType: 'admin_message'
     }).sort({ createdAt: -1 });
 
     if (!notifications || notifications.length === 0) {
