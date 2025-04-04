@@ -3,6 +3,7 @@ const apiResponse = require("../utils/responsehandler");
 const Hunter = require("../models/hunterModel");
 const auth = require("../middlewares/auth");
 const mongoose = require("mongoose");
+const {Types} = require("mongoose");
 const Provider = require("../models/providerModel");
 const BusinessType = require("../models/serviceModel");
 
@@ -250,22 +251,32 @@ const myAcceptedJobs = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
 
     const user = await Provider.findById(req.user.userId)
-      .select("myServices")
+      .select("assignedJobs")
       .lean();
 
-    if (!user?.myServices?.length) {
+    if (!user?.assignedJobs?.length) {
       return res.status(404).json({ message: "No jobs found" });
     }
 
-    const jobIds = [...new Set(user.myServices.map((s) => s.toString()))];
+    const jobIds = [...new Set(user.assignedJobs.map((s) => new mongoose.Types.ObjectId(s)))];
+    let aggregation=[];
+    aggregation.push({
+      $match: { _id: { $in: jobIds } },
+    });
     
-    const [totalJobs, jobs] = await Promise.all([
-      JobPost.countDocuments({ _id: { $in: jobIds } }),
-      JobPost.find({ _id: { $in: jobIds } })
-        .skip((page - 1) * limit)
-        .limit(limit)
-        .lean(),
-    ]);
+    aggregation.push({
+      $facet: {
+        totalCount: [{ $count: "count" }],
+        paginatedResults: [
+          { $skip: (page - 1) * limit },
+          { $limit: limit },
+        ],
+      },
+    })
+    const jobsAgg = await JobPost.aggregate(aggregation);
+    const totalJobs = jobsAgg[0]?.totalCount[0]?.count || 0;  
+    const jobs = jobsAgg[0]?.paginatedResults || [];
+   
 
     return res.status(200).json({
       status: 200,
