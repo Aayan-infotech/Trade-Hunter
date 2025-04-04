@@ -9,6 +9,8 @@ router.get('/Read-notification/:notificationId',verifyUser, notificationControll
 router.get('/AllRead-notification',verifyUser, notificationController.AllReadNotifications);
 router.post('/sendNotification' , verifyUser, notificationController.sendPushNotification2);
 router.post('/sendAdminNotification/:receiverId' ,notificationController.sendAdminNotification);
+router.get('/getAdminNotification/:receiverId', notificationController.getAdminNotification);
+router.delete('/deleteNotification/:notificationId', notificationController.deleteNotificationById);
 
 
 

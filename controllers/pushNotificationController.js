@@ -96,7 +96,6 @@ exports.ReadNotification = async (req, res) => {
   }
 
   try {
-    // Find the notification by ID and receiverId
     const notification = await Notification.findOne({ _id: notificationId, receiverId });
 
     if (!notification) {
@@ -108,7 +107,6 @@ exports.ReadNotification = async (req, res) => {
       });
     }
 
-    // Update the notification to mark it as read
     notification.isRead = true;
     await notification.save();
 
@@ -207,7 +205,6 @@ exports.sendAdminNotification = async (req, res) => {
     const { title, body } = req.body;
     const { receiverId } = req.params;
 
-    // Ensure notificationType is always 'admin_message'
     const notificationType = 'admin_message';
 
     if (!title || !body || !receiverId) {
@@ -218,10 +215,8 @@ exports.sendAdminNotification = async (req, res) => {
         data: []
       });
     }
-    // Create notification record in the database
     const notificationData = await Notification.create({ title, body, receiverId, notificationType });
 
-    // Find the device token for the receiver
     const device = await DeviceToken.findOne({ userId: receiverId });
     if (!device) {
       return res.status(404).json({
@@ -232,13 +227,11 @@ exports.sendAdminNotification = async (req, res) => {
       });
     }
 
-    // Construct Firebase message
     const message = {
       notification: { title, body },
       token: device.deviceToken,
     };
 
-    // Send push notification via Firebase
     await admin.messaging().send(message);
     
     res.status(200).json({
@@ -258,4 +251,93 @@ exports.sendAdminNotification = async (req, res) => {
     });
   }
 };
+
+exports.getAdminNotification = async (req, res) => {
+  try {
+    const {receiverId} = req.params;
+
+    if (!receiverId) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Receiver ID is required.",
+        data: [],
+      });
+    }
+
+    const notifications = await Notification.find({ 
+      receiverId, 
+      notificationType: 'admin_message' 
+    }).sort({ createdAt: -1 });
+
+    if (!notifications || notifications.length === 0) {
+      return res.status(200).json({
+        status: 200,
+        success: true,
+        message: "No admin notifications found for this user.",
+        data: [],
+      });
+    }
+
+    return res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Admin notifications fetched successfully.",
+      data: notifications,
+    });
+  } catch (error) {
+    console.error("Error fetching admin notifications:", error);
+    return res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Internal Server Error.",
+      data: [],
+      error: error.message,
+    });
+  }
+};
+
+exports.deleteNotificationById = async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+
+    if (!notificationId) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Notification ID is required.",
+        data: [],
+      });
+    }
+
+    const deletedNotification = await Notification.findByIdAndDelete(notificationId);
+
+    if (!deletedNotification) {
+      return res.status(404).json({
+        status: 404,
+        success: false,
+        message: "Notification not found.",
+        data: [],
+      });
+    }
+
+    return res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Notification deleted successfully.",
+      data: [deletedNotification],
+    });
+  } catch (error) {
+    console.error("Error deleting notification:", error);
+    return res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Internal Server Error.",
+      data: [],
+      error: error.message,
+    });
+  }
+};
+
+
 
