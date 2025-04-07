@@ -49,6 +49,11 @@ exports.getAllProviders = async (req, res) => {
 exports.deleteProvider = async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: "Invalid provider ID" });
+    }
+
     const deletedProvider = await Provider.findByIdAndDelete(id);
 
     if (!deletedProvider) {
@@ -57,9 +62,11 @@ exports.deleteProvider = async (req, res) => {
 
     res.status(200).json({ success: true, message: "Provider deleted successfully" });
   } catch (error) {
+    console.error("Delete provider error:", error);
     res.status(500).json({ success: false, message: "Server error", error });
   }
 };
+
 
 // Update a Provider
 exports.updateProvider = async (req, res) => {
