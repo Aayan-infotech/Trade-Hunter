@@ -1,4 +1,5 @@
 const Provider = require("../models/providerModel"); 
+const mongoose = require("mongoose");
 
 exports.getAllProviders = async (req, res) => {
   try {
