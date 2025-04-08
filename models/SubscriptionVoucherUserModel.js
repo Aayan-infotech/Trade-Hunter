@@ -92,7 +92,7 @@ const SubscriptionVoucherUserSchema = new mongoose.Schema({
   kmRadius: {
     type: Number,
     required: true,
-    default: 10
+    default: 80
   },
   createdAt: {
     type: Date,
