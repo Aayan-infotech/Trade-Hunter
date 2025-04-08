@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { verifyUser } = require("../middlewares/auth");
 const { createSubscriptionType,
     getAllSubscriptionTypes,
     deleteSubscriptionType,
@@ -24,34 +25,34 @@ const { createSubscriptionType,
 
 
 
-router.post("/subscription-type", createSubscriptionType);
-router.get("/subscription-type", getAllSubscriptionTypes);
-router.delete("/subscription-type/:id", deleteSubscriptionType);
+router.post("/subscription-type",verifyUser, createSubscriptionType);
+router.get("/subscription-type",verifyUser, getAllSubscriptionTypes);
+router.delete("/subscription-type/:id",verifyUser, deleteSubscriptionType);
 
 
 // SubscriptionPlan
-router.post("/subscription-plan", createSubscriptionPlan);
-router.get("/subscription-plans", getAllSubscriptionPlans);
-router.get("/subscription-plan/:id", getSubscriptionPlanById);
-router.put("/subscription-plan/:id", updateSubscriptionPlan);
-router.delete("/subscription-plan/:id", deleteSubscriptionPlan);
+router.post("/subscription-plan", verifyUser, createSubscriptionPlan);
+router.get("/subscription-plans",verifyUser, getAllSubscriptionPlans);
+router.get("/subscription-plan/:id",verifyUser ,getSubscriptionPlanById);
+router.put("/subscription-plan/:id",verifyUser, updateSubscriptionPlan);
+router.delete("/subscription-plan/:id",verifyUser, deleteSubscriptionPlan);
 
 // subscription user
-router.post("/subscription-user", createSubscriptionUser);
-router.get("/subscription-users",getAllSubscriptionUsers);
-router.get("/subscription-user/:id", getSubscriptionUserById);
-router.put("/subscription-user/:id", updateSubscriptionUser);
-router.delete("/subscription-user/:id", deleteSubscriptionUser);
+router.post("/subscription-user", verifyUser,createSubscriptionUser);
+router.get("/subscription-users", verifyUser , getAllSubscriptionUsers);
+router.get("/subscription-user/:id",verifyUser, getSubscriptionUserById);
+router.put("/subscription-user/:id",verifyUser, updateSubscriptionUser);
+router.delete("/subscription-user/:id",verifyUser, deleteSubscriptionUser);
  
 
 
 // Subscription Routes
-router.get('/subscriptions', getAllSubscriptions);
-router.get('/subscription/:id', getSubscriptionById);
-router.post('/subscription', createSubscription);
-router.put('/subscription/:id', updateSubscription);
-router.delete('/subscription/:id', deleteSubscription);
-router.get("/retentionRate", getRetentionRate);
+router.get('/subscriptions',verifyUser, getAllSubscriptions);
+router.get('/subscription/:id',verifyUser, getSubscriptionById);
+router.post('/subscription',verifyUser, createSubscription);
+router.put('/subscription/:id',verifyUser, updateSubscription);
+router.delete('/subscription/:id',verifyUser, deleteSubscription);
+router.get("/retentionRate",verifyUser, getRetentionRate);
 
 router.get('/subscriptionPlansByType/:subscriptionTypeId', getSubscriptionPlansByTypeId);
 

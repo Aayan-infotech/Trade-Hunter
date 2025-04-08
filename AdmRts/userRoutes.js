@@ -8,11 +8,12 @@ const {
   deleteUser,
   getJobPostsByUser
 } = require("../AdmCtrl/userController");
+const { verifyUser } = require("../middlewares/auth");
 
-router.get("/", getAllUsers);
-router.get("/type/:type/pagelimit/:pagelimit", getUsersByType);
-router.get("/:id", getUserById);
-router.put("/:id", updateUser);
-router.delete("/:id", deleteUser);
-router.get('/jobposts/:userId', getJobPostsByUser);
+router.get("/",verifyUser, getAllUsers);
+router.get("/type/:type/pagelimit/:pagelimit",verifyUser, getUsersByType);
+router.get("/:id",verifyUser,  getUserById);
+router.put("/:id",verifyUser,  updateUser);
+router.delete("/:id",verifyUser, deleteUser);
+router.get('/jobposts/:userId',verifyUser, getJobPostsByUser);
 module.exports = router;

@@ -93,29 +93,7 @@ const getAllJobPosts = async (req, res) => {
   }
 };
 
-const updateJobPost = async (req, res) => {
-  try {
-    const updates = req.body;
 
-    if (req.fileLocations) {
-      updates.images = req.fileLocations;
-    }
-
-    const jobPost = await JobPost.findByIdAndUpdate(req.params.id, updates, {
-      new: true,
-    });
-
-    if (!jobPost) {
-      return apiResponse.error(res, "Job post not found.", 404);
-    }
-
-    return apiResponse.success(res, "Job post updated successfully.", jobPost);
-  } catch (error) {
-    return apiResponse.error(res, "Internal server error.", 500, {
-      error: error.message,
-    });
-  }
-};
 
 const deleteJobPost = async (req, res) => {
   try {
@@ -269,7 +247,6 @@ const getJobPostsByStatus = async (req, res) => {
 
 module.exports = {
   getAllJobPosts,
-  updateJobPost,
   deleteJobPost,
   getJobStatusCounts,
   getRecentJobPosts,

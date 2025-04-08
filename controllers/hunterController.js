@@ -4,9 +4,16 @@ const Hunter = require("../models/hunterModel");
 
 exports.getNearbyServiceProviders = async (req, res) => {
   try {
-    const RADIUS_OF_EARTH = 6371; // Radius of Earth in kilometers
-    const { latitude, longitude, radius = 5000, page = 1, limit = 10 } = req.body;
-    const offset = (page - 1) * limit;  // Calculate offset
+    const {
+      latitude,
+      longitude,
+      radius = 5000,
+      page = 1,
+      limit = 10
+    } = req.body;
+
+    const { search = "" } = req.query; 
+    const offset = (page - 1) * limit;
 
     if (!latitude || !longitude) {
       return res.status(400).json({
@@ -15,23 +22,28 @@ exports.getNearbyServiceProviders = async (req, res) => {
       });
     }
 
-    // Aggregation pipeline
     let aggregation = [];
 
-    // GeoNear to calculate distance and match service providers within the radius
     aggregation.push({
       $geoNear: {
         near: {
           type: "Point",
-          coordinates: [longitude, latitude], // GeoJSON format: [longitude, latitude]
+          coordinates: [longitude, latitude],
         },
-        distanceField: "distance", // This will add distance to each provider
-        maxDistance: radius, // Filter providers within the radius
-        spherical: true, // Use spherical geometry (great-circle distance)
+        distanceField: "distance",
+        maxDistance: radius,
+        spherical: true,
       },
     });
 
-    // Pagination logic
+    if (search) {
+      aggregation.push({
+        $match: {
+          "address.addressLine": { $regex: search, $options: "i" },
+        },
+      });
+    }
+
     aggregation.push({
       $facet: {
         totalData: [{ $skip: offset }, { $limit: limit }],
@@ -39,7 +51,6 @@ exports.getNearbyServiceProviders = async (req, res) => {
       },
     });
 
-    // Format response to include pagination data
     aggregation.push({
       $project: {
         data: "$totalData",
@@ -47,29 +58,30 @@ exports.getNearbyServiceProviders = async (req, res) => {
       },
     });
 
-    // Execute the aggregation query
     const result = await providerModel.aggregate(aggregation);
 
-    if (!result || result.length === 0) {
+    if (!result || result.length === 0 || !result[0]?.data?.length) {
       return res.status(404).json({
         message: "No service providers found within the given radius.",
         status: 404,
       });
     }
 
-    const data = result[0]?.data || [];
-    const total = result[0]?.total || 0;
+    const data = result[0].data;
+    const total = result[0].total || 0;
     const totalPage = Math.ceil(total / limit);
     const currentPage = Math.floor(offset / limit) + 1;
 
     res.status(200).json({
       status: 200,
       message: "Nearby service providers fetched successfully.",
-      totalPage,
-      currentPage,
-      limit,
-      totalRecords: total,
       data,
+      pagination: {
+        totalPage,
+        currentPage,
+        limit,
+        totalRecords: total,
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -80,7 +92,8 @@ exports.getNearbyServiceProviders = async (req, res) => {
   }
 };
 
-// plz check
+
+
 exports.updateHunterById = async (req, res) => {
   try {
     const { id } = req.params;

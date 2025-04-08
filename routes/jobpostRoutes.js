@@ -14,6 +14,7 @@ const {
   businessTypes,
   jobsByBusinessType,
   incrementJobAcceptCount,
+  updateJobPost,
 } = require("../controllers/jobpostController");
 const multer = require("multer");
 const upload = multer();
@@ -43,5 +44,6 @@ router.post("/acceptJob/:jobId", verifyUser, jobProviderAccept);
 router.get("/businessTypes", businessTypes);
 router.get("/jobsByBusinessType", jobsByBusinessType);
 router.put("/job/accept/:jobId", incrementJobAcceptCount);
+router.put("/:id",verifyUser,upload.array("documents"),uploadToS3files, updateJobPost);
 
 module.exports = router;

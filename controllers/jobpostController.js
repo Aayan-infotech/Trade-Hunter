@@ -151,9 +151,16 @@ const getJobPostByUserId = async (req, res) => {
     let page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 10;
     let skip = (page - 1) * limit;
+    const search = req.query.search || "";
+    
+    const query = { user: userId };
 
-    const totalJobs = await JobPost.countDocuments({ user: userId });
-    const jobPosts = await JobPost.find({ user: userId })
+    if (search) {
+      query["address.addressLine"] = { $regex: search, $options: "i" };
+    }
+
+    const totalJobs = await JobPost.countDocuments(query);
+    const jobPosts = await JobPost.find(query)
       .skip(skip)
       .limit(limit);
 
@@ -177,6 +184,7 @@ const getJobPostByUserId = async (req, res) => {
     });
   }
 };
+
 
 //change job status
 
@@ -702,6 +710,51 @@ const incrementJobAcceptCount = async (req, res) => {
   }
 };
 
+const updateJobPost = async (req, res) => {
+  try {
+    const updates = req.body;
+
+
+    if (updateData.addressLine !== undefined) {
+      updateData["address.addressLine"] = updateData.addressLine;
+      delete updateData.addressLine;
+    }
+    if (updateData.latitude !== undefined && updateData.longitude !== undefined) {
+      updateData["address.location.coordinates"] = [
+        Number(updateData.longitude), 
+        Number(updateData.latitude)
+      ];
+      updateData["address.location.type"] = 'Point';
+      delete updateData.latitude;
+      delete updateData.longitude;
+    }
+
+    if (req.fileLocations && req.fileLocations.length > 0) {
+      updates.documents = req.fileLocations;
+    }
+
+    const jobPost = await JobPost.findByIdAndUpdate(req.params.id, updates, {
+      new: true,
+    });
+
+    if (!jobPost) {
+      return apiResponse.error(res, "Job post not found.", 404);
+    }
+
+    return apiResponse.success(
+      res,
+      "Job post updated successfully.",
+      jobPost
+    );
+  } catch (error) {
+    console.error("Error in updateJobPost:", error);
+    return apiResponse.error(res, "Internal server error.", 500, {
+      error: error.message,
+    });
+  }
+};
+
+
 module.exports = {
   createJobPost,
   getJobPostById,
@@ -718,4 +771,5 @@ module.exports = {
   jobsByBusinessType,
   deleteJobPost,
   incrementJobAcceptCount,
+  updateJobPost,
 };
