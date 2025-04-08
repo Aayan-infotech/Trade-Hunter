@@ -715,18 +715,18 @@ const updateJobPost = async (req, res) => {
     const updates = req.body;
 
 
-    if (updateData.addressLine !== undefined) {
-      updateData["address.addressLine"] = updateData.addressLine;
-      delete updateData.addressLine;
+    if (updates.addressLine !== undefined) {
+      updates["address.addressLine"] = updates.addressLine;
+      delete updates.addressLine;
     }
-    if (updateData.latitude !== undefined && updateData.longitude !== undefined) {
-      updateData["address.location.coordinates"] = [
-        Number(updateData.longitude), 
-        Number(updateData.latitude)
+    if (updates.latitude !== undefined && updates.longitude !== undefined) {
+      updates["address.location.coordinates"] = [
+        Number(updates.longitude), 
+        Number(updates.latitude)
       ];
-      updateData["address.location.type"] = 'Point';
-      delete updateData.latitude;
-      delete updateData.longitude;
+      updates["address.location.type"] = 'Point';
+      delete updates.latitude;
+      delete updates.longitude;
     }
 
     if (req.fileLocations && req.fileLocations.length > 0) {
