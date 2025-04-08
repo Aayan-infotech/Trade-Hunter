@@ -15,7 +15,7 @@ router.post("/login", (req, res) => {
   }
 
   const payload = { email };
-  const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1m" });
+  const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "7d" });
 
   res.json({ token, adminId: AdminId });
 });
