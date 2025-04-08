@@ -6,6 +6,67 @@ const Hunter = require("../models/hunterModel");
 const Provider = require("../models/providerModel");
 
 
+// exports.sendPushNotification = async (req, res) => {
+//   try {
+//     const { title, body, receiverId, notificationType } = req.body;
+//     const userId = req.user.userId;
+
+//     if (!title || !body || !receiverId || !notificationType) {
+//       return res.status(400).json({
+//         status: 400,
+//         success: false,
+//         message: "Title and body are required.",
+//         data: []
+//       });
+//     }
+//     // Validate notificationType
+//     const validTypes = ['job_alert', 'voucher_update', 'job_accept', 'job_complete'];
+//     if (!validTypes.includes(notificationType)) {
+//       return res.status(400).json({
+//         status: 400,
+//         success: false,
+//         message: "Invalid notificationType. Allowed types: " + validTypes.join(", "),
+//         data: []
+//       });
+//     }
+
+//     const device = await DeviceToken.findOne({ userId });
+//     if (!device) {
+//       return res.status(404).json({
+//         status: 404,
+//         success: false,
+//         message: "Device token not found for the user.",
+//         data: []
+//       });
+//     }
+
+//     const message = {
+//       notification: { title, body },
+//       token: device.deviceToken,
+//     };
+
+//     await admin.messaging().send(message);
+//     const notificationData = await Notification.create({ userId, title, body, receiverId, notificationType });
+
+//     res.status(200).json({
+//       status: 200,
+//       success: true,
+//       message: "Notification sent successfully.",
+//       data: [notificationData]
+//     });
+//   } catch (error) {
+//     console.error("Error sending notification:", error);
+//     res.status(500).json({
+//       status: 500,
+//       success: false,
+//       message: "Failed to send notification.",
+//       data: [],
+//       error: error.message
+//     });
+//   }
+// };
+
+
 exports.sendPushNotification = async (req, res) => {
   try {
     const { title, body, receiverId, notificationType } = req.body;
@@ -19,7 +80,7 @@ exports.sendPushNotification = async (req, res) => {
         data: []
       });
     }
-    // Validate notificationType
+
     const validTypes = ['job_alert', 'voucher_update', 'job_accept', 'job_complete'];
     if (!validTypes.includes(notificationType)) {
       return res.status(400).json({
@@ -30,7 +91,8 @@ exports.sendPushNotification = async (req, res) => {
       });
     }
 
-    const device = await DeviceToken.findOne({ userId });
+    const device = await DeviceToken.findOne({ userId: receiverId });
+
     if (!device) {
       return res.status(404).json({
         status: 404,
@@ -40,31 +102,62 @@ exports.sendPushNotification = async (req, res) => {
       });
     }
 
-    const message = {
-      notification: { title, body },
-      token: device.deviceToken,
-    };
+    // 🧠 Check isNotificationEnable based on userType provider and hunter
+    let shouldSend = false;
 
-    await admin.messaging().send(message);
-    const notificationData = await Notification.create({ userId, title, body, receiverId, notificationType });
+    if (device.userType === "provider") {
+      const provider = await Provider.findById(receiverId);
+      if (provider && provider.isNotificationEnable === true) {
+        shouldSend = true;
+      }
+    } else if (device.userType === "hunter") {
+      const hunter = await Hunter.findById(receiverId);
+      if (hunter && hunter.isNotificationEnable === true) {
+        shouldSend = true;
+      }
+    }
 
-    res.status(200).json({
+    let notificationData = null;
+
+    if (shouldSend) {
+      const message = {
+        notification: { title, body },
+        token: device.deviceToken,
+      };
+
+      await admin.messaging().send(message);
+    }
+
+    // Always store notification in DB, even if not sent
+    notificationData = await Notification.create({
+      userId,
+      title,
+      body,
+      receiverId,
+      notificationType
+    });
+
+    return res.status(200).json({
       status: 200,
       success: true,
-      message: "Notification sent successfully.",
-      data: [notificationData]
+      message: shouldSend
+        ? "Notification sent successfully."
+        : "Notification saved but not sent (notifications disabled).",
+      data: [notificationData],
     });
+
   } catch (error) {
     console.error("Error sending notification:", error);
-    res.status(500).json({
+    return res.status(500).json({
       status: 500,
       success: false,
       message: "Failed to send notification.",
       data: [],
-      error: error.message
+      error: error.message,
     });
   }
 };
+
 
 exports.getNotificationsByUserId = async (req, res) => {
   try {
