@@ -105,6 +105,10 @@ const hunterSchema = new mongoose.Schema(
       // unique: true,
       default: null,
     },    
+    isNotificationEnable: {
+      type: Boolean,
+      default: true,
+    },
     files: [fileSchema],
   },
   { timestamps: true }

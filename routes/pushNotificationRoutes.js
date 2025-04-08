@@ -11,6 +11,7 @@ router.post('/sendNotification' , verifyUser, notificationController.sendPushNot
 router.post('/sendAdminNotification/:receiverId' ,notificationController.sendAdminNotification);
 router.get('/getAdminNotification/:receiverId', notificationController.getAdminNotification);
 router.delete('/deleteNotification/:notificationId', notificationController.deleteNotificationById);
+router.patch("/notification/:type/:id", notificationController.updateNotificationStatus);
 
 
 

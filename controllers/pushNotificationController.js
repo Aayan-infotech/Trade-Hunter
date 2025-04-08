@@ -2,6 +2,8 @@ const admin = require('../config/firebaseConfig');
 const Notification = require("../models/pushNotificationModel");
 const massNotification = require('../models/massNotification');
 const DeviceToken = require("../models/devicetokenModel");
+const Hunter = require("../models/hunterModel");
+const Provider = require("../models/providerModel");
 
 
 exports.sendPushNotification = async (req, res) => {
@@ -376,5 +378,63 @@ exports.deleteNotificationById = async (req, res) => {
   }
 };
 
+// Notification setting both hunter and provider
+exports.updateNotificationStatus = async (req, res) => {
+  try {
+    const { id, type } = req.params;
+    const { isNotificationEnable } = req.body;
+
+    if (typeof isNotificationEnable !== 'boolean') {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "isNotificationEnable must be true or false.",
+        data: [],
+      });
+    }
+    let updatedUser;
+    if (type === 'hunter') {
+      updatedUser = await Hunter.findByIdAndUpdate(
+        id,
+        { isNotificationEnable },
+        { new: true }
+      );
+    } else if (type === 'provider') {
+      updatedUser = await Provider.findByIdAndUpdate(
+        id,
+        { isNotificationEnable },
+        { new: true }
+      );
+    } else {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Invalid type. Must be 'hunter' or 'provider'.",
+        data: [],
+      });
+    }
+    if (!updatedUser) {
+      return res.status(404).json({
+        status: 404,
+        success: false,
+        message: "User not found.",
+        data: [],
+      });
+    }
+    return res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Successfully updated notification status.",
+      data: [updatedUser],
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Server error",
+      data: [],
+    });
+  }
+};
 
 

@@ -153,6 +153,10 @@ const providerSchema = new mongoose.Schema(
       required: false,
       trim: true,
     },
+    isNotificationEnable: {
+      type: Boolean,
+      default: true,
+    }
   },
   { timestamps: true }
 );
