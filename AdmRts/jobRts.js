@@ -1,7 +1,7 @@
 const express = require("express");
+const { verifyUser } = require("../middlewares/auth");
 const {
   getAllJobPosts,
-  updateJobPost,
   deleteJobPost,
   getJobStatusCounts,
   getRecentJobPosts,
@@ -9,10 +9,10 @@ const {
 } = require("../AdmCtrl/jobCtrl");
 const router = express.Router();
 
-router.get("/", getAllJobPosts);
-router.put("/:id", updateJobPost);
-router.delete("/:id", deleteJobPost);
-router.get("/getCount", getJobStatusCounts);
-router.get("/getRecentJobs", getRecentJobPosts);
-router.get('/filter', getJobPostsByStatus);
+router.get("/",verifyUser, getAllJobPosts);
+
+router.delete("/:id",verifyUser, deleteJobPost);
+router.get("/getCount",verifyUser, getJobStatusCounts);
+router.get("/getRecentJobs",verifyUser, getRecentJobPosts);
+router.get('/filter',verifyUser, getJobPostsByStatus);
 module.exports = router;

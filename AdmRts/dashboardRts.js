@@ -4,8 +4,9 @@ const {
     getTotalCount,
     getActiveUsersCount,
 } = require("../AdmCtrl/dashboardApi");
+const { verifyUser } = require("../middlewares/auth");
 
-router.get("/totalUsers", getTotalCount);
-router.get("/activeUsers", getActiveUsersCount)
+router.get("/totalUsers",verifyUser,  getTotalCount);
+router.get("/activeUsers",verifyUser,  getActiveUsersCount)
 
 module.exports = router;

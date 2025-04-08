@@ -5,8 +5,9 @@ const multer = require("multer");
 const upload = multer();
 const { uploadToS3 } = require("../common/multerConfig");
 const providers = require('../controllers/providerController');
+const { verifyUser } = require("../middlewares/auth");
 
-router.get("/", providerController.getAllProviders);
+router.get("/",  providerController.getAllProviders);
 router.delete("/delete/:id", providerController.deleteProvider);
 router.put("/:id", providerController.updateProvider);
 router.get("/GuestMode", providerController.getAllProvidersGuestMode);

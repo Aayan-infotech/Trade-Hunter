@@ -5,8 +5,8 @@ const { verifyUser } = require("../middlewares/auth");
 
 router.post("/giveRating/:providerId", verifyUser, ratingController.giveRating);
 
-router.get("/getRatings/:providerId",  ratingController.getRatings);
+router.get("/getRatings/:providerId",verifyUser,  ratingController.getRatings);
 
-router.get("/getAvgRating/:providerId", ratingController.getAvgRating);
+router.get("/getAvgRating/:providerId",verifyUser,  ratingController.getAvgRating);
 
 module.exports = router;

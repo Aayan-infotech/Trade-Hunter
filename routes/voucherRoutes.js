@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const voucherController = require('../controllers/voucherControllers');
+const { verifyUser } = require("../middlewares/auth");
 
-router.post('/apply', voucherController.applyVoucher);
-router.post('/create', voucherController.createVoucher);
-router.get('/', voucherController.getVouchers);
-router.delete('/:id', voucherController.deleteVoucher);
-router.put('/update/:id', voucherController.updateVoucher);
-router.get('/getVoucherUsers/:userId', voucherController.getVoucherSubscriptionByUserId)
+router.post('/apply',verifyUser, voucherController.applyVoucher);
+router.post('/create',verifyUser, voucherController.createVoucher);
+router.get('/', verifyUser,voucherController.getVouchers);
+router.delete('/:id',verifyUser, voucherController.deleteVoucher);
+router.put('/update/:id',verifyUser,  voucherController.updateVoucher);
+router.get('/getVoucherUsers/:userId',verifyUser,  voucherController.getVoucherSubscriptionByUserId)
 
 module.exports = router;
