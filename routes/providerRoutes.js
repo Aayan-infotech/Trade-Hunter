@@ -15,8 +15,8 @@ router.post('/getNearbyJobsForGuest', verifyUser,fileController.getNearbyJobsFor
 router.get('/getJobByIdForGuest/:jobId', verifyUser, fileController.getJobByIdForGuest);
 router.put('/updateById/:id',verifyUser, upload.single(), fileController.updateProviderById);
 router.get('/:providerId',verifyUser, fileController.getProviderProfile);
-router.post('/acceptCount/:providerId',verifyUser, fileController.jobAcceptCount);
-router.post('/completedCount/:providerId',verifyUser, fileController.jobCompleteCount)
+router.post('/acceptCount/:providerId', fileController.jobAcceptCount);
+router.post('/completedCount/:providerId', fileController.jobCompleteCount)
 router.get('/completionRate/:providerId',verifyUser, fileController.completionRate);
 router.delete('/delete/:fileId',verifyUser, fileController.deleteFile);
 router.post("/about/:id",verifyUser, fileController.upsertAbout);
