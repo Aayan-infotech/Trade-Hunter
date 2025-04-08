@@ -714,17 +714,17 @@ const updateJobPost = async (req, res) => {
   try {
     const updates = req.body;
 
-
     if (updates.addressLine !== undefined) {
-      updates["address.addressLine"] = updates.addressLine;
+      updates["jobLocation.jobAddressLine"] = updates.addressLine;
       delete updates.addressLine;
     }
+
     if (updates.latitude !== undefined && updates.longitude !== undefined) {
-      updates["address.location.coordinates"] = [
+      updates["jobLocation.location.coordinates"] = [
         Number(updates.longitude), 
         Number(updates.latitude)
       ];
-      updates["address.location.type"] = 'Point';
+      updates["jobLocation.location.type"] = 'Point';
       delete updates.latitude;
       delete updates.longitude;
     }
@@ -753,6 +753,7 @@ const updateJobPost = async (req, res) => {
     });
   }
 };
+
 
 
 module.exports = {
