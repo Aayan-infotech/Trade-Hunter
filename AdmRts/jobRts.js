@@ -13,6 +13,6 @@ router.get("/",verifyUser, getAllJobPosts);
 
 router.delete("/:id",verifyUser, deleteJobPost);
 router.get("/getCount",verifyUser, getJobStatusCounts);
-router.get("/getRecentJobs",verifyUser, getRecentJobPosts);
+router.get("/getRecentJobs", getRecentJobPosts);
 router.get('/filter',verifyUser, getJobPostsByStatus);
 module.exports = router;

@@ -9,8 +9,8 @@ const { verifyUser } = require("../middlewares/auth");
 
 
 router.post("/postBlog", uploadToS3 ,createBlog);
-router.get("/getAll",verifyUser, getBlogs);
-router.get("/getById/:id",verifyUser, getBlogById);
+router.get("/getAll", getBlogs);
+router.get("/getById/:id", getBlogById);
 router.put("/update/:id",verifyUser, uploadToS3, updateBlog);
 router.delete("/delete/:id",verifyUser, deleteBlog);
 
