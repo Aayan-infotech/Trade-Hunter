@@ -161,6 +161,7 @@ const getJobPostByUserId = async (req, res) => {
 
     const totalJobs = await JobPost.countDocuments(query);
     const jobPosts = await JobPost.find(query)
+      .sort({ createdAt: -1 }) 
       .skip(skip)
       .limit(limit);
 
@@ -184,6 +185,7 @@ const getJobPostByUserId = async (req, res) => {
     });
   }
 };
+
 
 
 //change job status
