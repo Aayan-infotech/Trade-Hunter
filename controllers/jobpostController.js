@@ -712,21 +712,36 @@ const incrementJobAcceptCount = async (req, res) => {
 
 const updateJobPost = async (req, res) => {
   try {
-    const updates = req.body;
+    const updates = { ...req.body };
 
-    if (updates.addressLine !== undefined) {
-      updates["jobLocation.jobAddressLine"] = updates.addressLine;
-      delete updates.addressLine;
+    const jobLocation = {};
+
+    if (updates.jobAddressLine !== undefined) {
+      jobLocation.jobAddressLine = updates.jobAddressLine;
+      delete updates.jobAddressLine;
+    }
+
+    if (updates.city !== undefined) {
+      jobLocation.city = updates.city;
+      delete updates.city;
+    }
+
+    if (updates.jobRadius !== undefined) {
+      jobLocation.jobRadius = Number(updates.jobRadius);
+      delete updates.jobRadius;
     }
 
     if (updates.latitude !== undefined && updates.longitude !== undefined) {
-      updates["jobLocation.location.coordinates"] = [
-        Number(updates.longitude), 
-        Number(updates.latitude)
-      ];
-      updates["jobLocation.location.type"] = 'Point';
+      jobLocation.location = {
+        type: 'Point',
+        coordinates: [Number(updates.longitude), Number(updates.latitude)],
+      };
       delete updates.latitude;
       delete updates.longitude;
+    }
+
+    if (Object.keys(jobLocation).length > 0) {
+      updates.jobLocation = jobLocation;
     }
 
     if (req.fileLocations && req.fileLocations.length > 0) {

@@ -65,13 +65,13 @@ exports.getMatchedDataNotification = async (req, res) => {
     const sender = senderHunter || senderProvider;
     const receiver = receiverHunter || receiverProvider;
 
-    // if (!sender || !receiver) {
-    //   return res.status(404).json({ 
-    //     message: "One or more records not found.", 
-    //     status: false, 
-    //     data: {} 
-    //   });
-    // }
+    if (!sender || !receiver) {
+      return res.status(404).json({ 
+        message: "One or more records not found.", 
+        status: false, 
+        data: {} 
+      });
+    }
 
     const senderType = senderHunter ? "hunter" : "provider";
     const receiverType = receiverHunter ? "hunter" : "provider";
