@@ -156,7 +156,7 @@ const getJobPostByUserId = async (req, res) => {
     const query = { user: userId };
 
     if (search) {
-      query["address.addressLine"] = { $regex: search, $options: "i" };
+      query["title"] = { $regex: search, $options: "i" };
     }
 
     const totalJobs = await JobPost.countDocuments(query);
