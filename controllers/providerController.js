@@ -230,6 +230,7 @@ exports.getServicesForGuestLocation = async (req, res) => {
   }
 };
 
+
 exports.getNearbyJobs  = async (req, res) => {
   try {
     const {
@@ -241,14 +242,17 @@ exports.getNearbyJobs  = async (req, res) => {
       limit = 10,
     } = req.body;
 
-    if (!businessType ||  !latitude || !longitude || !radius) {
-      return res.status(400).json({ status: 400, message: "Missing required fields" });
+    if (!businessType || !latitude || !longitude || !radius) {
+      return res.status(400).json({
+        status: 400,
+        message: "Missing required fields"
+      });
     }
 
     let businessTypeCondition;
     if (Array.isArray(businessType)) {
       businessTypeCondition = {
-        $in: businessType.map((bt) => new RegExp(`^${bt}$`, "i")),
+        $in: businessType.map((bt) => new RegExp(`^${bt}$`, "i"))
       };
     } else {
       businessTypeCondition = new RegExp(`^${businessType}$`, "i");
@@ -267,6 +271,7 @@ exports.getNearbyJobs  = async (req, res) => {
       {
         $match: {
           businessType: businessTypeCondition,
+          jobStatus: "Pending"
         },
       },
       {
@@ -283,6 +288,7 @@ exports.getNearbyJobs  = async (req, res) => {
     const radiusInRadians = radius / 6378100;
     const totalJobs = await jobpostModel.countDocuments({
       businessType: businessTypeCondition,
+      jobStatus: "Pending",
       "jobLocation.location": {
         $geoWithin: {
           $centerSphere: [[longitude, latitude], radiusInRadians],
@@ -309,6 +315,7 @@ exports.getNearbyJobs  = async (req, res) => {
     });
   }
 };
+
 
 
 exports.getNearbyJobsForGuest = async (req, res) => {
