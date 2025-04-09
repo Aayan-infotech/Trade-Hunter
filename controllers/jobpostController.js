@@ -265,7 +265,7 @@ const myAcceptedJobs = async (req, res) => {
       .lean();
 
     if (!user?.assignedJobs?.length) {
-      return res.status(404).json({ message: "No jobs found" });
+      return res.status(200).json({ message: "No jobs found" });
     }
 
     const jobIds = [...new Set(user.assignedJobs.map((s) => new mongoose.Types.ObjectId(s)))];
