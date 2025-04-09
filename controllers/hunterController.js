@@ -7,7 +7,7 @@ exports.getNearbyServiceProviders = async (req, res) => {
     const {
       latitude,
       longitude,
-      radius = 5000,
+      radius,
       page = 1,
       limit = 10
     } = req.body;
@@ -15,7 +15,7 @@ exports.getNearbyServiceProviders = async (req, res) => {
     const { search = "" } = req.query; 
     const offset = (page - 1) * limit;
 
-    if (!latitude || !longitude) {
+    if (!latitude || !longitude || !radius) {
       return res.status(400).json({
         message: "Latitude and Longitude are required.",
         status: 400,
