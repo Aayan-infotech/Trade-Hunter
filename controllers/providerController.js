@@ -230,22 +230,19 @@ exports.getServicesForGuestLocation = async (req, res) => {
   }
 };
 
-exports.getNearbyJobs = async (req, res) => {
+exports.getNearbyJobs  = async (req, res) => {
   try {
     const {
       businessType,
-      services,
       latitude,
       longitude,
-      radius,
+      radius,  
       page = 1,
       limit = 10,
     } = req.body;
 
-    if (!businessType || !latitude || !longitude || !radius) {
-      return res
-        .status(400)
-        .json({ status: 400, message: "Missing required fields" });
+    if (!businessType ||  !latitude || !longitude || !radius) {
+      return res.status(400).json({ status: 400, message: "Missing required fields" });
     }
 
     let businessTypeCondition;
@@ -262,7 +259,7 @@ exports.getNearbyJobs = async (req, res) => {
         $geoNear: {
           near: { type: "Point", coordinates: [longitude, latitude] },
           distanceField: "distance",
-          maxDistance: radius, 
+          maxDistance: radius,
           spherical: true,
           key: "jobLocation.location",
         },
@@ -270,29 +267,32 @@ exports.getNearbyJobs = async (req, res) => {
       {
         $match: {
           businessType: businessTypeCondition,
-          jobStatus: "Pending",
-          ...(services ? { services } : {}),
         },
       },
       {
-        $sort: { distance: 1 }, 
+        $sort: { distance: 1 },
       },
       {
-        $skip: (page - 1) * limit, 
+        $skip: (page - 1) * limit,
       },
       {
-        $limit: limit, 
+        $limit: limit,
       },
     ]);
 
+    const radiusInRadians = radius / 6378100;
     const totalJobs = await jobpostModel.countDocuments({
       businessType: businessTypeCondition,
-      jobStatus: "Pending",
+      "jobLocation.location": {
+        $geoWithin: {
+          $centerSphere: [[longitude, latitude], radiusInRadians],
+        },
+      },
     });
 
     return res.status(200).json({
       status: 200,
-      message: "Job fetch completed successfully",
+      message: "Jobs fetched successfully",
       data: jobs,
       pagination: {
         totalJobs,
@@ -301,11 +301,15 @@ exports.getNearbyJobs = async (req, res) => {
       },
     });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ status: 500, message: "Error fetching nearby jobs:" + error });
+    console.error("Error fetching jobs:", error);
+    return res.status(500).json({
+      status: 500,
+      message: "Error fetching jobs",
+      error,
+    });
   }
 };
+
 
 exports.getNearbyJobsForGuest = async (req, res) => {
   try {

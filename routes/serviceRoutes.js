@@ -4,7 +4,7 @@ const router=express.Router()
 const { verifyUser } = require("../middlewares/auth")
 
 router.post("/createService", verifyUser,createService)
-router.get("/getAllServices",verifyUser, getAllServices)
+router.get("/getAllServices", getAllServices)
 router.put("/editService/:id",verifyUser,  updateService)
 router.delete("/delete/:id",verifyUser, deleteService)
 
