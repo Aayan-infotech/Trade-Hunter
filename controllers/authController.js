@@ -273,6 +273,8 @@ const logout = async (req, res) => {
   }
 };
 
+//
+
 const verifyEmail = async (req, res) => {
   const { email, verificationOTP, userType } = req.body;
   let user;
