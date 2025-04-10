@@ -715,6 +715,16 @@ const incrementJobAcceptCount = async (req, res) => {
 const updateJobPost = async (req, res) => {
   try {
     const updates = { ...req.body };
+    if (updates.estimatedBudget !== undefined) {
+      if (updates.estimatedBudget === "null") {
+        updates.estimatedBudget = null;
+      } else {
+        updates.estimatedBudget = Number(updates.estimatedBudget);
+        if (isNaN(updates.estimatedBudget)) {
+          updates.estimatedBudget = null;
+        }
+      }
+    }
 
     const jobLocation = {};
 
@@ -770,6 +780,7 @@ const updateJobPost = async (req, res) => {
     });
   }
 };
+
 
 
 
