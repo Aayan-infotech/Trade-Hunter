@@ -136,7 +136,7 @@ const signUp = async (req, res) => {
 
     // Send verification email
     const verificationOTP = await generateverificationOTP(newUser);
-    await sendEmail(email, "Account Verification Link", verificationOTP);
+    await sendEmail(email, "Account Verification OTP", verificationOTP);
 
     const answer = await newUser.save();
 
