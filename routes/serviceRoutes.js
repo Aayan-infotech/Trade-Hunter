@@ -8,4 +8,4 @@ router.get("/getAllServices", getAllServices)
 router.put("/editService/:id",verifyUser,  updateService)
 router.delete("/delete/:id",verifyUser, deleteService)
 
-module.exports=router
+module.exports=router  
