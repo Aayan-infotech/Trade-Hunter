@@ -10,3 +10,4 @@ router.get("/getRatings/:providerId",verifyUser,  ratingController.getRatings);
 router.get("/getAvgRating/:providerId",verifyUser,  ratingController.getAvgRating);
 
 module.exports = router;
+    
