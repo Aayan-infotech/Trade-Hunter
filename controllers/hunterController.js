@@ -95,130 +95,75 @@ exports.getNearbyServiceProviders = async (req, res) => {
 
 
 
-
 exports.updateHunterById = async (req, res) => {
   try {
     const { id } = req.params;
-    const {
-      addressType,
-      address,        // the address line in Address schema
-      latitude,
-      longitude,
-      radius,
-      ...otherFields // any other hunter fields (e.g. name, phone, etc.)
-    } = req.body;
+    let updateData = { ...req.body };
 
-    // 1. Validate ID
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        status: 400,
-        success: false,
-        message: "Invalid ID format",
-        data: [],
+      return res.status(400).json({ 
+        status: 400, 
+        success: false, 
+        message: "Invalid ID format", 
+        data: [] 
       });
     }
 
-    // 2. Ensure hunter exists
     const hunterExists = await Hunter.findById(id);
     if (!hunterExists) {
-      return res.status(404).json({
-        status: 404,
-        success: false,
-        message: "Hunter not found",
-        data: [],
+      return res.status(404).json({ 
+        status: 404, 
+        success: false, 
+        message: "Hunter not found", 
+        data: [] 
       });
     }
 
-    // 3. Prepare Hunter update (flatten nested address fields as before)
-    const hunterUpdate = { ...otherFields };
-    if (address !== undefined) {
-      hunterUpdate["address.addressLine"] = address;
+    // Process address fields similar to provider update API
+    if (updateData.addressLine !== undefined) {
+      updateData["address.addressLine"] = updateData.addressLine;
+      delete updateData.addressLine;
     }
-    if (latitude !== undefined && longitude !== undefined) {
-      hunterUpdate["address.location.coordinates"] = [
-        Number(longitude),
-        Number(latitude),
+    if (updateData.latitude !== undefined && updateData.longitude !== undefined) {
+      updateData["address.location.coordinates"] = [
+        Number(updateData.longitude), 
+        Number(updateData.latitude)
       ];
-      hunterUpdate["address.location.type"] = "Point";
+      updateData["address.location.type"] = 'Point';
+      delete updateData.latitude;
+      delete updateData.longitude;
     }
-    if (radius !== undefined) {
-      hunterUpdate["address.radius"] = Number(radius);
-    }
-    if (req.fileLocations?.length) {
-      hunterUpdate.images = req.fileLocations[0];
-    }
-
-    // 4. Prepare Address update
-    const addressUpdate = {};
-    if (addressType !== undefined) {
-      addressUpdate.addressType = addressType;
-    }
-    if (address !== undefined) {
-      addressUpdate.address = address;
-    }
-    if (latitude !== undefined && longitude !== undefined) {
-      addressUpdate.location = {
-        type: "Point",
-        coordinates: [ Number(longitude), Number(latitude) ],
-      };
-    }
-    if (radius !== undefined) {
-      addressUpdate.radius = Number(radius);
+    if (updateData.radius !== undefined) {
+      updateData["address.radius"] = Number(updateData.radius);
+      delete updateData.radius;
     }
 
-    // 5. Execute both updates (you can wrap in a transaction if desired)
-    const updatedHunter = await Hunter.findByIdAndUpdate(
-      id,
-      { $set: hunterUpdate },
-      { new: true, runValidators: true }
-    );
-    if (!updatedHunter) {
-      return res.status(500).json({
-        status: 500,
-        success: false,
-        message: "Failed to update Hunter",
-        data: [],
-      });
+    // Handle image update if any fileLocations are provided
+    if (req.fileLocations && req.fileLocations.length > 0) {
+      updateData.images = req.fileLocations[0];
     }
 
-    // Only update Address if we have something to set
-    let updatedAddress = null;
-    if (Object.keys(addressUpdate).length > 0) {
-      updatedAddress = await Address.findOneAndUpdate(
-        { userId: id },
-        { $set: addressUpdate },
-        { new: true, runValidators: true }
-      );
-      if (!updatedAddress) {
-        return res.status(404).json({
-          status: 404,
-          success: false,
-          message: "Address record not found for this user",
-          data: [],
-        });
-      }
-    }
+    const updatedHunter = await Hunter.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    });
 
-    // 6. Send back success
-    return res.status(200).json({
+    res.status(200).json({
       status: 200,
       success: true,
-      message: "Hunter and Address updated successfully",
-      data: {
-        hunter: updatedHunter,
-        address: updatedAddress || "(unchanged)",
-      },
+      message: "Hunter updated successfully",
+      data: [updatedHunter],
     });
   } catch (error) {
-    return res.status(500).json({
+    res.status(500).json({
       status: 500,
       success: false,
       message: "Server Error",
       error: error.message,
+      data: [],
     });
   }
 };
-
 
 
 exports.updateRadius = async (req, res) => {
@@ -261,7 +206,6 @@ exports.updateRadius = async (req, res) => {
         message: "Address not found."
       });
     } 
-
 
     res.status(200).json({
       status: 200,
