@@ -824,3 +824,22 @@ exports.getProvidersListing = async (req, res) => {
   }
 };
 
+
+exports.getAllProviders = async (req, res) => {
+
+  try {
+    const providers = await providerModel.find({}).select("-password -__v");
+    res.status(200).json({
+      status: 200,
+      message: "Providers fetched successfully",
+      data: providers,
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+}
+
