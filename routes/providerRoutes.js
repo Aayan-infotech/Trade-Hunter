@@ -7,7 +7,7 @@ const multer = require("multer");
 const upload = multer();
 // Route to handle file upload
 router.post('/getNearbyJobs', verifyUser,fileController.getNearbyJobs);
-router.post('/byBusinessType',verifyUser, fileController.getProvidersByBusinessType)
+router.post('/byBusinessType', fileController.getProvidersByBusinessType)
 router.post('/upload/:providerId',verifyUser, uploadToS3, fileController.uploadFile);
 router.post('/getProviderLocation', verifyUser, fileController.getProviderByUserLocation);
 router.post('/getNearbyJobs',verifyUser, fileController.getNearbyJobs);
