@@ -125,7 +125,7 @@ const providerSchema = new mongoose.Schema(
     },
     isGuestMode: {
       type: Boolean,
-      default: false,
+      default: true,
       required: false,
     },
     jobAcceptCount: {
