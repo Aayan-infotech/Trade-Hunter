@@ -766,3 +766,61 @@ exports.getAbout = async (req, res) => {
     });
   }
 };
+
+
+
+exports.getProvidersListing = async (req, res) => {
+  try {
+    const { lat, lng, businessType } = req.body;
+
+    if (!lat || !lng || !businessType) {
+      return res.status(400).json({
+        status: 400,
+        message: "Latitude, longitude, and businessType are required.",
+      });
+    }
+
+    const latitude = parseFloat(lat);
+    const longitude = parseFloat(lng);
+
+    const businessTypesArray = Array.isArray(businessType)
+      ? businessType
+      : [businessType];
+
+    const providers = await providerModel.aggregate([
+      {
+        $geoNear: {
+          near: { type: "Point", coordinates: [longitude, latitude] },
+          distanceField: "distance",
+          spherical: true,
+          key: "address.location",
+        },
+      },
+      {
+        $match: {
+          businessType: { $in: businessTypesArray },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          contactName: 1,
+          email: 1,
+          businessName: 1,
+          businessType: 1,
+          address: 1,
+          distance: 1,
+        },
+      },
+    ]);
+
+    return res.status(200).json({
+      status: 200,
+      message: "Providers retrieved successfully.",
+      data: providers,
+    });
+  } catch (error) {
+    return res.status(500).json({ status: 500, error: error.message });
+  }
+};
+
