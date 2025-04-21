@@ -1,7 +1,7 @@
 const Transaction = require('../models/TransactionModel');
 const SubscriptionVoucherUser = require('../models/SubscriptionVoucherUserModel');
 const SubscriptionPlan = require('../models/SubscriptionPlanModel');
-const SubscriptionType = require('../models/subscriptionTypeModel');
+const SubscriptionType = require('../models/SubscriptionTypeModel');
 const Provider = require('../models/providerModel');
 
 exports.createTransaction = async (req, res) => {
