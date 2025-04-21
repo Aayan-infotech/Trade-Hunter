@@ -638,11 +638,11 @@ exports.deleteFile = async (req, res) => {
 exports.getProvidersByBusinessType = async (req, res) => {
   try {
     const { lat, lng, radius, businessType } = req.body;
-    if (!lat || !lng || !radius || !businessType) {
+    if (!lat || !lng  || !businessType) {
       return res.status(400).json({
         status: 400,
         message:
-          "Latitude, longitude, radius, and businessType are required.",
+          "Latitude, longitude, and businessType are required.",
       });
     }
 
