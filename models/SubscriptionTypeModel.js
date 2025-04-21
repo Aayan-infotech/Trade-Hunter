@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const SubscriptionType = new mongoose.Schema({
+const SubscriptionTypeSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
@@ -11,4 +11,6 @@ const SubscriptionType = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model('SubscriptionType', SubscriptionType);
+module.exports =
+  mongoose.models.SubscriptionType ||
+  mongoose.model("SubscriptionType", SubscriptionTypeSchema);

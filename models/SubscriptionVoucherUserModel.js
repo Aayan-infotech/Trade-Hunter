@@ -55,7 +55,6 @@ const SubscriptionVoucherUserSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['Voucher', 'Subscription'], 
     required: true
   },
   subscriptionPlanId: {
