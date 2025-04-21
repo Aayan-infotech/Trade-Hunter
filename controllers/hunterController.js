@@ -1,35 +1,40 @@
 const mongoose = require("mongoose");
 const providerModel = require("../models/providerModel");
 const Hunter = require("../models/hunterModel");
+const Address = require("../models/addressModel");
 
+// Helper to run multiple operations in a transaction
+async function withTransaction(fn) {
+  const session = await mongoose.startSession();
+  let result;
+  try {
+    await session.withTransaction(async () => {
+      result = await fn(session);
+    });
+    return result;
+  } finally {
+    session.endSession();
+  }
+}
+
+// Fetch nearby service providers with pagination and optional search
 exports.getNearbyServiceProviders = async (req, res) => {
   try {
-    const {
-      latitude,
-      longitude,
-      radius,
-      page = 1,
-      limit = 10
-    } = req.body;
-
-    const { search = "" } = req.query; 
+    const { latitude, longitude, radius, page = 1, limit = 10 } = req.body;
+    const { search = "" } = req.query;
     const offset = (page - 1) * limit;
 
-    if (!latitude || !longitude || !radius) {
+    if (latitude == null || longitude == null || radius == null) {
       return res.status(400).json({
-        message: "Latitude and Longitude are required.",
+        message: "Latitude, Longitude and radius are required.",
         status: 400,
       });
     }
 
-    let aggregation = [];
-
+    const aggregation = [];
     aggregation.push({
       $geoNear: {
-        near: {
-          type: "Point",
-          coordinates: [longitude, latitude],
-        },
+        near: { type: "Point", coordinates: [longitude, latitude] },
         distanceField: "distance",
         maxDistance: radius,
         spherical: true,
@@ -47,44 +52,36 @@ exports.getNearbyServiceProviders = async (req, res) => {
     aggregation.push({
       $facet: {
         totalData: [{ $skip: offset }, { $limit: limit }],
-        total: [{ $count: "total" }],
+        totalCount: [{ $count: "total" }],
       },
     });
-
     aggregation.push({
       $project: {
         data: "$totalData",
-        total: { $arrayElemAt: ["$total.total", 0] },
+        total: { $arrayElemAt: ["$totalCount.total", 0] },
       },
     });
 
     const result = await providerModel.aggregate(aggregation);
-
-    if (!result || result.length === 0 || !result[0]?.data?.length) {
+    if (!result.length || !result[0].data.length) {
       return res.status(404).json({
         message: "No service providers found within the given radius.",
         status: 404,
       });
     }
 
-    const data = result[0].data;
-    const total = result[0].total || 0;
+    const { data, total = 0 } = result[0];
     const totalPage = Math.ceil(total / limit);
-    const currentPage = Math.floor(offset / limit) + 1;
+    const currentPage = page;
 
-    res.status(200).json({
+    return res.status(200).json({
       status: 200,
       message: "Nearby service providers fetched successfully.",
       data,
-      pagination: {
-        totalPage,
-        currentPage,
-        limit,
-        totalRecords: total,
-      },
+      pagination: { totalPage, currentPage, limit, totalRecords: total },
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "An error occurred while fetching nearby service providers.",
       error: error.message,
       status: 500,
@@ -92,118 +89,109 @@ exports.getNearbyServiceProviders = async (req, res) => {
   }
 };
 
-
-
+// Update a hunter and its Address record
 exports.updateHunterById = async (req, res) => {
   try {
     const { id } = req.params;
-    let updateData = { ...req.body };
-
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        status: 400, 
-        success: false, 
-        message: "Invalid ID format", 
-        data: [] 
-      });
+      return res.status(400).json({ status: 400, success: false, message: "Invalid ID format", data: [] });
     }
 
-    const hunterExists = await Hunter.findById(id);
-    if (!hunterExists) {
-      return res.status(404).json({ 
-        status: 404, 
-        success: false, 
-        message: "Hunter not found", 
-        data: [] 
-      });
+    // Prepare updates for Hunter
+    const hunterUpdate = { ...req.body };
+    if (hunterUpdate.addressLine !== undefined) {
+      hunterUpdate["address.addressLine"] = hunterUpdate.addressLine;
+      delete hunterUpdate.addressLine;
     }
-
-    // Process address fields similar to provider update API
-    if (updateData.addressLine !== undefined) {
-      updateData["address.addressLine"] = updateData.addressLine;
-      delete updateData.addressLine;
-    }
-    if (updateData.latitude !== undefined && updateData.longitude !== undefined) {
-      updateData["address.location.coordinates"] = [
-        Number(updateData.longitude), 
-        Number(updateData.latitude)
+    if (hunterUpdate.latitude !== undefined && hunterUpdate.longitude !== undefined) {
+      hunterUpdate["address.location.coordinates"] = [
+        Number(hunterUpdate.longitude),
+        Number(hunterUpdate.latitude),
       ];
-      updateData["address.location.type"] = 'Point';
-      delete updateData.latitude;
-      delete updateData.longitude;
+      hunterUpdate["address.location.type"] = 'Point';
+      delete hunterUpdate.latitude;
+      delete hunterUpdate.longitude;
     }
-    if (updateData.radius !== undefined) {
-      updateData["address.radius"] = Number(updateData.radius);
-      delete updateData.radius;
+    if (hunterUpdate.radius !== undefined) {
+      hunterUpdate["address.radius"] = Number(hunterUpdate.radius);
+      delete hunterUpdate.radius;
     }
-
-    // Handle image update if any fileLocations are provided
-    if (req.fileLocations && req.fileLocations.length > 0) {
-      updateData.images = req.fileLocations[0];
+    if (req.fileLocations && req.fileLocations.length) {
+      hunterUpdate.images = req.fileLocations[0];
     }
 
-    const updatedHunter = await Hunter.findByIdAndUpdate(id, updateData, {
-      new: true,
-      runValidators: true,
+    // Mirror updates for Address
+    const addressUpdate = {};
+    if (hunterUpdate["address.addressLine"]) {
+      addressUpdate.addressLine = hunterUpdate["address.addressLine"];
+    }
+    if (hunterUpdate["address.location.coordinates"]) {
+      addressUpdate.location = {
+        type: 'Point',
+        coordinates: hunterUpdate["address.location.coordinates"],
+      };
+    }
+    if (hunterUpdate["address.radius"] !== undefined) {
+      addressUpdate.radius = hunterUpdate["address.radius"];
+    }
+
+    // Run both updates in a transaction
+    const { updatedHunter } = await withTransaction(async (session) => {
+      const updatedHunter = await Hunter.findByIdAndUpdate(id, hunterUpdate, {
+        new: true,
+        runValidators: true,
+        session,
+      });
+      if (!updatedHunter) throw new Error('Hunter not found');
+
+      if (Object.keys(addressUpdate).length) {
+        const updatedAddress = await Address.findOneAndUpdate(
+          { userId: id },
+          { $set: addressUpdate },
+          { new: true, runValidators: true, session }
+        );
+        if (!updatedAddress) throw new Error('Address record not found');
+      }
+
+      return { updatedHunter };
     });
 
-    res.status(200).json({
-      status: 200,
-      success: true,
-      message: "Hunter updated successfully",
-      data: [updatedHunter],
-    });
+    return res.status(200).json({ status: 200, success: true, message: 'Hunter and Address updated successfully', data: [updatedHunter] });
   } catch (error) {
-    res.status(500).json({
-      status: 500,
-      success: false,
-      message: "Server Error",
-      error: error.message,
-      data: [],
-    });
+    return res.status(500).json({ status: 500, success: false, message: 'Server Error', error: error.message, data: [] });
   }
 };
 
-
+// Update only the radius for authenticated hunter
 exports.updateRadius = async (req, res) => {
   try {
     const id = req.user.userId;
     const { radius } = req.body;
 
-    if (typeof radius !== "number" || radius < 0) {
-      return res.status(400).json({
-        status: 400,
-        success: false,
-        message: "Invalid radius value. It must be a positive number."
-      });
+    if (typeof radius !== 'number' || radius < 0) {
+      return res.status(400).json({ status: 400, success: false, message: 'Invalid radius value. It must be a positive number.' });
     }
 
-    const updatedHunter = await Hunter.findByIdAndUpdate(
-      id,
-      { $set: { "address.radius": radius } },
-      { new: true }
-    );
+    await withTransaction(async (session) => {
+      const updatedHunter = await Hunter.findByIdAndUpdate(
+        id,
+        { $set: { 'address.radius': radius } },
+        { new: true, session }
+      );
+      if (!updatedHunter) throw new Error('Hunter not found');
 
-    if (!updatedHunter) {
-      return res.status(404).json({
-        status: 404,
-        success: false,
-        message: "Hunter not found."
-      });
-    }
+      const updatedAddress = await Address.findOneAndUpdate(
+        { userId: id },
+        { $set: { radius } },
+        { new: true, runValidators: true, session }
+      );
+      if (!updatedAddress) throw new Error('Address record not found');
 
-    res.status(200).json({
-      status: 200,
-      success: true,
-      message: "Radius updated successfully.",
-      data: { radius: updatedHunter.address.radius }
+      return { radius: updatedHunter.address.radius };
     });
+
+    return res.status(200).json({ status: 200, success: true, message: 'Radius updated successfully.', data: { radius } });
   } catch (error) {
-    res.status(500).json({
-      status: 500,
-      success: false,
-      message: "Internal server error.",
-      error: error.message
-    });
+    return res.status(500).json({ status: 500, success: false, message: 'Internal server error.', error: error.message });
   }
 };
