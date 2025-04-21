@@ -638,11 +638,11 @@ exports.deleteFile = async (req, res) => {
 exports.getProvidersByBusinessType = async (req, res) => {
   try {
     const { lat, lng, radius, businessType } = req.body;
+
     if (!lat || !lng || !radius || !businessType) {
       return res.status(400).json({
         status: 400,
-        message:
-          "Latitude, longitude, and businessType are required.",
+        message: "Latitude, longitude, radius, and businessType are required.",
       });
     }
 
@@ -670,6 +670,22 @@ exports.getProvidersByBusinessType = async (req, res) => {
         },
       },
       {
+        $lookup: {
+          from: "subscriptiontypes", 
+          localField: "subscriptionType",
+          foreignField: "_id",
+          as: "subscriptionTypeDetails",
+        },
+      },
+      {
+        $unwind: "$subscriptionTypeDetails", // convert array to object
+      },
+      {
+        $match: {
+          "subscriptionTypeDetails.type": "Advertising",
+        },
+      },
+      {
         $project: {
           _id: 1,
           contactName: 1,
@@ -678,6 +694,8 @@ exports.getProvidersByBusinessType = async (req, res) => {
           businessType: 1,
           address: 1,
           distance: 1,
+          "subscriptionTypeDetails.name": 1,
+          "subscriptionTypeDetails.type": 1,
         },
       },
     ]);
@@ -691,6 +709,7 @@ exports.getProvidersByBusinessType = async (req, res) => {
     return res.status(500).json({ status: 500, error: error.message });
   }
 };
+
 
 
 // Create or Update "about" field
