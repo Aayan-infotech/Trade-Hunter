@@ -519,44 +519,55 @@ exports.jobAcceptCount = async (req, res) => {
   }
 };
 
-// Increment job complete count for a provider
 exports.jobCompleteCount = async (req, res) => {
   try {
-    const { providerId } = req.params;
+    const { providerId } = req.params
+
     if (!mongoose.Types.ObjectId.isValid(providerId)) {
-      return res.status(400).json({ 
-        status: 400, 
-        message: "Invalid provider id." 
-      });
+      return res.status(400).json({
+        status: 400,
+        message: 'Invalid provider id.',
+      })
+    }
+
+    const provider = await providerModel.findById(providerId)
+    if (!provider) {
+      return res.status(404).json({
+        status: 404,
+        message: 'Provider not found.',
+      })
+    }
+
+    const incFields = { jobCompleteCount: 1 }
+
+    if (provider.subscriptionPlan) {
+      const plan = await SubscriptionPlan.findById(provider.subscriptionPlan)
+      if (plan && plan.type === 'Pay Per Lead') {
+        incFields.leadCompleteCount = 1
+      }
     }
 
     const updatedProvider = await providerModel.findByIdAndUpdate(
       providerId,
-      { $inc: { jobCompleteCount: 1 } },
+      { $inc: incFields },
       { new: true, runValidators: true }
-    );
-
-    if (!updatedProvider) {
-      return res.status(404).json({ 
-        status: 404, 
-        message: "Provider not found." 
-      });
-    }
+    )
 
     return res.status(200).json({
       status: 200,
-      message: "Job complete count incremented successfully!",
+      message: 'Counts updated successfully!',
       jobCompleteCount: updatedProvider.jobCompleteCount,
-    });
+      leadCompleteCount: updatedProvider.leadCompleteCount,
+    })
   } catch (error) {
-    console.error("Error in jobCompleteCount:", error);
-    return res.status(500).json({ 
-      status: 500, 
-      message: "Internal server error", 
-      error: error.message 
-    });
+    console.error('Error in jobCompleteCount:', error)
+    return res.status(500).json({
+      status: 500,
+      message: 'Internal server error',
+      error: error.message,
+    })
   }
-};
+}
 
 exports.completionRate = async (req, res) => {
   try {

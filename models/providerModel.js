@@ -138,6 +138,11 @@ const providerSchema = new mongoose.Schema(
       ref: "SubscriptionType",
       default: null,
     },  
+    subscriptionPlanId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SubscriptionType",
+      default: null,
+    },
     jobCompleteCount: {
       type: Number,
       default: 0,
