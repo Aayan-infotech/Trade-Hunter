@@ -31,6 +31,10 @@ const SubscriptionPlanSchema = new mongoose.Schema({
     enum: ['active', 'inactive'],
     default: 'active'
   },
+  leadCount: {
+    type: Number,
+    default: 0 
+  },
   createdAt: {
     type: Date,
     default: Date.now
