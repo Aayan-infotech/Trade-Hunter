@@ -58,6 +58,32 @@ const SubscriptionPlan = require("../models/SubscriptionPlanModel");
 
 
 // 🔁 Function to check and update provider subscription based on lead count
+// const checkAndUpdateProviderSubscription = async (provider) => {
+//   try {
+//     if (!provider.subscriptionPlanId) return;
+
+//     const subscriptionPlan = await SubscriptionPlan.findById(provider.subscriptionPlanId);
+//     if (!subscriptionPlan) return;
+
+//     const leadLimit = subscriptionPlan.leadCount || 0;
+//     const completedLeads = provider.leadCompleteCount || 0;
+
+//     if (completedLeads >= leadLimit) {
+//       // Mark as expired
+//       provider.subscriptionStatus = 0;
+//       provider.subscriptionPlan = null;
+//       provider.subscriptionPlanId = null;
+//       provider.address.radius = 10000;
+//       await provider.save();
+//       console.log(`🔴 Subscription expired due to lead limit for provider ${provider._id}`);
+//     } else {
+//       console.log(`🟢 Provider ${provider._id} is within lead limit.`);
+//     }
+//   } catch (err) {
+//     console.error("❌ Error in checkAndUpdateProviderSubscription:", err);
+//   }
+// };
+
 const checkAndUpdateProviderSubscription = async (provider) => {
   try {
     if (!provider.subscriptionPlanId) return;
@@ -72,8 +98,9 @@ const checkAndUpdateProviderSubscription = async (provider) => {
       // Mark as expired
       provider.subscriptionStatus = 0;
       provider.subscriptionPlan = null;
-      provider.subscriptionPlanId = null;
+      provider.set("subscriptionPlanId", null); // ⬅ safer than direct null
       provider.address.radius = 10000;
+      provider.markModified("address");         // ⬅ ensure update triggers
       await provider.save();
       console.log(`🔴 Subscription expired due to lead limit for provider ${provider._id}`);
     } else {
@@ -83,6 +110,7 @@ const checkAndUpdateProviderSubscription = async (provider) => {
     console.error("❌ Error in checkAndUpdateProviderSubscription:", err);
   }
 };
+
 
 const updateSubscriptions = async () => {
   try {
