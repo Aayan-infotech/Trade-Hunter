@@ -520,6 +520,7 @@ exports.jobAcceptCount = async (req, res) => {
   }
 };
 
+
 exports.jobCompleteCount = async (req, res) => {
   try {
     const { providerId } = req.params;
@@ -543,20 +544,19 @@ exports.jobCompleteCount = async (req, res) => {
     // Step 2: Increment jobCompleteCount
     provider.jobCompleteCount += 1;
 
-    // Step 3: Check subscription plan and type
+    // Step 3: Check subscription plan and subscription type
     if (provider.subscriptionPlan) {
       const subscriptionPlan = await SubscriptionPlan.findById(provider.subscriptionPlan);
       if (subscriptionPlan && subscriptionPlan.type) {
         const subscriptionType = await SubscriptionType.findById(subscriptionPlan.type);
-
-        if (subscriptionType && subscriptionType.type === "Pay Per Lead") {
-          // Step 4: Increment leadCompleteCount if type is Pay Per Lead
+        
+        if (subscriptionType?.type === "Pay Per Lead") {
           provider.leadCompleteCount += 1;
         }
       }
     }
 
-    // Step 5: Save provider
+    // Step 4: Save provider
     await provider.save();
 
     return res.status(200).json({
@@ -575,6 +575,7 @@ exports.jobCompleteCount = async (req, res) => {
     });
   }
 };
+
 
 
 exports.completionRate = async (req, res) => {
