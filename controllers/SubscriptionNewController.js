@@ -55,7 +55,7 @@ exports.deleteSubscriptionType = async (req, res) => {
 
 exports.createSubscriptionPlan = async (req, res) => {
   try {
-    const { type, planName, amount, validity, description, kmRadius, status } = req.body;
+    const { type, planName, amount, validity, description, kmRadius, status , leadCount} = req.body;
 
     if (!type || !planName || !amount || !validity) {
       return res.status(400).json({ status: 400, success: false, message: "Required fields are missing" });
@@ -68,6 +68,7 @@ exports.createSubscriptionPlan = async (req, res) => {
       validity,
       description,
       kmRadius,
+      leadCount,
       status
     });
 
