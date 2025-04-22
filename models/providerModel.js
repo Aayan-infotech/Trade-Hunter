@@ -70,14 +70,13 @@ const providerSchema = new mongoose.Schema(
       type: String,
       ref: "SubscriptionPlan",
       default: null,
-    }, // Reference to SubscriptionPlan
-    subscriptionTypeId: {
+    },
+    subscriptionPlanId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "SubscriptionType",
+      ref: "SubscriptionPlan",
       default: null,
     },
     
- // Reference to SubscriptionType
     jobCompleteCount: { type: Number, default: 0, required: false },
     leadCompleteCount: { type: Number, default: 0, required: false },
     UID: { type: String, default: null },
