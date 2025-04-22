@@ -84,12 +84,11 @@ const checkAndUpdateProviderSubscription = async (provider) => {
   }
 };
 
-// 🔄 Cron job logic to update subscriptions
 const updateSubscriptions = async () => {
   try {
     const now = new Date();
 
-    // Step 1: Expire subscriptions where endDate has passed
+    // Step 1: Expired subscriptions ka status "expired" karein
     const expiredSubscriptions = await SubscriptionVoucherUser.find({
       endDate: { $lt: now },
       status: "active",
@@ -98,19 +97,22 @@ const updateSubscriptions = async () => {
     for (const sub of expiredSubscriptions) {
       sub.status = "expired";
       await sub.save();
+      // console.log(`⚠️ Subscription expired: ${sub._id}`);
 
+      // Provider update karein
       const provider = await Provider.findById(sub.userId);
       if (provider) {
         provider.subscriptionStatus = 0;
-        provider.address.radius = 10000;
+        provider.address.radius = 10000; // Default radius when expired
         provider.subscriptionPlan = null;
-        provider.subscriptionPlanId = null;
         await provider.save();
-        console.log(`🔴 Subscription expired (by date) for provider ${provider._id}`);
+        console.log(
+          `⚠️ Provider updated: ${provider._id} | Status: 0 | Radius: 10000`
+        );
       }
     }
 
-    // Step 2: Update active subscriptions & check limits
+    // Step 2: Active subscriptions ko update karein
     const activeSubscriptions = await SubscriptionVoucherUser.find({
       status: "active",
     });
@@ -120,21 +122,22 @@ const updateSubscriptions = async () => {
       if (provider) {
         provider.subscriptionStatus = 1;
         provider.isGuestMode = false;
-        provider.address.radius = (sub.kmRadius || 0) * 1000;
+        provider.address.radius = (sub.kmRadius || 0) * 1000; // Convert km to meters
         await provider.save();
-
         // ✅ Check plan lead count
         await checkAndUpdateProviderSubscription(provider);
+        // console.log(`✅ Updated Provider: ${provider._id} | Status: 1 | Radius: ${provider.address.radius}`);
       }
     }
 
+    // console.log("✅ Subscription update job completed.");
   } catch (error) {
     console.error("❌ Error updating subscriptions:", error);
   }
-};
+}; 
 
 // ⏰ Run every day at 12 PM
 // cron.schedule("0 12 * * *", updateSubscriptions);
-cron.schedule("*/5 * * * *", updateSubscriptions);
+cron.schedule("*/2 * * * *", updateSubscriptions);
 
 
