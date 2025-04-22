@@ -654,52 +654,48 @@ exports.getProvidersByBusinessType = async (req, res) => {
       ? businessType
       : [businessType];
 
-    const providers = await providerModel.aggregate([
-      {
-        $geoNear: {
-          near: { type: "Point", coordinates: [longitude, latitude] },
-          distanceField: "distance",
-          maxDistance: maxDistance,
-          spherical: true,
-          key: "address.location",
+      const providers = await providerModel.aggregate([
+        {
+          $geoNear: {
+            near: { type: "Point", coordinates: [longitude, latitude] },
+            distanceField: "distance",
+            maxDistance,
+            spherical: true,
+            key: "address.location"
+          }
         },
-      },
-      {
-        $match: {
-          businessType: { $in: businessTypesArray },
+        {
+          $match: { businessType: { $in: businessTypesArray } }
         },
-      },
-      {
-        $lookup: {
-          from: "subscriptiontypes", 
-          localField: "subscriptionType",
-          foreignField: "_id",
-          as: "subscriptionTypeDetails",
+        {
+          $lookup: {
+            from: "subscriptiontypes",
+            localField: "subscriptionPlan",
+            foreignField: "_id",
+            as: "subscriptionTypeDetails"
+          }
         },
-      },
-      {
-        $unwind: "$subscriptionTypeDetails", // convert array to object
-      },
-      {
-        $match: {
-          "subscriptionTypeDetails.type": "Advertising",
+        { $unwind: "$subscriptionTypeDetails" },
+        {
+          $match: {
+            "subscriptionTypeDetails.type": "Advertising"
+          }
         },
-      },
-      {
-        $project: {
-          _id: 1,
-          contactName: 1,
-          email: 1,
-          businessName: 1,
-          businessType: 1,
-          address: 1,
-          distance: 1,
-          "subscriptionTypeDetails.name": 1,
-          "subscriptionTypeDetails.type": 1,
-        },
-      },
-    ]);
-
+        {
+          $project: {
+            _id: 1,
+            contactName: 1,
+            email: 1,
+            businessName: 1,
+            businessType: 1,
+            address: 1,
+            distance: 1,
+            "subscriptionTypeDetails.name": 1,
+            "subscriptionTypeDetails.type": 1
+          }
+        }
+      ]);
+      
     return res.status(200).json({
       status: 200,
       message: "Providers retrieved successfully.",
