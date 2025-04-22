@@ -524,42 +524,28 @@ exports.jobAcceptCount = async (req, res) => {
 exports.jobCompleteCount = async (req, res) => {
   try {
     const { providerId } = req.params;
-
     if (!mongoose.Types.ObjectId.isValid(providerId)) {
-      return res.status(400).json({
-        status: 400,
-        message: "Invalid provider ID.",
-      });
+      return res.status(400).json({ status: 400, message: "Invalid provider ID." });
     }
 
     const provider = await providerModel.findById(providerId);
     if (!provider) {
-      return res.status(404).json({
-        status: 404,
-        message: "Provider not found.",
-      });
+      return res.status(404).json({ status: 404, message: "Provider not found." });
     }
 
+    // Always bump the job count
     provider.jobCompleteCount += 1;
 
-    let isPayPerLead = false;
+    // Check for Pay Per Lead plans
+    if (provider.subscriptionPlanId) {
+      // Mongoose will cast the string to ObjectId under the hood
+      const subscriptionPlan = await SubscriptionPlan
+        .findById(provider.subscriptionPlanId)
+        .populate('type'); // populate the SubscriptionType :contentReference[oaicite:3]{index=3}
 
-    if (mongoose.Types.ObjectId.isValid(provider.subscriptionPlan)) {
-      const subscriptionPlan = await SubscriptionPlan.findById(provider.subscriptionPlan);
-      if (subscriptionPlan && subscriptionPlan.type) {
-        const subscriptionType = await SubscriptionType.findById(subscriptionPlan.type);
-        if (subscriptionType?.type === "Pay Per Lead") {
-          isPayPerLead = true;
-        }
+      if (subscriptionPlan?.type?.type === "Pay Per Lead") {
+        provider.leadCompleteCount += 1;
       }
-    } else {
-      if (provider.subscriptionPlan === "Pay Per Lead") {
-        isPayPerLead = true;
-      }
-    }
-
-    if (isPayPerLead) {
-      provider.leadCompleteCount += 1;
     }
 
     await provider.save();
@@ -570,7 +556,6 @@ exports.jobCompleteCount = async (req, res) => {
       jobCompleteCount: provider.jobCompleteCount,
       leadCompleteCount: provider.leadCompleteCount,
     });
-
   } catch (error) {
     console.error("Error in jobCompleteCount:", error);
     return res.status(500).json({
@@ -580,6 +565,7 @@ exports.jobCompleteCount = async (req, res) => {
     });
   }
 };
+
 
 
 exports.completionRate = async (req, res) => {
