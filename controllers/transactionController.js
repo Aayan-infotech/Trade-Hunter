@@ -89,7 +89,7 @@ exports.createTransaction = async (req, res) => {
       subscriptionStatus: 1,
       isGuestMode: false,
       subscriptionPlan: subscriptionType.type, 
-      subscriptionPlanId:subscriptionTypeId ,
+      subscriptionPlanId:subscriptionPlanId ,
     });
 
     return res.status(201).json({
