@@ -1,97 +1,60 @@
-const cron = require("node-cron");
-const SubscriptionVoucherUser = require("../models/SubscriptionVoucherUserModel");
+const mongoose = require("mongoose");
+const { ObjectId } = mongoose.Schema.Types;
+
 const Provider = require("../models/providerModel");
 const SubscriptionPlan = require("../models/SubscriptionPlanModel");
 
-// 🔁 Function to check and update provider subscription based on lead count
 const checkAndUpdateProviderSubscription = async (provider) => {
   try {
-    if (!provider.subscriptionPlanId) {
-      console.log(`⚠️ No subscriptionPlanId for provider ${provider._id}`);
-      return;
-    }
+    const subscriptionPlanId = provider.subscriptionPlanId;
 
-    console.log(`📦 Checking SubscriptionPlan for provider: ${provider._id}`);
-    const subscriptionPlan = await SubscriptionPlan.findById(provider.subscriptionPlanId);
+    if (subscriptionPlanId) {
+      // Convert subscriptionPlanId to ObjectId
+      const objectId = new ObjectId(subscriptionPlanId);
 
-    if (!subscriptionPlan) {
-      console.log(`❌ No SubscriptionPlan found for ID: ${provider.subscriptionPlanId}`);
-      return;
-    }
+      // Find the SubscriptionPlan using the ObjectId
+      const subscriptionPlan = await SubscriptionPlan.findById(objectId);
 
-    const leadLimit = subscriptionPlan.leadCount || 0;
-    const completedLeads = provider.leadCompleteCount || 0;
-
-    console.log(`📊 Provider ${provider._id} | leadCompleteCount: ${completedLeads} | leadLimit: ${leadLimit}`);
-
-    if (completedLeads >= leadLimit) {
-      // Expire the subscription
-      provider.subscriptionStatus = 0;
-      provider.subscriptionPlan = null;
-      provider.subscriptionPlanId = null;
-      provider.address.radius = 10000;
-      await provider.save();
-      console.log(`🔴 Subscription expired due to lead limit for provider ${provider._id}`);
-    } else {
-      console.log(`🟢 Provider ${provider._id} is within lead limit.`);
-    }
-  } catch (err) {
-    console.error("❌ Error in checkAndUpdateProviderSubscription:", err);
-  }
-};
-
-// 🔄 Cron job logic to update subscriptions
-const updateSubscriptions = async () => {
-  console.log("🕒 Cron job triggered at:", new Date());
-
-  try {
-    const now = new Date();
-
-    // Step 1: Expire subscriptions where endDate has passed
-    const expiredSubscriptions = await SubscriptionVoucherUser.find({
-      endDate: { $lt: now },
-      status: "active",
-    });
-
-    for (const sub of expiredSubscriptions) {
-      sub.status = "expired";
-      await sub.save();
-
-      const provider = await Provider.findById(sub.userId);
-      if (provider) {
-        provider.subscriptionStatus = 0;
-        provider.address.radius = 10000;
-        provider.subscriptionPlan = null;
-        provider.subscriptionPlanId = null;
-        await provider.save();
-        console.log(`🔴 Subscription expired (by date) for provider ${provider._id}`);
-      }
-    }
-
-    // Step 2: Update active subscriptions & check lead limit
-    const activeSubscriptions = await SubscriptionVoucherUser.find({
-      status: "active",
-    });
-
-    for (const sub of activeSubscriptions) {
-      const provider = await Provider.findById(sub.userId);
-      if (provider) {
-        provider.subscriptionStatus = 1;
-        provider.isGuestMode = false;
-        provider.address.radius = (sub.kmRadius || 0) * 1000;
+      if (subscriptionPlan) {
+        provider.subscriptionStatus = 1;  // Active
         await provider.save();
         console.log(`✅ Updated provider ${provider._id} with active subscription.`);
-
-        // Check lead count and update if necessary
-        await checkAndUpdateProviderSubscription(provider);
+      } else {
+        provider.subscriptionStatus = 0;  // Inactive
+        await provider.save();
+        console.log(`❌ No SubscriptionPlan found for ID: ${subscriptionPlanId}`);
       }
+    } else {
+      provider.subscriptionStatus = 0;  // Inactive
+      await provider.save();
+      console.log(`⚠️ No subscriptionPlanId for provider ${provider._id}`);
     }
-  } catch (error) {
-    console.error("❌ Error updating subscriptions:", error);
+  } catch (err) {
+    console.error("Error in checkAndUpdateProviderSubscription:", err);
   }
 };
 
-// ⏰ Run every 5 minutes
-cron.schedule("*/5 * * * *", updateSubscriptions);
+// Cron job function to update subscriptions for all providers
+const updateSubscriptions = async () => {
+  try {
+    console.log(`🕒 Cron job triggered at: ${new Date().toISOString()}`);
 
-console.log("⏳ Subscription update cron job scheduled every 5 minutes.");
+    // Fetch all providers with active subscription status
+    const providers = await Provider.find({ subscriptionStatus: 1 });
+
+    // Iterate through all providers and check/update subscriptions
+    for (const provider of providers) {
+      await checkAndUpdateProviderSubscription(provider);
+    }
+  } catch (err) {
+    console.error("Error in updateSubscriptions:", err);
+  }
+};
+
+// Schedule the cron job to run every 5 minutes
+const cronJob = require("node-cron");
+cronJob.schedule("*/5 * * * *", async () => {
+  await updateSubscriptions();
+});
+
+console.log("✅ Cron job scheduled every 5 minutes.");
