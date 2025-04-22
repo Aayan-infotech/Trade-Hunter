@@ -532,7 +532,6 @@ exports.jobCompleteCount = async (req, res) => {
       });
     }
 
-    // Step 1: Fetch the provider
     const provider = await providerModel.findById(providerId);
     if (!provider) {
       return res.status(404).json({
@@ -541,22 +540,28 @@ exports.jobCompleteCount = async (req, res) => {
       });
     }
 
-    // Step 2: Increment jobCompleteCount
     provider.jobCompleteCount += 1;
 
-    // Step 3: Check subscription plan and subscription type
-    if (provider.subscriptionPlan) {
+    let isPayPerLead = false;
+
+    if (mongoose.Types.ObjectId.isValid(provider.subscriptionPlan)) {
       const subscriptionPlan = await SubscriptionPlan.findById(provider.subscriptionPlan);
       if (subscriptionPlan && subscriptionPlan.type) {
         const subscriptionType = await SubscriptionType.findById(subscriptionPlan.type);
-        
         if (subscriptionType?.type === "Pay Per Lead") {
-          provider.leadCompleteCount += 1;
+          isPayPerLead = true;
         }
+      }
+    } else {
+      if (provider.subscriptionPlan === "Pay Per Lead") {
+        isPayPerLead = true;
       }
     }
 
-    // Step 4: Save provider
+    if (isPayPerLead) {
+      provider.leadCompleteCount += 1;
+    }
+
     await provider.save();
 
     return res.status(200).json({
@@ -575,7 +580,6 @@ exports.jobCompleteCount = async (req, res) => {
     });
   }
 };
-
 
 
 exports.completionRate = async (req, res) => {
