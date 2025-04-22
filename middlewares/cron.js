@@ -1,47 +1,26 @@
-const cron = require("node-cron");
-const SubscriptionVoucherUser = require("../models/SubscriptionVoucherUserModel");
+const mongoose = require("mongoose");
+const { ObjectId } = mongoose.Schema.Types;
+
 const Provider = require("../models/providerModel");
 const SubscriptionPlan = require("../models/SubscriptionPlanModel");
 
 const updateSubscriptions = async () => {
   try {
-    const now = new Date();
+    const subscriptionPlanId = provider.subscriptionPlanId;
 
-    // Step 1: Expired subscriptions ka status "expired" karein
-    const expiredSubscriptions = await SubscriptionVoucherUser.find({
-      endDate: { $lt: now },
-      status: "active",
-    });
+    if (subscriptionPlanId) {
+      // Convert subscriptionPlanId to ObjectId
+      const objectId = new ObjectId(subscriptionPlanId);
 
-    for (const sub of expiredSubscriptions) {
-      sub.status = "expired";
-      await sub.save();
-      // console.log(`⚠️ Subscription expired: ${sub._id}`);
+      // Find the SubscriptionPlan using the ObjectId
+      const subscriptionPlan = await SubscriptionPlan.findById(objectId);
 
-      // Provider update karein
-      const provider = await Provider.findById(sub.userId);
-      if (provider) {
-        provider.subscriptionStatus = 0;
-        provider.address.radius = 10000; // Default radius when expired
-        provider.subscriptionPlan = null;
+      if (subscriptionPlan) {
+        provider.subscriptionStatus = 1;  // Active
         await provider.save();
-        console.log(
-          `⚠️ Provider updated: ${provider._id} | Status: 0 | Radius: 10000`
-        );
-      }
-    }
-
-    // Step 2: Active subscriptions ko update karein
-    const activeSubscriptions = await SubscriptionVoucherUser.find({
-      status: "active",
-    });
-
-    for (const sub of activeSubscriptions) {
-      const provider = await Provider.findById(sub.userId);
-      if (provider) {
-        provider.subscriptionStatus = 1;
-        provider.isGuestMode = false;
-        provider.address.radius = (sub.kmRadius || 0) * 1000; // Convert km to meters
+        console.log(`✅ Updated provider ${provider._id} with active subscription.`);
+      } else {
+        provider.subscriptionStatus = 0;  // Inactive
         await provider.save();
         // console.log(`✅ Updated Provider: ${provider._id} | Status: 1 | Radius: ${provider.address.radius}`);
       }

@@ -88,8 +88,8 @@ exports.createTransaction = async (req, res) => {
     await Provider.findByIdAndUpdate(userId, {
       subscriptionStatus: 1,
       isGuestMode: false,
-      subscriptionPlan: subscriptionType.type, 
-      subscriptionPlanId:subscriptionTypeId ,
+      subscriptionType: subscriptionType.type, 
+      subscriptionPlanId:subscriptionPlanId ,
     });
 
     return res.status(201).json({
