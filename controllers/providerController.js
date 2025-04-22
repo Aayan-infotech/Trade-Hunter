@@ -4,6 +4,7 @@ const path = require("path");
 const providerModel = require("../models/providerModel");
 const jobpostModel = require("../models/jobpostModel");
 const providerPhotosModel = require("../models/providerPhotos");
+const SubscriptionPlan = require("../models/SubscriptionPlanModel")
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
