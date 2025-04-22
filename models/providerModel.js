@@ -143,6 +143,11 @@ const providerSchema = new mongoose.Schema(
       default: 0,
       required: false,
     },
+    leadCompleteCount: {
+      type: Number,
+      default: 0,
+      required: false,
+    },
     UID: {
       type: String,
       default: null,
