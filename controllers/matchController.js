@@ -6,7 +6,7 @@ exports.getMatchedData = async (req, res) => {
     try {
         const { jobPostId, senderId, receiverId } = req.body;
         
-        if (!jobPostId || !senderId || !receiverId) {
+        if (  !senderId || !receiverId) {
             return res.status(400).json({ message: "All three IDs are required.", status: false, data: {} });
         }
 
