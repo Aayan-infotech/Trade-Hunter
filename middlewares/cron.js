@@ -3,63 +3,10 @@ const SubscriptionVoucherUser = require("../models/SubscriptionVoucherUserModel"
 const Provider = require("../models/providerModel");
 const SubscriptionPlan = require("../models/SubscriptionPlanModel");
 
-/*const updateSubscriptions = async () => {
-  try {
-    const now = new Date();
-
-    // Step 1: Expired subscriptions ka status "expired" karein
-    const expiredSubscriptions = await SubscriptionVoucherUser.find({
-      endDate: { $lt: now },
-      status: "active",
-    });
-
-    for (const sub of expiredSubscriptions) {
-      sub.status = "expired";
-      await sub.save();
-      // console.log(`⚠️ Subscription expired: ${sub._id}`);
-
-      // Provider update karein
-      const provider = await Provider.findById(sub.userId);
-      if (provider) {
-        provider.subscriptionStatus = 0;
-        provider.address.radius = 10000; // Default radius when expired
-        provider.subscriptionPlan = null;
-        await provider.save();
-        console.log(
-          `⚠️ Provider updated: ${provider._id} | Status: 0 | Radius: 10000`
-        );
-      }
-    }
-
-    // Step 2: Active subscriptions ko update karein
-    const activeSubscriptions = await SubscriptionVoucherUser.find({
-      status: "active",
-    });
-
-    for (const sub of activeSubscriptions) {
-      const provider = await Provider.findById(sub.userId);
-      if (provider) {
-        provider.subscriptionStatus = 1;
-        provider.isGuestMode = false;
-        provider.address.radius = (sub.kmRadius || 0) * 1000; // Convert km to meters
-        await provider.save();
-        // console.log(`✅ Updated Provider: ${provider._id} | Status: 1 | Radius: ${provider.address.radius}`);
-      }
-    }
-
-    // console.log("✅ Subscription update job completed.");
-  } catch (error) {
-    console.error("❌ Error updating subscriptions:", error);
-  }
-}; */
-// cron.schedule("0 */6 * * *", updateSubscriptions);
-// cron.schedule("0 12 * * *", updateSubscriptions); //24h 
-// console.log("⏳ Subscription update cron job scheduled.");
-
-
 // 🔁 Function to check and update provider subscription based on lead count
 const checkAndUpdateProviderSubscription = async (provider) => {
   try {
+    // Exit if no subscriptionPlanId
     if (!provider.subscriptionPlanId) return;
 
     const subscriptionPlan = await SubscriptionPlan.findById(provider.subscriptionPlanId);
@@ -68,16 +15,18 @@ const checkAndUpdateProviderSubscription = async (provider) => {
     const leadLimit = subscriptionPlan.leadCount || 0;
     const completedLeads = provider.leadCompleteCount || 0;
 
-    if (completedLeads >= leadLimit) {
-      // Mark as expired
+    if (leadLimit > 0 && completedLeads >= leadLimit) {
+      // Expire the provider's subscription due to reaching lead limit
       provider.subscriptionStatus = 0;
       provider.subscriptionPlan = null;
       provider.subscriptionPlanId = null;
       provider.address.radius = 10000;
+
       await provider.save();
+
       console.log(`🔴 Subscription expired due to lead limit for provider ${provider._id}`);
     } else {
-      console.log(`🟢 Provider ${provider._id} is within lead limit.`);
+      console.log(`🟢 Provider ${provider._id} is within lead limit. ${completedLeads}/${leadLimit}`);
     }
   } catch (err) {
     console.error("❌ Error in checkAndUpdateProviderSubscription:", err);
@@ -102,18 +51,17 @@ const updateSubscriptions = async () => {
       const provider = await Provider.findById(sub.userId);
       if (provider) {
         provider.subscriptionStatus = 0;
-        provider.address.radius = 10000;
         provider.subscriptionPlan = null;
         provider.subscriptionPlanId = null;
+        provider.address.radius = 10000;
+
         await provider.save();
         console.log(`🔴 Subscription expired (by date) for provider ${provider._id}`);
       }
     }
 
-    // Step 2: Update active subscriptions & check limits
-    const activeSubscriptions = await SubscriptionVoucherUser.find({
-      status: "active",
-    });
+    // Step 2: Update active subscriptions and check lead usage
+    const activeSubscriptions = await SubscriptionVoucherUser.find({ status: "active" });
 
     for (const sub of activeSubscriptions) {
       const provider = await Provider.findById(sub.userId);
@@ -133,8 +81,5 @@ const updateSubscriptions = async () => {
   }
 };
 
-// ⏰ Run every day at 12 PM
-// cron.schedule("0 12 * * *", updateSubscriptions);
+// ⏰ Run every 5 minutes
 cron.schedule("*/5 * * * *", updateSubscriptions);
-
-
