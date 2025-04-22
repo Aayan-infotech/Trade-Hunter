@@ -179,6 +179,6 @@ const updateSubscriptions = async () => {
       }
     };
     
-// cron.schedule("0 12 * * *", updateSubscriptions); // Every 24h
-cron.schedule("*/5 * * * *", updateSubscriptions);
+cron.schedule("0 12 * * *", updateSubscriptions); // Every 24h
+// cron.schedule("*/5 * * * *", updateSubscriptions);
 
