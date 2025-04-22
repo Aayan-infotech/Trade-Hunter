@@ -33,7 +33,7 @@ const SubscriptionPlanSchema = new mongoose.Schema({
   },
   leadCount: {
     type: Number,
-    default: 0 
+    required: false,
   },
   createdAt: {
     type: Date,
