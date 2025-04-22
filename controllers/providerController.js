@@ -4,7 +4,8 @@ const path = require("path");
 const providerModel = require("../models/providerModel");
 const jobpostModel = require("../models/jobpostModel");
 const providerPhotosModel = require("../models/providerPhotos");
-const SubscriptionPlan = require("../models/SubscriptionPlanModel")
+const SubscriptionPlan = require("../models/SubscriptionPlanModel");
+const SubscriptionType = require("../models/SubscriptionTypeModel");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -524,40 +525,57 @@ exports.jobCompleteCount = async (req, res) => {
     const { providerId } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(providerId)) {
-      return res.status(400).json({ status: 400, message: "Invalid provider id." });
+      return res.status(400).json({
+        status: 400,
+        message: "Invalid provider ID.",
+      });
     }
 
+    // Step 1: Fetch the provider
     const provider = await providerModel.findById(providerId);
     if (!provider) {
-      return res.status(404).json({ status: 404, message: "Provider not found." });
+      return res.status(404).json({
+        status: 404,
+        message: "Provider not found.",
+      });
     }
 
-    let incrementFields = { jobCompleteCount: 1 };
+    // Step 2: Increment jobCompleteCount
+    provider.jobCompleteCount += 1;
 
+    // Step 3: Check subscription plan and type
     if (provider.subscriptionPlan) {
-      const plan = await SubscriptionPlan.findOne({ planName: provider.subscriptionPlan });
-      if (plan?.type === "Pay Per Lead") {
-        incrementFields.leadCompleteCount = 1;
+      const subscriptionPlan = await SubscriptionPlan.findById(provider.subscriptionPlan);
+      if (subscriptionPlan && subscriptionPlan.type) {
+        const subscriptionType = await SubscriptionType.findById(subscriptionPlan.type);
+
+        if (subscriptionType && subscriptionType.type === "Pay Per Lead") {
+          // Step 4: Increment leadCompleteCount if type is Pay Per Lead
+          provider.leadCompleteCount += 1;
+        }
       }
     }
 
-    const updated = await providerModel.findByIdAndUpdate(
-      providerId,
-      { $inc: incrementFields },
-      { new: true, runValidators: true }
-    );
+    // Step 5: Save provider
+    await provider.save();
 
     return res.status(200).json({
       status: 200,
-      message: "Counts updated successfully!",
-      jobCompleteCount: updated.jobCompleteCount,
-      leadCompleteCount: updated.leadCompleteCount,
+      message: "Job complete count updated successfully.",
+      jobCompleteCount: provider.jobCompleteCount,
+      leadCompleteCount: provider.leadCompleteCount,
     });
+
   } catch (error) {
     console.error("Error in jobCompleteCount:", error);
-    return res.status(500).json({ status: 500, message: "Internal server error", error: error.message });
+    return res.status(500).json({
+      status: 500,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
+
 
 exports.completionRate = async (req, res) => {
   try {

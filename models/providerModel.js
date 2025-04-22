@@ -135,7 +135,7 @@ const providerSchema = new mongoose.Schema(
     },
     subscriptionPlan: {
       type: String,
-      ref: "SubscriptionType",
+      ref: "SubscriptionPlan",
       default: null,
     },  
     subscriptionPlanId: {
