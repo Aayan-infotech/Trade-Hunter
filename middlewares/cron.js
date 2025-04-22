@@ -72,7 +72,7 @@ const updateLeadBasedSubscriptionStatus = async () => {
       const { leadCompleteCount } = provider;
 
       if (leadCompleteCount >= leadCount) {
-        provider.subscriptionStatus = 0; // expired
+        providers.subscriptionStatus = 0; 
         provider.subscriptionPlanId = null;
         provider.leadCompleteCount = null; 
         provider.subscriptionType = null;
@@ -180,5 +180,5 @@ const updateSubscriptions = async () => {
     };
     
 // cron.schedule("0 12 * * *", updateSubscriptions); // Every 24h
-cron.schedule("*/5 * * * *", updateSubscriptions);
+cron.schedule("*/2 * * * *", updateSubscriptions);
 
