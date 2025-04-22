@@ -78,7 +78,6 @@ const updateLeadBasedSubscriptionStatus = async () => {
         provider.subscriptionType = null;
         provider.address.radius = 10000;
       } else {
-        provider.subscriptionStatus = 1; // active
         provider.isGuestMode = false;
         provider.address.radius = (subscriptionPlan.kmRadius || 0) * 1000;
       }
