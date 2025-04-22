@@ -66,16 +66,18 @@ const providerSchema = new mongoose.Schema(
     token: { type: String },
     isGuestMode: { type: Boolean, default: true, required: false },
     jobAcceptCount: { type: Number, default: 0, required: false },
-    subscriptionPlan: {
-      type: ObjectId,
+    subscriptionType: {
+      type: String,
       ref: "SubscriptionPlan",
       default: null,
     }, // Reference to SubscriptionPlan
-    subscriptionPlanId: {
-      type: ObjectId,
+    subscriptionTypeId: {
+      type: mongoose.Schema.Types.ObjectId,
       ref: "SubscriptionType",
       default: null,
-    }, // Reference to SubscriptionType
+    },
+    
+ // Reference to SubscriptionType
     jobCompleteCount: { type: Number, default: 0, required: false },
     leadCompleteCount: { type: Number, default: 0, required: false },
     UID: { type: String, default: null },
