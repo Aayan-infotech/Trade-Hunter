@@ -12,13 +12,14 @@ const updateSubscriptions = async () => {
       for (const sub of expiredSubscriptions) {
         sub.status = "expired";
         await sub.save();
-        console.log(`⚠️ Subscription expired: ${sub._id}`);
+        // console.log(`⚠️ Subscription expired: ${sub._id}`);
   
         // Provider update karein
         const provider = await Provider.findById(sub.userId);
         if (provider) {
           provider.subscriptionStatus = 0;
           provider.address.radius = 10000; // Default radius when expired
+          provider.subscriptionPlan = null;
           await provider.save();
           console.log(`⚠️ Provider updated: ${provider._id} | Status: 0 | Radius: 10000`);
         }
