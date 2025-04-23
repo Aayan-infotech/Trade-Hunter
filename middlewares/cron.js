@@ -172,7 +172,7 @@ const updateSubscriptions = async () => {
     for (const sub of activeSubscriptions) {
       const provider = await Provider.findById(sub.userId);
       if (provider) {
-        provider.subscriptionStatus = 1;
+        provider.subscriptionStatus = 0;
         provider.isGuestMode = false;
         provider.address.radius = (sub.kmRadius || 0) * 1000; // Convert km to meters
         await provider.save();
