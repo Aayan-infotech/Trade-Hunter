@@ -44,7 +44,6 @@ const updateSubscriptions = async () => {
   try {
     const now = new Date();
 
-    // Step 1: Expired subscriptions ka status "expired" karein
     const expiredSubscriptions = await SubscriptionVoucherUser.find({
       endDate: { $lt: now },
       status: "active",
@@ -65,7 +64,6 @@ const updateSubscriptions = async () => {
       }
     }
 
-    // Step 2: Active subscriptions ko update karein
     const activeSubscriptions = await SubscriptionVoucherUser.find({
       status: "active",
     });
