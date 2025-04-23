@@ -53,8 +53,6 @@
 const cron = require("node-cron");
 const SubscriptionVoucherUser = require("../models/SubscriptionVoucherUserModel");
 const Provider = require("../models/providerModel");
-// const updateLeadBasedSubscriptionStatus = require("./updateLeadBasedSubscriptionStatus");
-// const Provider = require("../models/providerModel");
 const SubscriptionPlan = require("../models/SubscriptionPlanModel");
 
 const updateLeadBasedSubscriptionStatus = async () => {
@@ -91,50 +89,6 @@ const updateLeadBasedSubscriptionStatus = async () => {
     console.error("❌ Error in updateLeadBasedSubscriptionStatus:", error);
   }
 };
-
-// const updateSubscriptions = async () => {
-//   try {
-//     const now = new Date();
-
-//     // Step 1: Expire old subscriptions
-//     const expiredSubscriptions = await SubscriptionVoucherUser.find({
-//       endDate: { $lt: now },
-//       status: "active",
-//     });
-
-//     for (const sub of expiredSubscriptions) {
-//       sub.status = "expired";
-//       await sub.save();
-
-//       const provider = await Provider.findById(sub.userId);
-//       if (provider) {
-//         provider.subscriptionStatus = 0;
-//         provider.address.radius = 10000;
-//         provider.subscriptionPlanId = null;
-//         await provider.save();
-//       }
-//     }
-
-//     // Step 2: Update active subscriptions
-//     const activeSubscriptions = await SubscriptionVoucherUser.find({ status: "active" });
-
-//     for (const sub of activeSubscriptions) {
-//       const provider = await Provider.findById(sub.userId);
-//       if (provider) {
-//         provider.subscriptionStatus = 1;
-//         provider.isGuestMode = false;
-//         provider.address.radius = (sub.kmRadius || 0) * 1000;
-//         await provider.save();
-//       }
-//     }
-
-//     // Step 3: Additional lead count check
-//     await updateLeadBasedSubscriptionStatus();;
-
-//   } catch (error) {
-//     console.error("❌ Error updating subscriptions:", error);
-//   }
-// };
 
 const updateSubscriptions = async () => {
   try {
