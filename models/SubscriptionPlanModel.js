@@ -11,7 +11,7 @@ const SubscriptionPlanSchema = new mongoose.Schema({
   validity: { type: Number, required: true }, // in days
   description: { type: String, required: false },
   kmRadius: { type: Number, default: null }, // Default value
-  status: { type: String, enum: ["active", "inactive"], default: "active" },
+  status: { type: String, enum: ["active", "inactive" ,"upcoming"], default: "active" },
   leadCount: { type: Number, default: null }, // Default value
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
