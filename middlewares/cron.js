@@ -67,7 +67,7 @@ const updateSubscriptions = async () => {
     }
 
     const activeSubscriptions = await SubscriptionVoucherUser.find({
-      status: "active",
+      status: "expired",
     });
 
     for (const sub of activeSubscriptions) {
