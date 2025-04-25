@@ -85,8 +85,8 @@ const updateSubscriptions = async () => {
   }
 };
 
-// cron.schedule("0 12 * * *", updateSubscriptions); 
-cron.schedule('*/5 * * * *', updateSubscriptions)
+cron.schedule("0 12 * * *", updateSubscriptions); 
+// cron.schedule('*/5 * * * *', updateSubscriptions)
 
 
 
@@ -125,7 +125,8 @@ const checkAndUpdateSubscriptions = async () => {
   }
 };
 
-cron.schedule('*/5 * * * *', checkAndUpdateSubscriptions)
+// cron.schedule('*/5 * * * *', checkAndUpdateSubscriptions)
+cron.schedule("0 12 * * *", updateSubscriptions);
 
 
 /*const cron = require("node-cron");

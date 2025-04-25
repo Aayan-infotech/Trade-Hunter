@@ -28,12 +28,10 @@ const signUp = async (req, res) => {
       isGuestMode,
     } = req.body;
 
-    // Validate userType
     if (!["hunter", "provider"].includes(userType)) {
       return res.status(400).json({ status: 400, success: false, message: "Invalid user type." });
     }
 
-    // Validate required fields based on userType
     const requiredFields =
       userType === "hunter"
         ? [name, email, phoneNo, latitude, longitude, radius, password, addressLine]
@@ -43,19 +41,16 @@ const signUp = async (req, res) => {
       return res.status(400).json({ status: 400, success: false, message: `All ${userType} fields are required.` });
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ status: 400, success: false, message: "Invalid email format." });
     }
 
-    // Validate phone number
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(phoneNo)) {
       return res.status(400).json({ status: 400, success: false, message: "Invalid phone number. Must be 10 digits." });
     }
 
-    // Validate password
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
     if (!passwordRegex.test(password)) {
       return res.status(400).json({
@@ -65,7 +60,6 @@ const signUp = async (req, res) => {
       });
     }
 
-    // Check if the email is already in use
     const existingUser = await (
       userType === "hunter"
         ? User.findOne({ email, isDeleted: { $ne: true } })
@@ -75,7 +69,27 @@ const signUp = async (req, res) => {
     if (existingUser) {
       if (!existingUser.emailVerified) {
         const verificationOTP = await generateverificationOTP(existingUser);
-        await sendEmail(email, "Account Verification OTP", verificationOTP);
+
+        // ✅ Enhanced email message with OTP
+        await sendEmail(
+          email,
+          "Account Verification OTP",
+          `
+          <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+            <h2>Hello ${name},</h2>
+            <p>Thank you for signing up with us!</p>
+            <p>Please verify your email address using the OTP below:</p>
+            <h3 style="color: #2c3e50;">Your One-Time Password (OTP): 
+              <span style="color: #e74c3c;">${verificationOTP}</span>
+            </h3>
+            <p>This OTP is valid for the next 10 minutes.</p>
+            <p>If you did not initiate this request, please ignore this email or contact support.</p>
+            <br />
+            <p>Best regards,<br /><strong>Trade Hunters</strong></p>
+          </div>
+          `
+        );
+
         return res.status(400).json({
           status: 400,
           success: false,
@@ -85,15 +99,12 @@ const signUp = async (req, res) => {
       return res.status(400).json({ status: 400, success: false, message: "User already exists." });
     }
 
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Validate address fields
     if (!latitude || !longitude || !radius || !addressLine) {
       return res.status(400).json({ status: 400, success: false, message: "All hunter address fields are required." });
     }
 
-    // Construct address object
     const address = {
       latitude: parseFloat(latitude),
       longitude: parseFloat(longitude),
@@ -102,11 +113,10 @@ const signUp = async (req, res) => {
       addressType: addressType || (userType === "hunter" ? "home" : "office"),
       location: {
         type: "Point",
-        coordinates: [parseFloat(longitude), parseFloat(latitude)], // GeoJSON format [longitude, latitude]
+        coordinates: [parseFloat(longitude), parseFloat(latitude)],
       },
     };
 
-    // Create new user or provider
     const newUser =
       userType === "hunter"
         ? new User({
@@ -116,7 +126,7 @@ const signUp = async (req, res) => {
             password: hashedPassword,
             userType,
             insBy: req.headers["x-client-type"],
-            images: req.fileLocations ? req.fileLocations[0] : undefined, // Optional image upload
+            images: req.fileLocations ? req.fileLocations[0] : undefined,
             address,
           })
         : new Provider({
@@ -129,18 +139,33 @@ const signUp = async (req, res) => {
             password: hashedPassword,
             userType,
             insBy: req.headers["x-client-type"],
-            images: req.fileLocations ? req.fileLocations[0] : undefined, // Optional image upload
+            images: req.fileLocations ? req.fileLocations[0] : undefined,
             address,
             isGuestMode,
           });
 
-    // Send verification email
     const verificationOTP = await generateverificationOTP(newUser);
-    await sendEmail(email, "Account Verification OTP", verificationOTP);
+
+    // ✅ Send new user verification email with enhanced message
+    await sendEmail(
+      email,
+      "Account Verification OTP",
+      `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <h2>Hello ${name},</h2>
+        <p>Welcome aboard! To complete your registration, please use the OTP below:</p>
+        <h3 style="color: #2c3e50;">Your OTP: 
+          <span style="color: #e74c3c;">${verificationOTP}</span>
+        </h3>
+        <p>This OTP is valid for 10 minutes. Do not share it with anyone.</p>
+        <br />
+        <p>Cheers,<br /><strong>Trade Hunters</strong></p>
+      </div>
+      `
+    );
 
     const answer = await newUser.save();
 
-    // Create address document for hunter if applicable
     if (userType === "hunter") {
       await new Address({
         userId: answer._id,
@@ -152,12 +177,10 @@ const signUp = async (req, res) => {
       }).save();
     }
 
-    
-
     return res.status(200).json({
       status: 200,
       success: true,
-      message: "Signup successful! Verification link sent to email.",
+      message: "Signup successful! An OTP has been sent to your email.",
       user: answer,
     });
   } catch (error) {
