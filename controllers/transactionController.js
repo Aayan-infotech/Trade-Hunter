@@ -234,13 +234,13 @@ exports.getTotalSubscriptionRevenue = async (req, res) => {
     try {
       const { userId } = req.user;
   
-      // Fetch transactions
+      // Get all transactions of the user
       const transactions = await Transaction.find({ userId }).populate('subscriptionPlanId');
   
-      // Fetch subscriptions (only necessary fields)
-      const subscriptions = await SubscriptionVoucherUser.find({ userId }).select('startDate endDate subscriptionPlanId');
+      // Get all subscriptions with relevant info
+      const subscriptions = await SubscriptionVoucherUser.find({ userId }).select('startDate endDate status subscriptionPlanId');
   
-      // Combine data
+      // Combine both
       const combinedData = transactions.map((txn) => {
         const matchedSubscription = subscriptions.find((sub) =>
           String(sub.subscriptionPlanId) === String(txn.subscriptionPlanId._id)
@@ -250,6 +250,7 @@ exports.getTotalSubscriptionRevenue = async (req, res) => {
           ...txn.toObject(),
           startDate: matchedSubscription?.startDate || null,
           endDate: matchedSubscription?.endDate || null,
+          status: matchedSubscription?.status || null,
         };
       });
   
@@ -268,6 +269,7 @@ exports.getTotalSubscriptionRevenue = async (req, res) => {
       });
     }
   };
+  
   
   
   
