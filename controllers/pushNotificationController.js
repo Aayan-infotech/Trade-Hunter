@@ -4,6 +4,7 @@ const massNotification = require('../models/massNotification');
 const DeviceToken = require("../models/devicetokenModel");
 const Hunter = require("../models/hunterModel");
 const Provider = require("../models/providerModel");
+const SubscriptionVoucherUser = require('../models/SubscriptionVoucherUserModel');
 
 
 // exports.sendPushNotification = async (req, res) => {
@@ -531,3 +532,76 @@ exports.updateNotificationStatus = async (req, res) => {
 };
 
 
+exports.getExpiringSoonVouchers = async (req, res) => {
+  try {
+    const userId = req.user.userId; 
+    const now = new Date();
+    const next24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    const expiringVouchers = await SubscriptionVoucherUser.find({
+      userId: userId,
+      endDate: { $gte: now, $lte: next24Hours },
+      status: 'active'
+    });
+
+    if (expiringVouchers.length > 0) {
+      return res.status(200).json({
+        message: 'You have vouchers expiring within 24 hours.',
+        data: expiringVouchers
+      });
+    } else {
+      return res.status(200).json({
+        message: 'No vouchers expiring within 24 hours.'
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching expiring vouchers:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+
+/*const getExpiringSoonVouchers = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const now = new Date();
+    const next24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    const expiringItems = await SubscriptionVoucherUser.find({
+      userId: userId,
+      endDate: { $gte: now, $lte: next24Hours },
+      status: 'active'
+    });
+
+    const expiringSubscriptions = expiringItems.filter(item => item.type === 'subscription');
+    const expiringVouchers = expiringItems.filter(item => item.type === 'voucher');
+
+    const messages = [];
+
+    if (expiringSubscriptions.length > 0) {
+      messages.push('Your subscription will expire within 24 hours.');
+    }
+
+    if (expiringVouchers.length > 0) {
+      messages.push('Your voucher will expire within 24 hours.');
+    }
+
+    if (messages.length > 0) {
+      return res.status(200).json({
+        message: messages.join(' '),
+        data: {
+          expiringSubscriptions,
+          expiringVouchers
+        }
+      });
+    } else {
+      return res.status(200).json({
+        message: 'No subscriptions or vouchers expiring within 24 hours.'
+      });
+    }
+  } catch (error) {
+    console.error('Error checking expiring items:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+}; */
