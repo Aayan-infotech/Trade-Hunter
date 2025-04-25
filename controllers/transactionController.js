@@ -90,7 +90,7 @@ exports.createTransaction = async (req, res) => {
       isGuestMode: false,
       subscriptionType: subscriptionType.type,
       subscriptionPlanId: subscriptionPlanId,
-      'address.radius': subscriptionPlan.kmRadius, 
+      'address.radius': subscriptionPlan.kmRadius* 1000, 
     });
     
 
