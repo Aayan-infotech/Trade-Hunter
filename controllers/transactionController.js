@@ -28,7 +28,7 @@ exports.createTransaction = async (req, res) => {
       });
     }
 
-    const paymentSuccess = true;
+    const paymentSuccess = true; // Assume this is always true for now
     if (!paymentSuccess) {
       return res.status(400).json({
         status: 400,
@@ -38,8 +38,10 @@ exports.createTransaction = async (req, res) => {
       });
     }
 
-    let newStartDate = new Date();
+    let newStartDate = new Date(); // default start date
+    let newStatus = 'active';      // default status
 
+    // 1. Check active voucher
     const existingVoucher = await SubscriptionVoucherUser.findOne({
       userId,
       type: 'Voucher',
@@ -50,16 +52,19 @@ exports.createTransaction = async (req, res) => {
       newStartDate = new Date(existingVoucher.endDate);
     }
 
-    const existingSubscription = await SubscriptionVoucherUser.findOne({
+    // 2. Check active subscription
+    const existingActiveSubscription = await SubscriptionVoucherUser.findOne({
       userId,
       type: 'Subscription',
       status: 'active',
     });
 
-    if (existingSubscription && (!existingVoucher || existingVoucher.status !== 'active')) {
-      newStartDate = new Date(existingSubscription.endDate);
+    if (existingActiveSubscription && (!existingVoucher || existingVoucher.status !== 'active')) {
+      newStartDate = new Date(existingActiveSubscription.endDate);
+      newStatus = 'upcoming'; // 👈 Mark this new one as "upcoming"
     }
 
+    // 3. Create transaction
     const transaction = new Transaction({
       userId,
       subscriptionPlanId,
@@ -70,34 +75,37 @@ exports.createTransaction = async (req, res) => {
     });
     await transaction.save();
 
+    // 4. Create new SubscriptionVoucherUser
     const newEndDate = new Date(newStartDate);
     newEndDate.setDate(newEndDate.getDate() + subscriptionPlan.validity);
 
     const newSubscription = new SubscriptionVoucherUser({
       userId,
-      type: subscriptionType.type, 
+      type: subscriptionType.type, // e.g., "Pay Per Lead"
       subscriptionPlanId,
       startDate: newStartDate,
       endDate: newEndDate,
-      status: 'active',
+      status: newStatus,
       kmRadius: subscriptionPlan.kmRadius,
     });
 
     await newSubscription.save();
 
-    await Provider.findByIdAndUpdate(userId, {
-      subscriptionStatus: 1,
-      isGuestMode: false,
-      subscriptionType: subscriptionType.type,
-      subscriptionPlanId: subscriptionPlanId,
-      'address.radius': subscriptionPlan.kmRadius* 1000, 
-    });
-    
+    // 5. Update Provider only if it's active now
+    if (newStatus === 'active') {
+      await Provider.findByIdAndUpdate(userId, {
+        subscriptionStatus: 1,
+        isGuestMode: false,
+        subscriptionType: subscriptionType.type,
+        subscriptionPlanId: subscriptionPlanId,
+        'address.radius': subscriptionPlan.kmRadius * 1000,
+      });
+    }
 
     return res.status(201).json({
       status: 201,
       success: true,
-      message: 'Transaction successful and subscription activated',
+      message: `Transaction successful and ${newStatus} subscription created`,
       data: { transaction, newSubscription },
     });
   } catch (error) {
@@ -109,9 +117,8 @@ exports.createTransaction = async (req, res) => {
       data: error.message,
     });
   }
-
-  
 };
+
 
 
 
