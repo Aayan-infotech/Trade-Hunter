@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 
-const sendEmail = async (recipient, subject, message) => {
+const sendEmail = async (recipient, subject, htmlMessage) => {
   try {
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
@@ -11,20 +11,21 @@ const sendEmail = async (recipient, subject, message) => {
         pass: 'defe qhhm kgmu ztkf', // Your App Password
       },
       tls: {
-        rejectUnauthorized: false, // Allow self-signed certificates (optional for development)
+        rejectUnauthorized: false, // Optional for development
       },
     });
 
     const mailOptions = {
-      from: 'Trade Hunter',
-      to: recipient, // Recipient's email address
-      subject: subject, // Subject line
-      text: message, // Plain text body
+      from: '"Trade Hunter" <development.aayaninfotech@gmail.com>',
+      to: recipient,
+      subject: subject,
+      html: htmlMessage, // ✅ Send as HTML, not plain text
     };
 
-    // Send email
     const info = await transporter.sendMail(mailOptions);
+    console.log('Email sent:', info.response); // Optional logging
   } catch (error) {
+    console.error('Error sending email:', error); // Optional debugging
     throw new Error('Email sending failed');
   }
 };
