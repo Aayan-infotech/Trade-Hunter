@@ -61,10 +61,9 @@ exports.createTransaction = async (req, res) => {
 
     if (existingActiveSubscription && (!existingVoucher || existingVoucher.status !== 'active')) {
       newStartDate = new Date(existingActiveSubscription.endDate);
-      newStatus = 'upcoming'; // 👈 Mark this new one as "upcoming"
+      newStatus = 'upcoming'; 
     }
 
-    // 3. Create transaction
     const transaction = new Transaction({
       userId,
       subscriptionPlanId,
@@ -83,7 +82,7 @@ exports.createTransaction = async (req, res) => {
       userId,
       type: subscriptionType.type, // e.g., "Pay Per Lead"
       subscriptionPlanId,
-      startDate: newStartDate,
+      startDate: newStartDate, 
       endDate: newEndDate,
       status: newStatus,
       kmRadius: subscriptionPlan.kmRadius,

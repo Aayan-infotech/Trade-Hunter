@@ -85,7 +85,7 @@ const SubscriptionVoucherUserSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'expired', 'cancelled'],
+    enum: ['active', 'expired', 'upcoming'],
     default: 'active'
   },
   kmRadius: {
