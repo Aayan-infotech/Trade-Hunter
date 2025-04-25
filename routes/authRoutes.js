@@ -104,6 +104,6 @@ router.post("/refreshtoken", refreshToken);
 router.get("/getProviderProfile", verifyUser, getProviderProfile);
 router.get("/getHunterProfile", verifyUser, getHunterProfile);
 router.get("/recentSignups", getNewSignups);
-router.get('/resendOtp',resendOTP );
+router.post('/resendOtp',resendOTP );
 module.exports = router;
    
