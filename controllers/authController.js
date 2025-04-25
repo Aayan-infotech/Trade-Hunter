@@ -46,10 +46,14 @@ const signUp = async (req, res) => {
       return res.status(400).json({ status: 400, success: false, message: "Invalid email format." });
     }
 
-    const phoneRegex = /^[0-9]{10}$/;
-    if (!phoneRegex.test(phoneNo)) {
-      return res.status(400).json({ status: 400, success: false, message: "Invalid phone number. Must be 10 digits." });
-    }
+    const phoneRegex = /^[0-9]{1,15}$/;
+if (!phoneRegex.test(phoneNo)) {
+  return res.status(400).json({ 
+    status: 400, 
+    success: false, 
+    message: "Invalid phone number. Only digits allowed, and maximum length is 15 digits." 
+  });
+}
 
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
     if (!passwordRegex.test(password)) {
