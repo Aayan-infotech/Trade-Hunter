@@ -46,7 +46,7 @@ const signUp = async (req, res) => {
       return res.status(400).json({ status: 400, success: false, message: "Invalid email format." });
     }
 
-    const phoneRegex = /^[0-9]{1,15}$/;
+    const phoneRegex = /^[0-9]{10,15}$/;
 if (!phoneRegex.test(phoneNo)) {
   return res.status(400).json({ 
     status: 400, 
