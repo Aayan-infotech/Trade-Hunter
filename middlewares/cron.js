@@ -12,29 +12,31 @@ const updateLeadBasedSubscriptionStatus = async () => {
     });
 
     for (const provider of providers) {
-      const subscriptionPlan = await SubscriptionPlan.findById(
-        provider.subscriptionPlanId
-      );
+      if (provider.subscriptionType !== "Pay Per Lead") continue;
 
+      const subscriptionPlan = await SubscriptionPlan.findById(provider.subscriptionPlanId);
       if (!subscriptionPlan) continue;
 
       const { leadCount } = subscriptionPlan;
       const { leadCompleteCount } = provider;
 
       if (leadCompleteCount >= leadCount) {
-        providers.subscriptionStatus = 0;
+        provider.subscriptionStatus = 0;
         provider.subscriptionPlanId = null;
         provider.leadCompleteCount = null;
         provider.subscriptionType = null;
         provider.address.radius = 10000;
+        console.log(` Lead limit reached for provider: ${provider._id}`);
       } else {
         provider.isGuestMode = false;
         provider.address.radius = (subscriptionPlan.kmRadius || 0) * 1000;
+        console.log(` Lead-based subscription active for provider: ${provider._id}`);
       }
 
       await provider.save();
     }
-    console.log(" Provider subscriptions updated based on lead count.");
+
+    console.log(" Lead-based subscription check completed.");
   } catch (error) {
     console.error(" Error in updateLeadBasedSubscriptionStatus:", error);
   }
@@ -84,7 +86,7 @@ const updateSubscriptions = async () => {
 };
 
 // cron.schedule("0 12 * * *", updateSubscriptions); 
-cron.schedule('*/5 * * * *', updateSubscriptions)
+cron.schedule('* * * * * *', updateSubscriptions)
 
 
 
