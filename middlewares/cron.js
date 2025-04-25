@@ -86,7 +86,7 @@ const updateSubscriptions = async () => {
 };
 
 // cron.schedule("0 12 * * *", updateSubscriptions); 
-cron.schedule('* * * * * *', updateSubscriptions)
+cron.schedule('*/5 * * * *', updateSubscriptions)
 
 
 
