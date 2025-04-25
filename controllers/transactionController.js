@@ -85,19 +85,13 @@ exports.createTransaction = async (req, res) => {
 
     await newSubscription.save();
 
-    await Provider.findByIdAndUpdate(
-      userId,
-      {
-        $set: {
-          subscriptionStatus: 1,
-          isGuestMode: false,
-          subscriptionType: subscriptionType.type,
-          subscriptionPlanId: subscriptionPlanId,
-          "address.radius": subscriptionPlan.kmRadius * 1000,
-        },
-      },
-      { new: true }
-    );
+    await Provider.findByIdAndUpdate(userId, {
+      subscriptionStatus: 1,
+      isGuestMode: false,
+      subscriptionType: subscriptionType.type,
+      subscriptionPlanId: subscriptionPlanId,
+      'address.radius': subscriptionPlan.kmRadius, 
+    });
     
 
     return res.status(201).json({
