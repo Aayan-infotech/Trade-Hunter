@@ -541,6 +541,57 @@ const getNewSignups = async (req, res) => {
   }
 };
 
+
+const resendOTP = async (req, res) => {
+  const { email, userType } = req.body;
+
+  if (!email || !userType) {
+    return res.status(400).json({ status: 400, message: "Email and userType are required" });
+  }
+
+  if (!["hunter", "provider"].includes(userType)) {
+    return res.status(400).json({ status: 400, message: "Invalid user type." });
+  }
+
+  try {
+    let user;
+    if (userType === "hunter") {
+      user = await User.findOne({ email, userType, isDeleted: { $ne: true } });
+    } else {
+      user = await Provider.findOne({ email, userType, isDeleted: { $ne: true } });
+    }
+
+    if (!user) {
+      return res.status(404).json({ status: 404, message: "User not found" });
+    }
+
+
+    const verificationOTP = await generateverificationOTP(user);
+
+    await sendEmail(
+      email,
+      "Resend OTP - Trade Hunters",
+      `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <h2>Hello ${user.name || user.contactName},</h2>
+        <p>You requested a new OTP to verify your email.</p>
+        <h3 style="color: #2c3e50;">Your OTP: 
+          <span style="color: #e74c3c;">${verificationOTP}</span>
+        </h3>
+        <p>This OTP is valid for 10 minutes.</p>
+        <br />
+        <p>Cheers,<br /><strong>Trade Hunters</strong></p>
+      </div>
+      `
+    );
+
+    return res.status(200).json({ status: 200, message: "OTP resent successfully" });
+  } catch (err) {
+    return res.status(500).json({ status: 500, message: "Server error", error: err.message });
+  }
+};
+
+
 module.exports = {
   signUp,
   login,
@@ -553,4 +604,5 @@ module.exports = {
   getProviderProfile,
   getHunterProfile,
   getNewSignups,
+  resendOTP,
 };
