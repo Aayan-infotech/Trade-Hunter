@@ -229,6 +229,7 @@ exports.getTotalSubscriptionRevenue = async (req, res) => {
         const { userId } = req.user; 
 
         const transactions = await Transaction.find({ userId }).populate('subscriptionPlanId');
+        const subscribedUser = await SubscriptionVoucherUser.find({ userId }).populate('subscriptionPlanId');
 
         if (!transactions.length) {
             return res.status(404).json({ 
@@ -244,6 +245,7 @@ exports.getTotalSubscriptionRevenue = async (req, res) => {
             success: true, 
             message: '', 
             data: transactions 
+            , subscribedUser
         });
     } catch (error) {
         res.status(500).json({ 
