@@ -109,6 +109,7 @@ exports.updateHunterById = async (req, res) => {
       });
     }
 
+    // 2️⃣ Check if Hunter exists
     const hunterExists = await Hunter.findById(id);
     if (!hunterExists) {
       return res.status(404).json({ 
@@ -131,11 +132,11 @@ exports.updateHunterById = async (req, res) => {
       }
     }
 
-    // 📍 Process address fields like provider update API
     if (updateData.addressLine !== undefined) {
       updateData["address.addressLine"] = updateData.addressLine;
       delete updateData.addressLine;
     }
+
     if (updateData.latitude !== undefined && updateData.longitude !== undefined) {
       updateData["address.location.coordinates"] = [
         Number(updateData.longitude), 
@@ -145,12 +146,12 @@ exports.updateHunterById = async (req, res) => {
       delete updateData.latitude;
       delete updateData.longitude;
     }
+
     if (updateData.radius !== undefined) {
       updateData["address.radius"] = Number(updateData.radius);
       delete updateData.radius;
     }
 
-    // 🖼️ Handle image update
     if (req.fileLocations && req.fileLocations.length > 0) {
       updateData.images = req.fileLocations[0];
     }
@@ -177,6 +178,7 @@ exports.updateHunterById = async (req, res) => {
     });
   }
 };
+
 
 
 
