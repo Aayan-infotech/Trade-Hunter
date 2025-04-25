@@ -230,40 +230,47 @@ exports.getTotalSubscriptionRevenue = async (req, res) => {
       });
     }
   };
-
   exports.getSubscriptionByUserId = async (req, res) => {
     try {
-        const { userId } = req.user; 
-
-        const transactions = await Transaction.find({ userId }).populate('subscriptionPlanId');
-        const subscribedUser = await SubscriptionVoucherUser.find({ userId }).populate('subscriptionPlanId');
-
-        if (!transactions.length) {
-            return res.status(404).json({ 
-                status: 404, 
-                success: false, 
-                message: 'No transactions found for this user', 
-                data: [] 
-            });
-        }
-
-        res.status(200).json({ 
-            status: 200, 
-            success: true, 
-            message: '', 
-            data: transactions 
-            , subscribedUser
-        });
+      const { userId } = req.user;
+  
+      // Fetch transactions
+      const transactions = await Transaction.find({ userId }).populate('subscriptionPlanId');
+  
+      // Fetch subscriptions (only necessary fields)
+      const subscriptions = await SubscriptionVoucherUser.find({ userId }).select('startDate endDate subscriptionPlanId');
+  
+      // Combine data
+      const combinedData = transactions.map((txn) => {
+        const matchedSubscription = subscriptions.find((sub) =>
+          String(sub.subscriptionPlanId) === String(txn.subscriptionPlanId._id)
+        );
+  
+        return {
+          ...txn.toObject(),
+          startDate: matchedSubscription?.startDate || null,
+          endDate: matchedSubscription?.endDate || null,
+        };
+      });
+  
+      return res.status(200).json({
+        status: 200,
+        success: true,
+        message: 'Data fetched successfully',
+        data: combinedData,
+      });
     } catch (error) {
-        res.status(500).json({ 
-            status: 500, 
-            success: false, 
-            message: 'Server error', 
-            error: error.message 
-        });
+      return res.status(500).json({
+        status: 500,
+        success: false,
+        message: 'Server error',
+        error: error.message,
+      });
     }
-};
-
+  };
+  
+  
+  
 
   
   
