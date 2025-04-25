@@ -676,20 +676,9 @@ exports.getProvidersByBusinessType = async (req, res) => {
           }
         },
         {
-          $match: { businessType: { $in: businessTypesArray } }
-        },
-        {
-          $lookup: {
-            from: "subscriptiontypes",
-            localField: "subscriptionPlan",
-            foreignField: "_id",
-            as: "subscriptionTypeDetails"
-          }
-        },
-        { $unwind: "$subscriptionTypeDetails" },
-        {
           $match: {
-            "subscriptionTypeDetails.type": "Advertising"
+            businessType: { $in: businessTypesArray },
+            subscriptionType: "Advertising"
           }
         },
         {
@@ -701,8 +690,7 @@ exports.getProvidersByBusinessType = async (req, res) => {
             businessType: 1,
             address: 1,
             distance: 1,
-            "subscriptionTypeDetails.name": 1,
-            "subscriptionTypeDetails.type": 1
+            subscriptionType: 1
           }
         }
       ]);
