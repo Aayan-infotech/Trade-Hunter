@@ -119,7 +119,19 @@ exports.updateHunterById = async (req, res) => {
       });
     }
 
-    // Process address fields similar to provider update API
+    if (updateData.phoneNo !== undefined) {
+      const mobileRegex = /^[0-9]+$/;
+      if (!mobileRegex.test(updateData.phoneNo)) {
+        return res.status(400).json({
+          status: 400,
+          success: false,
+          message: "Mobile number should contain digits only",
+          data: []
+        });
+      }
+    }
+
+    // 📍 Process address fields like provider update API
     if (updateData.addressLine !== undefined) {
       updateData["address.addressLine"] = updateData.addressLine;
       delete updateData.addressLine;
@@ -138,7 +150,7 @@ exports.updateHunterById = async (req, res) => {
       delete updateData.radius;
     }
 
-    // Handle image update if any fileLocations are provided
+    // 🖼️ Handle image update
     if (req.fileLocations && req.fileLocations.length > 0) {
       updateData.images = req.fileLocations[0];
     }
@@ -154,6 +166,7 @@ exports.updateHunterById = async (req, res) => {
       message: "Hunter updated successfully",
       data: [updatedHunter],
     });
+
   } catch (error) {
     res.status(500).json({
       status: 500,
@@ -164,6 +177,7 @@ exports.updateHunterById = async (req, res) => {
     });
   }
 };
+
 
 
 exports.updateRadius = async (req, res) => {
