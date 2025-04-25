@@ -798,6 +798,7 @@ exports.getAbout = async (req, res) => {
 exports.getProvidersListing = async (req, res) => {
   try {
     const { lat, lng, businessType } = req.body;
+    let { radius } = req.body;
 
     if (!lat || !lng || !businessType) {
       return res.status(400).json({
@@ -808,6 +809,7 @@ exports.getProvidersListing = async (req, res) => {
 
     const latitude = parseFloat(lat);
     const longitude = parseFloat(lng);
+    radius = parseFloat(radius) || 160000; // Default to 160,000 meters if not provided
 
     const businessTypesArray = Array.isArray(businessType)
       ? businessType
@@ -820,6 +822,7 @@ exports.getProvidersListing = async (req, res) => {
           distanceField: "distance",
           spherical: true,
           key: "address.location",
+          maxDistance: radius, // Apply the radius filter
         },
       },
       {
@@ -849,6 +852,7 @@ exports.getProvidersListing = async (req, res) => {
     return res.status(500).json({ status: 500, error: error.message });
   }
 };
+
 
 
 exports.getAllProviders = async (req, res) => {
