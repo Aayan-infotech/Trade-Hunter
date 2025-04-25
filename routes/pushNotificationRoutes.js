@@ -12,6 +12,7 @@ router.post('/sendAdminNotification/:receiverId' ,verifyUser, notificationContro
 router.get('/getAdminNotification/:receiverId',verifyUser,  notificationController.getAdminNotification);
 router.delete('/deleteNotification/:notificationId',verifyUser, notificationController.deleteNotificationById);
 router.patch("/notification/:type/:id", notificationController.updateNotificationStatus);
+router.get('/expiring-soon',verifyUser, notificationController.getExpiringSoonVouchers);
 
 
 module.exports = router;
