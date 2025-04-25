@@ -75,6 +75,18 @@ exports.updateProvider = async (req, res) => {
     const { id } = req.params;
     const updatedData = req.body;
 
+    if (updateData.phoneNo !== undefined) {
+      const mobileRegex = /^[0-9]+$/;
+      if (!mobileRegex.test(updateData.phoneNo)) {
+        return res.status(400).json({
+          status: 400,
+          success: false,
+          message: "Mobile number should contain digits only",
+          data: []
+        });
+      }
+    }
+
     if (updatedData.businessType) {
       updatedData.$set = { businessType: updatedData.businessType };
       delete updatedData.businessType;
