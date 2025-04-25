@@ -418,20 +418,22 @@ const resetPasswordWithOTP = async (req, res) => {
   const { email, newPassword } = req.body;
 
   try {
-    let user;
-
-    // Check if the email exists in the User model
-    user = await User.findOne({ email });
-    if (!user) {
-      // If not found in User, check in Provider model
-      user = await Provider.findOne({ email });
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Password must be at least 8 characters long, including one letter, one number, and one special character.",
+      });
     }
+
+    let user = await User.findOne({ email });
+    if (!user) user = await Provider.findOne({ email });
 
     if (!user) {
       return res.status(404).json({ status: 404, message: "Invalid Email" });
     }
 
-    // Update the password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedPassword;
     await user.save();
@@ -446,23 +448,27 @@ const changePassword = async (req, res) => {
   const { oldPassword, newPassword } = req.body;
 
   try {
-    let user;
-    user = await User.findById(req.params.id);
-    if (!user) {
-      user = await Provider.findById(req.params.id);
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Password must be at least 8 characters long, including one letter, one number, and one special character.",
+      });
     }
+
+    let user = await User.findById(req.params.id);
+    if (!user) user = await Provider.findById(req.params.id);
 
     if (!user) {
       return res.status(404).json({ status: 404, message: "Invalid User" });
     }
 
-    // Check if the old password matches
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) {
       return res.status(400).json({ status: 400, message: "Old password is incorrect" });
     }
 
-    // Hash the new password
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedNewPassword;
     await user.save();
@@ -472,6 +478,7 @@ const changePassword = async (req, res) => {
     return res.status(500).json({ status: 500, message: "Server error", error: err.message });
   }
 };
+
 
 const getProviderProfile = async (req, res) => {
   try {
