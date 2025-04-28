@@ -24,7 +24,7 @@ const providerSchema = new mongoose.Schema(
     },
     email: { type: String, required: true, unique: true },
     phoneNo: {
-      type: String,
+      type: Number,
       validate: {
         validator: function (v) {
           return /^\d{10}$/.test(v);

@@ -407,14 +407,18 @@ exports.updateProviderById = async (req, res) => {
       return res.status(400).json({ message: "Invalid ID format" });
     }
 
+    if (updateData.email !== undefined) {
+      delete updateData.email;
+    }
+
     if (updateData.addressLine !== undefined) {
       updateData["address.addressLine"] = updateData.addressLine;
       delete updateData.addressLine;
     }
     if (updateData.latitude !== undefined && updateData.longitude !== undefined) {
       updateData["address.location.coordinates"] = [
-        Number(updateData.longitude), 
-        Number(updateData.latitude)
+        Number(updateData.longitude),
+        Number(updateData.latitude),
       ];
       updateData["address.location.type"] = 'Point';
       delete updateData.latitude;
@@ -448,6 +452,7 @@ exports.updateProviderById = async (req, res) => {
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
+
 
 exports.getProviderProfile = async (req, res) => {
   try {
@@ -676,20 +681,9 @@ exports.getProvidersByBusinessType = async (req, res) => {
           }
         },
         {
-          $match: { businessType: { $in: businessTypesArray } }
-        },
-        {
-          $lookup: {
-            from: "subscriptiontypes",
-            localField: "subscriptionPlan",
-            foreignField: "_id",
-            as: "subscriptionTypeDetails"
-          }
-        },
-        { $unwind: "$subscriptionTypeDetails" },
-        {
           $match: {
-            "subscriptionTypeDetails.type": "Advertising"
+            businessType: { $in: businessTypesArray },
+            subscriptionType: "Advertising"
           }
         },
         {
@@ -701,8 +695,7 @@ exports.getProvidersByBusinessType = async (req, res) => {
             businessType: 1,
             address: 1,
             distance: 1,
-            "subscriptionTypeDetails.name": 1,
-            "subscriptionTypeDetails.type": 1
+            subscriptionType: 1
           }
         }
       ]);

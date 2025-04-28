@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const  transactionController  = require("../controllers/transactionController");
 const { verifyUser } = require("../middlewares/auth");
+const client = require("../config/ewayConfig");
 
 // Transaction Routes
 router.post('/transaction', transactionController.createTransaction);

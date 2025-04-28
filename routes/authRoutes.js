@@ -65,6 +65,7 @@ const {
   changePassword,
   getProviderProfile,
   getHunterProfile,
+  resendOTP,
   updateUserById,
   getNewSignups
 } = require("../controllers/authController");
@@ -103,5 +104,6 @@ router.post("/refreshtoken", refreshToken);
 router.get("/getProviderProfile", verifyUser, getProviderProfile);
 router.get("/getHunterProfile", verifyUser, getHunterProfile);
 router.get("/recentSignups", getNewSignups);
+router.post('/resendOtp',resendOTP );
 module.exports = router;
    

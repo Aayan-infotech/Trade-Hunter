@@ -109,6 +109,7 @@ exports.updateHunterById = async (req, res) => {
       });
     }
 
+    // 2️⃣ Check if Hunter exists
     const hunterExists = await Hunter.findById(id);
     if (!hunterExists) {
       return res.status(404).json({ 
@@ -119,11 +120,27 @@ exports.updateHunterById = async (req, res) => {
       });
     }
 
-    // Process address fields similar to provider update API
+    if (updateData.email !== undefined) {
+      delete updateData.email;
+    }
+
+    if (updateData.phoneNo !== undefined) {
+      const mobileRegex = /^[0-9]+$/;
+      if (!mobileRegex.test(updateData.phoneNo)) {
+        return res.status(400).json({
+          status: 400,
+          success: false,
+          message: "Mobile number should contain digits only",
+          data: []
+        });
+      }
+    }
+
     if (updateData.addressLine !== undefined) {
       updateData["address.addressLine"] = updateData.addressLine;
       delete updateData.addressLine;
     }
+
     if (updateData.latitude !== undefined && updateData.longitude !== undefined) {
       updateData["address.location.coordinates"] = [
         Number(updateData.longitude), 
@@ -133,12 +150,12 @@ exports.updateHunterById = async (req, res) => {
       delete updateData.latitude;
       delete updateData.longitude;
     }
+
     if (updateData.radius !== undefined) {
       updateData["address.radius"] = Number(updateData.radius);
       delete updateData.radius;
     }
 
-    // Handle image update if any fileLocations are provided
     if (req.fileLocations && req.fileLocations.length > 0) {
       updateData.images = req.fileLocations[0];
     }
@@ -154,6 +171,7 @@ exports.updateHunterById = async (req, res) => {
       message: "Hunter updated successfully",
       data: [updatedHunter],
     });
+
   } catch (error) {
     res.status(500).json({
       status: 500,
@@ -164,6 +182,8 @@ exports.updateHunterById = async (req, res) => {
     });
   }
 };
+
+
 
 
 exports.updateRadius = async (req, res) => {

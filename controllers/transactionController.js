@@ -38,7 +38,8 @@ exports.createTransaction = async (req, res) => {
       });
     }
 
-    let newStartDate = new Date();
+    let newStartDate = new Date(); 
+    let newStatus = 'active';      
 
     const existingVoucher = await SubscriptionVoucherUser.findOne({
       userId,
@@ -50,14 +51,14 @@ exports.createTransaction = async (req, res) => {
       newStartDate = new Date(existingVoucher.endDate);
     }
 
-    const existingSubscription = await SubscriptionVoucherUser.findOne({
+    const existingActiveSubscription = await SubscriptionVoucherUser.findOne({
       userId,
-      type: 'Subscription',
       status: 'active',
     });
 
-    if (existingSubscription && (!existingVoucher || existingVoucher.status !== 'active')) {
-      newStartDate = new Date(existingSubscription.endDate);
+    if (existingActiveSubscription) {
+      newStartDate = new Date(existingActiveSubscription.endDate);
+      newStatus = 'upcoming';
     }
 
     const transaction = new Transaction({
@@ -79,23 +80,25 @@ exports.createTransaction = async (req, res) => {
       subscriptionPlanId,
       startDate: newStartDate,
       endDate: newEndDate,
-      status: 'active',
+      status: newStatus,
       kmRadius: subscriptionPlan.kmRadius,
     });
-
     await newSubscription.save();
 
-    await Provider.findByIdAndUpdate(userId, {
-      subscriptionStatus: 1,
-      isGuestMode: false,
-      subscriptionType: subscriptionType.type, 
-      subscriptionPlanId:subscriptionPlanId ,
-    });
+    if (newStatus === 'active') {
+      await Provider.findByIdAndUpdate(userId, {
+        subscriptionStatus: 1,
+        isGuestMode: false,
+        subscriptionType: subscriptionType.type,
+        subscriptionPlanId: subscriptionPlanId,
+        'address.radius': subscriptionPlan.kmRadius * 1000,
+      });
+    }
 
     return res.status(201).json({
       status: 201,
       success: true,
-      message: 'Transaction successful and subscription activated',
+      message: `Transaction successful and ${newStatus} subscription created`,
       data: { transaction, newSubscription },
     });
   } catch (error) {
@@ -107,9 +110,9 @@ exports.createTransaction = async (req, res) => {
       data: error.message,
     });
   }
-
-  
 };
+
+
 
 
 
@@ -222,38 +225,49 @@ exports.getTotalSubscriptionRevenue = async (req, res) => {
       });
     }
   };
-
   exports.getSubscriptionByUserId = async (req, res) => {
     try {
-        const { userId } = req.user; 
-
-        const transactions = await Transaction.find({ userId }).populate('subscriptionPlanId');
-
-        if (!transactions.length) {
-            return res.status(404).json({ 
-                status: 404, 
-                success: false, 
-                message: 'No transactions found for this user', 
-                data: [] 
-            });
-        }
-
-        res.status(200).json({ 
-            status: 200, 
-            success: true, 
-            message: '', 
-            data: transactions 
-        });
+      const { userId } = req.user;
+  
+      // Get all transactions of the user
+      const transactions = await Transaction.find({ userId }).populate('subscriptionPlanId');
+  
+      // Get all subscriptions with relevant info
+      const subscriptions = await SubscriptionVoucherUser.find({ userId }).select('startDate endDate status subscriptionPlanId');
+  
+      // Combine both
+      const combinedData = transactions.map((txn) => {
+        const matchedSubscription = subscriptions.find((sub) =>
+          String(sub.subscriptionPlanId) === String(txn.subscriptionPlanId._id)
+        );
+  
+        return {
+          ...txn.toObject(),
+          startDate: matchedSubscription?.startDate || null,
+          endDate: matchedSubscription?.endDate || null,
+          status: matchedSubscription?.status || null,
+        };
+      });
+  
+      return res.status(200).json({
+        status: 200,
+        success: true,
+        message: 'Data fetched successfully',
+        data: combinedData,
+      });
     } catch (error) {
-        res.status(500).json({ 
-            status: 500, 
-            success: false, 
-            message: 'Server error', 
-            error: error.message 
-        });
+      return res.status(500).json({
+        status: 500,
+        success: false,
+        message: 'Server error',
+        error: error.message,
+      });
     }
-};
-
+  };
+  
+  
+  
+  
 
   
   

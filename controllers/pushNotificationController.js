@@ -4,6 +4,7 @@ const massNotification = require('../models/massNotification');
 const DeviceToken = require("../models/devicetokenModel");
 const Hunter = require("../models/hunterModel");
 const Provider = require("../models/providerModel");
+const SubscriptionVoucherUser = require('../models/SubscriptionVoucherUserModel');
 
 
 // exports.sendPushNotification = async (req, res) => {
@@ -164,29 +165,65 @@ exports.getNotificationsByUserId = async (req, res) => {
     const receiverId = req.user.userId;
     const userType = req.params.userType;
 
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     const userNotifications = await Notification.find({ receiverId });
+
+    const filteredUserNotificationsPromises = userNotifications.map(async (notification) => {
+      const user = await Provider.findById(notification.userId) || await Hunter.findById(notification.userId);
+      
+      if (user) {
+        return {
+          ...notification._doc,
+          userName: user.name,
+          isRead: notification.isRead,
+        };
+      } else {
+        return null; 
+      }
+    });
+
+    const resolvedNotifications = await Promise.all(filteredUserNotificationsPromises);
+
+    const validUserNotifications = resolvedNotifications.filter(notification => notification !== null);
+
     const massNotifications = await massNotification.find({ userType });
+
     const formattedMassNotifications = massNotifications.map((notif) => ({
       ...notif._doc,
       isRead: notif.readBy.includes(receiverId),
     }));
 
-    const allNotifications = [...userNotifications, ...formattedMassNotifications];
+    const allNotifications = [...validUserNotifications, ...formattedMassNotifications];
+
     allNotifications.sort((a, b) => b.createdAt - a.createdAt);
+
+    const paginatedNotifications = allNotifications.slice(skip, skip + limit);
+    const total = allNotifications.length;
+
     res.status(200).json({
       status: 200,
       success: true,
-      data: allNotifications,
-      message: "get all notification!"
+      data: paginatedNotifications,
+      total,
+      page,
+      limit,
+      message: "Fetched all valid notifications with pagination!"
     });
+
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       status: 500,
       message: error.message,
       success: false
-    })
+    });
   }
 };
+
+
 
 exports.ReadNotification = async (req, res) => {
   try {
@@ -531,3 +568,76 @@ exports.updateNotificationStatus = async (req, res) => {
 };
 
 
+exports.getExpiringSoonVouchers = async (req, res) => {
+  try {
+    const userId = req.user.userId; 
+    const now = new Date();
+    const next24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    const expiringVouchers = await SubscriptionVoucherUser.find({
+      userId: userId,
+      endDate: { $gte: now, $lte: next24Hours },
+      status: 'active'
+    });
+
+    if (expiringVouchers.length > 0) {
+      return res.status(200).json({
+        message: 'You have vouchers expiring within 24 hours.',
+        data: expiringVouchers
+      });
+    } else {
+      return res.status(200).json({
+        message: 'No vouchers expiring within 24 hours.'
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching expiring vouchers:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+
+/*const getExpiringSoonVouchers = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const now = new Date();
+    const next24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    const expiringItems = await SubscriptionVoucherUser.find({
+      userId: userId,
+      endDate: { $gte: now, $lte: next24Hours },
+      status: 'active'
+    });
+
+    const expiringSubscriptions = expiringItems.filter(item => item.type === 'subscription');
+    const expiringVouchers = expiringItems.filter(item => item.type === 'voucher');
+
+    const messages = [];
+
+    if (expiringSubscriptions.length > 0) {
+      messages.push('Your subscription will expire within 24 hours.');
+    }
+
+    if (expiringVouchers.length > 0) {
+      messages.push('Your voucher will expire within 24 hours.');
+    }
+
+    if (messages.length > 0) {
+      return res.status(200).json({
+        message: messages.join(' '),
+        data: {
+          expiringSubscriptions,
+          expiringVouchers
+        }
+      });
+    } else {
+      return res.status(200).json({
+        message: 'No subscriptions or vouchers expiring within 24 hours.'
+      });
+    }
+  } catch (error) {
+    console.error('Error checking expiring items:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+}; */

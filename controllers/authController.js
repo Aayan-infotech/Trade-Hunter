@@ -28,72 +28,47 @@ const signUp = async (req, res) => {
       isGuestMode,
     } = req.body;
 
-    // Validate userType
     if (!["hunter", "provider"].includes(userType)) {
       return res.status(400).json({ status: 400, success: false, message: "Invalid user type." });
     }
 
-    // Validate required fields based on userType
     const requiredFields =
       userType === "hunter"
         ? [name, email, phoneNo, latitude, longitude, radius, password, addressLine]
-        : [name, businessName, email, phoneNo, latitude, longitude, radius, password, ABN_Number, businessType, addressLine];
+        : [businessName, name, email, phoneNo, latitude, longitude, radius, password, ABN_Number, businessType, addressLine];
 
     if (requiredFields.some((field) => !field)) {
       return res.status(400).json({ status: 400, success: false, message: `All ${userType} fields are required.` });
     }
 
-    // Validate email format
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ status: 400, success: false, message: "Invalid email format." });
     }
 
-    // Validate phone number
-    const phoneRegex = /^[0-9]{10}$/;
+    const phoneRegex = /^[0-9]{10,15}$/;
     if (!phoneRegex.test(phoneNo)) {
-      return res.status(400).json({ status: 400, success: false, message: "Invalid phone number. Must be 10 digits." });
+      return res.status(400).json({ status: 400, success: false, message: "Invalid phone number format." });
     }
 
-    // Validate password
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
     if (!passwordRegex.test(password)) {
-      return res.status(400).json({
-        status: 400,
-        success: false,
-        message: "Password must be at least 8 characters long, including one letter, one number, and one special character.",
-      });
+      return res.status(400).json({ status: 400, success: false, message: "Password must be at least 8 characters long, including one letter, one number, and one special character." });
     }
 
-    // Check if the email is already in use
-    const existingUser = await (
-      userType === "hunter"
-        ? User.findOne({ email, isDeleted: { $ne: true } })
-        : Provider.findOne({ email, isDeleted: { $ne: true } })
-    );
+    const emailExistsHunter = await User.findOne({ email, isDeleted: { $ne: true } });
+    const emailExistProvider = await Provider.findOne({ email, isDeleted: { $ne: true } });
 
-    if (existingUser) {
-      if (!existingUser.emailVerified) {
-        const verificationOTP = await generateverificationOTP(existingUser);
-        await sendEmail(email, "Account Verification OTP", verificationOTP);
-        return res.status(400).json({
-          status: 400,
-          success: false,
-          message: "Account exists. Please verify via OTP sent to your email.",
-        });
-      }
-      return res.status(400).json({ status: 400, success: false, message: "User already exists." });
+    if (emailExistsHunter) {
+      return res.status(400).json({ status: 400, success: false, message: "Email already exists for Hunter." });
+    }
+    if (emailExistProvider) {
+      return res.status(400).json({ status: 400, success: false, message: "Email already exists for Provider." });
     }
 
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Validate address fields
-    if (!latitude || !longitude || !radius || !addressLine) {
-      return res.status(400).json({ status: 400, success: false, message: "All hunter address fields are required." });
-    }
-
-    // Construct address object
     const address = {
       latitude: parseFloat(latitude),
       longitude: parseFloat(longitude),
@@ -102,11 +77,10 @@ const signUp = async (req, res) => {
       addressType: addressType || (userType === "hunter" ? "home" : "office"),
       location: {
         type: "Point",
-        coordinates: [parseFloat(longitude), parseFloat(latitude)], // GeoJSON format [longitude, latitude]
+        coordinates: [parseFloat(longitude), parseFloat(latitude)],
       },
     };
 
-    // Create new user or provider
     const newUser =
       userType === "hunter"
         ? new User({
@@ -116,7 +90,7 @@ const signUp = async (req, res) => {
             password: hashedPassword,
             userType,
             insBy: req.headers["x-client-type"],
-            images: req.fileLocations ? req.fileLocations[0] : undefined, // Optional image upload
+            images: req.fileLocations ? req.fileLocations[0] : undefined,
             address,
           })
         : new Provider({
@@ -129,38 +103,55 @@ const signUp = async (req, res) => {
             password: hashedPassword,
             userType,
             insBy: req.headers["x-client-type"],
-            images: req.fileLocations ? req.fileLocations[0] : undefined, // Optional image upload
+            images: req.fileLocations ? req.fileLocations[0] : undefined,
             address,
             isGuestMode,
           });
 
-    // Send verification email
+    // 10. Generate OTP for verification
     const verificationOTP = await generateverificationOTP(newUser);
-    await sendEmail(email, "Account Verification OTP", verificationOTP);
 
-    const answer = await newUser.save();
+    // 11. Send verification email
+    await sendEmail(
+      email,
+      "Account Verification OTP",
+      `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <h2>Hello ${name},</h2>
+        <p>Welcome aboard! To complete your registration, please use the OTP below:</p>
+        <h3 style="color: #2c3e50;">Your OTP: <span style="color: #e74c3c;">${verificationOTP}</span></h3>
+        <p>This OTP is valid for 10 minutes. Do not share it with anyone.</p>
+        <br />
+        <p>Cheers,<br /><strong>Trade Hunters</strong></p>
+      </div>
+      `
+    );
 
-    // Create address document for hunter if applicable
+    // 12. Save user
+    const savedUser = await newUser.save();
+
+    // 13. If user is Hunter, also create Address separately (optional based on your DB design)
     if (userType === "hunter") {
       await new Address({
-        userId: answer._id,
-        addressType,
-        address: addressLine,
+        userId: savedUser._id,
+        addressType: address.addressType,
+        address: address.addressLine,
         location: address.location,
-        radius,
+        radius: address.radius,
         isSelected: 1,
       }).save();
     }
 
-    
-
+    // 14. Respond success
     return res.status(200).json({
       status: 200,
       success: true,
-      message: "Signup successful! Verification link sent to email.",
-      user: answer,
+      message: "Signup successful! An OTP has been sent to your email.",
+      user: savedUser,
     });
+
   } catch (error) {
+    console.error(error);
     return res.status(500).json({
       status: 500,
       success: false,
@@ -168,6 +159,7 @@ const signUp = async (req, res) => {
     });
   }
 };
+
 
 const login = async (req, res) => {
   const { email, password, userType } = req.body;
@@ -391,20 +383,22 @@ const resetPasswordWithOTP = async (req, res) => {
   const { email, newPassword } = req.body;
 
   try {
-    let user;
-
-    // Check if the email exists in the User model
-    user = await User.findOne({ email });
-    if (!user) {
-      // If not found in User, check in Provider model
-      user = await Provider.findOne({ email });
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Password must be at least 8 characters long, including one letter, one number, and one special character.",
+      });
     }
+
+    let user = await User.findOne({ email });
+    if (!user) user = await Provider.findOne({ email });
 
     if (!user) {
       return res.status(404).json({ status: 404, message: "Invalid Email" });
     }
 
-    // Update the password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedPassword;
     await user.save();
@@ -419,23 +413,27 @@ const changePassword = async (req, res) => {
   const { oldPassword, newPassword } = req.body;
 
   try {
-    let user;
-    user = await User.findById(req.params.id);
-    if (!user) {
-      user = await Provider.findById(req.params.id);
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Password must be at least 8 characters long, including one letter, one number, and one special character.",
+      });
     }
+
+    let user = await User.findById(req.params.id);
+    if (!user) user = await Provider.findById(req.params.id);
 
     if (!user) {
       return res.status(404).json({ status: 404, message: "Invalid User" });
     }
 
-    // Check if the old password matches
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) {
       return res.status(400).json({ status: 400, message: "Old password is incorrect" });
     }
 
-    // Hash the new password
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedNewPassword;
     await user.save();
@@ -445,6 +443,7 @@ const changePassword = async (req, res) => {
     return res.status(500).json({ status: 500, message: "Server error", error: err.message });
   }
 };
+
 
 const getProviderProfile = async (req, res) => {
   try {
@@ -518,6 +517,57 @@ const getNewSignups = async (req, res) => {
   }
 };
 
+
+const resendOTP = async (req, res) => {
+  const { email, userType } = req.body;
+
+  if (!email || !userType) {
+    return res.status(400).json({ status: 400, message: "Email and userType are required" });
+  }
+
+  if (!["hunter", "provider"].includes(userType)) {
+    return res.status(400).json({ status: 400, message: "Invalid user type." });
+  }
+
+  try {
+    let user;
+    if (userType === "hunter") {
+      user = await User.findOne({ email, userType, isDeleted: { $ne: true } });
+    } else {
+      user = await Provider.findOne({ email, userType, isDeleted: { $ne: true } });
+    }
+
+    if (!user) {
+      return res.status(404).json({ status: 404, message: "User not found" });
+    }
+
+
+    const verificationOTP = await generateverificationOTP(user);
+
+    await sendEmail(
+      email,
+      "Resend OTP - Trade Hunters",
+      `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <h2>Hello ${user.name || user.contactName},</h2>
+        <p>You requested a new OTP to verify your email.</p>
+        <h3 style="color: #2c3e50;">Your OTP: 
+          <span style="color: #e74c3c;">${verificationOTP}</span>
+        </h3>
+        <p>This OTP is valid for 10 minutes.</p>
+        <br />
+        <p>Cheers,<br /><strong>Trade Hunters</strong></p>
+      </div>
+      `
+    );
+
+    return res.status(200).json({ status: 200, message: "OTP resent successfully" });
+  } catch (err) {
+    return res.status(500).json({ status: 500, message: "Server error", error: err.message });
+  }
+};
+
+
 module.exports = {
   signUp,
   login,
@@ -530,4 +580,5 @@ module.exports = {
   getProviderProfile,
   getHunterProfile,
   getNewSignups,
+  resendOTP,
 };

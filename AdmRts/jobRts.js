@@ -9,7 +9,7 @@ const {
 } = require("../AdmCtrl/jobCtrl");
 const router = express.Router();
 
-router.get("/",verifyUser, getAllJobPosts);
+router.get("/", getAllJobPosts);
 
 router.delete("/:id",verifyUser, deleteJobPost);
 router.get("/getCount",verifyUser, getJobStatusCounts);
