@@ -165,22 +165,30 @@ exports.getNotificationsByUserId = async (req, res) => {
     const receiverId = req.user.userId;
     const userType = req.params.userType;
 
-
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
     const userNotifications = await Notification.find({ receiverId });
-    const userData= await userNotifications.map(async (notification) => {
+
+    const filteredUserNotificationsPromises = userNotifications.map(async (notification) => {
       const user = await Provider.findById(notification.userId) || await Hunter.findById(notification.userId);
-      return {
-        ...notification._doc,
-        userName: user ? user.name : null,
-        isRead: notification.isRead,
-      };
+      
+      if (user) {
+        return {
+          ...notification._doc,
+          userName: user.name,
+          isRead: notification.isRead,
+        };
+      } else {
+        return null; 
+      }
     });
-    const userNotification = await Promise.all(userData);
-    console.log(userNotification);
+
+    const resolvedNotifications = await Promise.all(filteredUserNotificationsPromises);
+
+    const validUserNotifications = resolvedNotifications.filter(notification => notification !== null);
+
     const massNotifications = await massNotification.find({ userType });
 
     const formattedMassNotifications = massNotifications.map((notif) => ({
@@ -188,7 +196,7 @@ exports.getNotificationsByUserId = async (req, res) => {
       isRead: notif.readBy.includes(receiverId),
     }));
 
-    const allNotifications = [...userNotification, ...formattedMassNotifications];
+    const allNotifications = [...validUserNotifications, ...formattedMassNotifications];
 
     allNotifications.sort((a, b) => b.createdAt - a.createdAt);
 
@@ -199,12 +207,14 @@ exports.getNotificationsByUserId = async (req, res) => {
       status: 200,
       success: true,
       data: paginatedNotifications,
-      total,    
-      page,        
-      limit,        
-      message: "Fetched all notifications with pagination!"
+      total,
+      page,
+      limit,
+      message: "Fetched all valid notifications with pagination!"
     });
+
   } catch (error) {
+    console.error(error);
     res.status(500).json({
       status: 500,
       message: error.message,
@@ -212,6 +222,7 @@ exports.getNotificationsByUserId = async (req, res) => {
     });
   }
 };
+
 
 
 exports.ReadNotification = async (req, res) => {

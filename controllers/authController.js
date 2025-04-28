@@ -35,21 +35,12 @@ const signUp = async (req, res) => {
     const requiredFields =
       userType === "hunter"
         ? [name, email, phoneNo, latitude, longitude, radius, password, addressLine]
-        : [name, businessName, email, phoneNo, latitude, longitude, radius, password, ABN_Number, businessType, addressLine];
+        : [businessName, name, email, phoneNo, latitude, longitude, radius, password, ABN_Number, businessType, addressLine];
 
     if (requiredFields.some((field) => !field)) {
       return res.status(400).json({ status: 400, success: false, message: `All ${userType} fields are required.` });
     }
 
-     const emailExistsHunter = await User.findOne({ email, isDeleted: { $ne: true } });
-    if (emailExists) {
-      return res.status(400).json({ status: 400, success: false, message: "Email already exists for Hunter" });
-    }
-
-    const emailExistProvider = await Provider.findOne({ email, isDeleted: { $ne: true } });
-    if (emailExistProvider) {
-      return res.status(400).json({ status: 400, success: false, message: "Email already exists for Provider" });
-    }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -57,67 +48,26 @@ const signUp = async (req, res) => {
     }
 
     const phoneRegex = /^[0-9]{10,15}$/;
-if (!phoneRegex.test(phoneNo)) {
-  return res.status(400).json({ 
-    status: 400, 
-    success: false, 
-    message: "Invalid phone number. Only digits allowed, and maximum length is 15 digits." 
-  });
-}
+    if (!phoneRegex.test(phoneNo)) {
+      return res.status(400).json({ status: 400, success: false, message: "Invalid phone number format." });
+    }
 
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
     if (!passwordRegex.test(password)) {
-      return res.status(400).json({
-        status: 400,
-        success: false,
-        message: "Password must be at least 8 characters long, including one letter, one number, and one special character.",
-      });
+      return res.status(400).json({ status: 400, success: false, message: "Password must be at least 8 characters long, including one letter, one number, and one special character." });
     }
 
-    const existingUser = await (
-      userType === "hunter"
-        ? User.findOne({ email, isDeleted: { $ne: true } })
-        : Provider.findOne({ email, isDeleted: { $ne: true } })
-    );
+    const emailExistsHunter = await User.findOne({ email, isDeleted: { $ne: true } });
+    const emailExistProvider = await Provider.findOne({ email, isDeleted: { $ne: true } });
 
-    if (existingUser) {
-      if (!existingUser.emailVerified) {
-        const verificationOTP = await generateverificationOTP(existingUser);
-
-        // ✅ Enhanced email message with OTP
-        await sendEmail(
-          email,
-          "Account Verification OTP",
-          `
-          <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-            <h2>Hello ${name},</h2>
-            <p>Thank you for signing up with us!</p>
-            <p>Please verify your email address using the OTP below:</p>
-            <h3 style="color: #2c3e50;">Your One-Time Password (OTP): 
-              <span style="color: #e74c3c;">${verificationOTP}</span>
-            </h3>
-            <p>This OTP is valid for the next 10 minutes.</p>
-            <p>If you did not initiate this request, please ignore this email or contact support.</p>
-            <br />
-            <p>Best regards,<br /><strong>Trade Hunters</strong></p>
-          </div>
-          `
-        );
-
-        return res.status(400).json({
-          status: 400,
-          success: false,
-          message: "Account exists. Please verify via OTP sent to your email.",
-        });
-      }
-      return res.status(400).json({ status: 400, success: false, message: "User already exists." });
+    if (emailExistsHunter) {
+      return res.status(400).json({ status: 400, success: false, message: "Email already exists for Hunter." });
+    }
+    if (emailExistProvider) {
+      return res.status(400).json({ status: 400, success: false, message: "Email already exists for Provider." });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    if (!latitude || !longitude || !radius || !addressLine) {
-      return res.status(400).json({ status: 400, success: false, message: "All hunter address fields are required." });
-    }
 
     const address = {
       latitude: parseFloat(latitude),
@@ -158,9 +108,10 @@ if (!phoneRegex.test(phoneNo)) {
             isGuestMode,
           });
 
+    // 10. Generate OTP for verification
     const verificationOTP = await generateverificationOTP(newUser);
 
-    // ✅ Send new user verification email with enhanced message
+    // 11. Send verification email
     await sendEmail(
       email,
       "Account Verification OTP",
@@ -168,9 +119,7 @@ if (!phoneRegex.test(phoneNo)) {
       <div style="font-family: Arial, sans-serif; line-height: 1.6;">
         <h2>Hello ${name},</h2>
         <p>Welcome aboard! To complete your registration, please use the OTP below:</p>
-        <h3 style="color: #2c3e50;">Your OTP: 
-          <span style="color: #e74c3c;">${verificationOTP}</span>
-        </h3>
+        <h3 style="color: #2c3e50;">Your OTP: <span style="color: #e74c3c;">${verificationOTP}</span></h3>
         <p>This OTP is valid for 10 minutes. Do not share it with anyone.</p>
         <br />
         <p>Cheers,<br /><strong>Trade Hunters</strong></p>
@@ -178,26 +127,31 @@ if (!phoneRegex.test(phoneNo)) {
       `
     );
 
-    const answer = await newUser.save();
+    // 12. Save user
+    const savedUser = await newUser.save();
 
+    // 13. If user is Hunter, also create Address separately (optional based on your DB design)
     if (userType === "hunter") {
       await new Address({
-        userId: answer._id,
-        addressType,
-        address: addressLine,
+        userId: savedUser._id,
+        addressType: address.addressType,
+        address: address.addressLine,
         location: address.location,
-        radius,
+        radius: address.radius,
         isSelected: 1,
       }).save();
     }
 
+    // 14. Respond success
     return res.status(200).json({
       status: 200,
       success: true,
       message: "Signup successful! An OTP has been sent to your email.",
-      user: answer,
+      user: savedUser,
     });
+
   } catch (error) {
+    console.error(error);
     return res.status(500).json({
       status: 500,
       success: false,
@@ -205,6 +159,7 @@ if (!phoneRegex.test(phoneNo)) {
     });
   }
 };
+
 
 const login = async (req, res) => {
   const { email, password, userType } = req.body;
