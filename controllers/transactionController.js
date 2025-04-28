@@ -53,7 +53,6 @@ exports.createTransaction = async (req, res) => {
 
     const existingActiveSubscription = await SubscriptionVoucherUser.findOne({
       userId,
-      type: 'Subscription',
       status: 'active',
     });
 
