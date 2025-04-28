@@ -41,6 +41,16 @@ const signUp = async (req, res) => {
       return res.status(400).json({ status: 400, success: false, message: `All ${userType} fields are required.` });
     }
 
+     const emailExistsHunter = await User.findOne({ email, isDeleted: { $ne: true } });
+    if (emailExists) {
+      return res.status(400).json({ status: 400, success: false, message: "Email already exists for Hunter" });
+    }
+
+    const emailExistProvider = await Provider.findOne({ email, isDeleted: { $ne: true } });
+    if (emailExistProvider) {
+      return res.status(400).json({ status: 400, success: false, message: "Email already exists for Provider" });
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ status: 400, success: false, message: "Invalid email format." });
