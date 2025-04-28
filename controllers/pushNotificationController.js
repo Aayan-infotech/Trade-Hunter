@@ -165,11 +165,22 @@ exports.getNotificationsByUserId = async (req, res) => {
     const receiverId = req.user.userId;
     const userType = req.params.userType;
 
+
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
     const userNotifications = await Notification.find({ receiverId });
+    const userData= await userNotifications.map(async (notification) => {
+      const user = await Provider.findById(notification.userId) || await Hunter.findById(notification.userId);
+      return {
+        ...notification._doc,
+        userName: user ? user.name : null,
+        isRead: notification.isRead,
+      };
+    });
+    const userNotification = await Promise.all(userData);
+    console.log(userNotification);
     const massNotifications = await massNotification.find({ userType });
 
     const formattedMassNotifications = massNotifications.map((notif) => ({
@@ -177,7 +188,8 @@ exports.getNotificationsByUserId = async (req, res) => {
       isRead: notif.readBy.includes(receiverId),
     }));
 
-    const allNotifications = [...userNotifications, ...formattedMassNotifications];
+    const allNotifications = [...userNotification, ...formattedMassNotifications];
+
     allNotifications.sort((a, b) => b.createdAt - a.createdAt);
 
     const paginatedNotifications = allNotifications.slice(skip, skip + limit);
