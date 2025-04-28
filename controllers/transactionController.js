@@ -28,7 +28,7 @@ exports.createTransaction = async (req, res) => {
       });
     }
 
-    const paymentSuccess = true; // Assume this is always true for now
+    const paymentSuccess = true;
     if (!paymentSuccess) {
       return res.status(400).json({
         status: 400,
@@ -38,10 +38,9 @@ exports.createTransaction = async (req, res) => {
       });
     }
 
-    let newStartDate = new Date(); // default start date
-    let newStatus = 'active';      // default status
+    let newStartDate = new Date(); 
+    let newStatus = 'active';      
 
-    // 1. Check active voucher
     const existingVoucher = await SubscriptionVoucherUser.findOne({
       userId,
       type: 'Voucher',
@@ -52,16 +51,15 @@ exports.createTransaction = async (req, res) => {
       newStartDate = new Date(existingVoucher.endDate);
     }
 
-    // 2. Check active subscription
     const existingActiveSubscription = await SubscriptionVoucherUser.findOne({
       userId,
       type: 'Subscription',
       status: 'active',
     });
 
-    if (existingActiveSubscription && (!existingVoucher || existingVoucher.status !== 'active')) {
+    if (existingActiveSubscription) {
       newStartDate = new Date(existingActiveSubscription.endDate);
-      newStatus = 'upcoming'; 
+      newStatus = 'upcoming';
     }
 
     const transaction = new Transaction({
@@ -74,23 +72,20 @@ exports.createTransaction = async (req, res) => {
     });
     await transaction.save();
 
-    // 4. Create new SubscriptionVoucherUser
     const newEndDate = new Date(newStartDate);
     newEndDate.setDate(newEndDate.getDate() + subscriptionPlan.validity);
 
     const newSubscription = new SubscriptionVoucherUser({
       userId,
-      type: subscriptionType.type, // e.g., "Pay Per Lead"
+      type: subscriptionType.type, 
       subscriptionPlanId,
-      startDate: newStartDate, 
+      startDate: newStartDate,
       endDate: newEndDate,
       status: newStatus,
       kmRadius: subscriptionPlan.kmRadius,
     });
-
     await newSubscription.save();
 
-    // 5. Update Provider only if it's active now
     if (newStatus === 'active') {
       await Provider.findByIdAndUpdate(userId, {
         subscriptionStatus: 1,
@@ -117,6 +112,7 @@ exports.createTransaction = async (req, res) => {
     });
   }
 };
+
 
 
 
