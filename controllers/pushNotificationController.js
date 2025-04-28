@@ -165,8 +165,13 @@ exports.getNotificationsByUserId = async (req, res) => {
     const receiverId = req.user.userId;
     const userType = req.params.userType;
 
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     const userNotifications = await Notification.find({ receiverId });
     const massNotifications = await massNotification.find({ userType });
+
     const formattedMassNotifications = massNotifications.map((notif) => ({
       ...notif._doc,
       isRead: notif.readBy.includes(receiverId),
@@ -174,20 +179,28 @@ exports.getNotificationsByUserId = async (req, res) => {
 
     const allNotifications = [...userNotifications, ...formattedMassNotifications];
     allNotifications.sort((a, b) => b.createdAt - a.createdAt);
+
+    const paginatedNotifications = allNotifications.slice(skip, skip + limit);
+    const total = allNotifications.length;
+
     res.status(200).json({
       status: 200,
       success: true,
-      data: allNotifications,
-      message: "get all notification!"
+      data: paginatedNotifications,
+      total,    
+      page,        
+      limit,        
+      message: "Fetched all notifications with pagination!"
     });
   } catch (error) {
     res.status(500).json({
       status: 500,
       message: error.message,
       success: false
-    })
+    });
   }
 };
+
 
 exports.ReadNotification = async (req, res) => {
   try {
