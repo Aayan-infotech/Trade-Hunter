@@ -120,6 +120,10 @@ exports.updateHunterById = async (req, res) => {
       });
     }
 
+    if (updateData.email !== undefined) {
+      delete updateData.email;
+    }
+
     if (updateData.phoneNo !== undefined) {
       const mobileRegex = /^[0-9]+$/;
       if (!mobileRegex.test(updateData.phoneNo)) {
