@@ -25,12 +25,7 @@ const providerSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     phoneNo: {
       type: Number,
-      validate: {
-        validator: function (v) {
-          return /^\d{10}$/.test(v);
-        },
-        message: (props) => `${props.value} is not a valid phone number!`,
-      },
+      required: true,
     },
     ABN_Number: { type: String, required: true },
     businessType: { type: [String], required: true },

@@ -32,12 +32,7 @@ const hunterSchema = new mongoose.Schema(
     },
     phoneNo: {
       type: Number,
-      validate: {
-        validator: function (v) {
-          return /^\d{10}$/.test(v);
-        },
-        message: (props) => `${props.value} is not a valid phone number!`,
-      },
+      required: true,
     },
     userType: {
       type: String,
