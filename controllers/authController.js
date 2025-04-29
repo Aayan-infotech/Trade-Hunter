@@ -47,10 +47,10 @@ const signUp = async (req, res) => {
       return res.status(400).json({ status: 400, success: false, message: "Invalid email format." });
     }
 
-    const phoneRegex = /^[0-9]{10,15}$/;
-    if (!phoneRegex.test(phoneNo)) {
-      return res.status(400).json({ status: 400, success: false, message: "Invalid phone number format." });
-    }
+    // const phoneRegex = /^[0-9]{10,15}$/;
+    // if (!phoneRegex.test(phoneNo)) {
+    //   return res.status(400).json({ status: 400, success: false, message: "Invalid phone number format." });
+    // }
 
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
     if (!passwordRegex.test(password)) {
