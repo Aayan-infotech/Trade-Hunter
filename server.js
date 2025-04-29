@@ -47,6 +47,7 @@ const serviceRoutes = require("./routes/serviceRoutes");
 const providerRoutes = require("./routes/providerRoutes");
 const jobpostRoutes = require("./routes/jobpostRoutes");
 const addressRoutes = require("./routes/addressRoute");
+const ewayRoutes = require('./routes/ewayRoutes');
 
 
 
@@ -76,6 +77,7 @@ app.use("/api/service", serviceRoutes);
 app.use("/api/provider", providerRoutes);
 app.use("/api/jobpost",jobpostRoutes);
 app.use("/api/address", addressRoutes);
+app.use('/api/eway', ewayRoutes);
 
 
 
