@@ -78,7 +78,7 @@ exports.initiatePayment = async (req, res) => {
     const txn = new Transaction({
       userId,
       subscriptionPlanId,
-
+    
       status: Payment
         ? ewayResponse.TransactionStatus
           ? "completed"
@@ -86,29 +86,29 @@ exports.initiatePayment = async (req, res) => {
         : "pending",
       amount: (Payment.TotalAmount || 0) / 100,
       currency: Payment.CurrencyCode,
-
+    
       transaction: {
-        transactionPrice: (ewayResponse.Payment?.TotalAmount || 0) / 100,
-        transactionStatus: ewayResponse.TransactionStatus
-          ? "Success"
-          : "Failed",
-        transactionType: ewayResponse.TransactionType,
-        authorisationCode: ewayResponse.AuthorisationCode,
-        transactionDate: new Date(),
+        transactionPrice:   (ewayResponse.Payment?.TotalAmount || 0) / 100,
+        transactionStatus:  ewayResponse.TransactionStatus ? "Success" : "Failed",
+        transactionType:    ewayResponse.TransactionType,
+        authorisationCode:  ewayResponse.AuthorisationCode,
+        transactionDate:    new Date(),
+        transactionId:      txId                
       },
-
+    
       payment: {
         paymentSource: "eway",
-        totalAmount: (Payment.TotalAmount || 0) / 100,
-        countryCode: Payment.CurrencyCode,
+        totalAmount:   (Payment.TotalAmount || 0) / 100,
+        countryCode:   Payment.CurrencyCode,
       },
-
+    
       payer: {
-        payerId: ewayResponse.Customer.TokenCustomerID || "",
-        payerName: ewayResponse.Customer.CardDetails.Name,
+        payerId:    ewayResponse.Customer.TokenCustomerID || "",
+        payerName:  ewayResponse.Customer.CardDetails.Name,
         payerEmail: ewayResponse.Customer.Email,
       },
     });
+    
 
     await txn.save();
 

@@ -56,6 +56,9 @@ const TransactionSchema = new mongoose.Schema({
       type: Date,
       default: Date.now,
       index: true
+    },
+    transactionId: {
+      type: String,
     }
   },
 
