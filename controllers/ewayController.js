@@ -4,62 +4,55 @@ const mongoose = require('mongoose');
 
 exports.initiatePayment = async (req, res) => {
   try {
-    // Validate required fields first
-    const requiredFields = [
-      'userId', 'subscriptionPlanId', 'amount', 'email', 
-      'payerName', 'cardNumber', 'expiryMonth', 'expiryYear', 'cvn'
-    ];
 
-    const missingFields = requiredFields.filter(field => !req.body[field]);
-    if (missingFields.length > 0) {
+    const requiredCustomerFields = ['FirstName', 'LastName', 'Email', 'CardDetails'];
+    const requiredCardFields = ['Name', 'Number', 'ExpiryMonth', 'ExpiryYear', 'CVN'];
+    const requiredPaymentFields = ['TotalAmount', 'CurrencyCode'];
+
+    const { Customer, Payment } = req.body;
+
+    if (!Customer || !Payment) {
+      return res.status(400).json({ message: 'Missing Customer or Payment object' });
+    }
+
+    const missingCustomerFields = requiredCustomerFields.filter(field => !Customer[field]);
+    const missingCardFields = requiredCardFields.filter(field => !Customer.CardDetails?.[field]);
+    const missingPaymentFields = requiredPaymentFields.filter(field => !Payment[field]);
+
+    if (missingCustomerFields.length || missingCardFields.length || missingPaymentFields.length) {
       return res.status(400).json({
         message: 'Missing required fields',
-        missingFields
+        missingFields: {
+          Customer: missingCustomerFields,
+          CardDetails: missingCardFields,
+          Payment: missingPaymentFields
+        }
       });
     }
 
-    // Prepare the payment data for eWAY
-    const nameParts = req.body.payerName.trim().split(' ');
-    const firstName = nameParts[0] || 'Test';
-    const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'User';
-
     const paymentData = {
       Customer: {
-        FirstName: firstName,
-        LastName: lastName,
-        Email: req.body.email,
-        Street1: req.body.street1 || 'Unknown',
-        City: req.body.city || 'Unknown',
-        State: req.body.state || 'NSW',
-        PostalCode: req.body.postalCode || '2000',
-        Country: req.body.country === 'AU' ? 'au' : (req.body.country || 'au').toLowerCase(),
+        FirstName: req.body.FirstName || 'Unknown',
+        LastName: req.body.LastName || 'Unknown',
+        Email: req.body.Email || 'noemail@example.com',
         CardDetails: {
-          Name: `${firstName} ${lastName}`,
-          Number: req.body.cardNumber.replace(/\s/g, ''),
-          ExpiryMonth: req.body.expiryMonth.padStart(2, '0'),
-          ExpiryYear: req.body.expiryYear.length === 2 ? `20${req.body.expiryYear}` : req.body.expiryYear,
-          CVN: req.body.cvn
+          Name: req.body.CardName || `${req.body.FirstName} ${req.body.LastName}`,
+          Number: req.body.CardNumber?.replace(/\s/g, '') || '',
+          ExpiryMonth: req.body.ExpiryMonth?.padStart(2, '0') || '',
+          ExpiryYear: req.body.ExpiryYear?.length === 2 ? `20${req.body.ExpiryYear}` : req.body.ExpiryYear,
+          CVN: req.body.CVN || ''
         }
       },
       Payment: {
-        TotalAmount: Math.round(req.body.amount * 100), // Amount in cents
-        CurrencyCode: 'AUD'
+        TotalAmount: Math.round((req.body.Amount || 0) * 100),
+        CurrencyCode: req.body.CurrencyCode || 'AUD'
       },
-      TransactionType: 'Purchase',
-      Capture: true,
-      Options: {
-        ValidateOnly: false // Set to true for testing validation without charging
-      }
+      TransactionType: 'MOTO',
+      Capture: true
     };
 
-    console.log('Eway Request Payload:', JSON.stringify(paymentData, null, 2));
+    const ewayResponse = await ewayService.createTransaction(req.body);
 
-    const ewayResponse = await ewayService.createTransaction(paymentData);
-
-    // Log the full eWAY response to help debug
-    console.log('eWAY Response:', JSON.stringify(ewayResponse, null, 2));
-
-    // Check if the TransactionID exists in the eWAY response
     if (!ewayResponse.TransactionID) {
       return res.status(400).json({
         message: 'Failed to process payment: Missing TransactionID',
@@ -68,22 +61,21 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
-    // Create transaction record
     const transaction = new Transaction({
-      userId: req.body.userId,
-      subscriptionPlanId: req.body.subscriptionPlanId,
-      amount: req.body.amount,
+      userId: req.body.userId || '',
+      subscriptionPlanId: req.body.subscriptionPlanId || '',
+      amount: (req.body.Payment?.TotalAmount || 0) / 100,
       transactionId: ewayResponse.TransactionID,
       paymentMethod: 'eway',
-      status: ewayResponse.TransactionStatus ? ewayResponse.TransactionStatus.toLowerCase() : 'pending',
-      transactionStatus: ewayResponse.TransactionStatus || 'Pending',
+      status: ewayResponse.TransactionStatus ? 'success' : 'failed',
+      transactionStatus: ewayResponse.TransactionStatus ? 'Success' : 'Failed',
       transactionDate: new Date(),
-      transactionPrice: (ewayResponse.Payment?.TotalAmount || req.body.amount * 100) / 100,
-      payer: req.body.payerName,
-      email: req.body.email,
+      transactionPrice: (ewayResponse.Payment?.TotalAmount || 0) / 100,
+      payer: ewayResponse.Customer?.CardDetails?.Name || `${ewayResponse.Customer?.FirstName || ''} ${ewayResponse.Customer?.LastName || ''}`.trim(),
+      email: ewayResponse.Customer?.Email || '',
       payerId: ewayResponse.Customer?.TokenCustomerID || '',
       paymentSource: 'eway',
-      gatewayResponse: ewayResponse // Store full response
+      gatewayResponse: ewayResponse
     });
 
     await transaction.save();
