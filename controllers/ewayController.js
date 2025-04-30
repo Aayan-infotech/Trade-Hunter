@@ -1,113 +1,163 @@
-const Transaction = require('../models/TransactionModelNew');
-const ewayService = require('../services/ewayService');
-const mongoose = require('mongoose');
+const Transaction = require("../models/TransactionModelNew");
+const ewayService = require("../services/ewayService");
 
 exports.initiatePayment = async (req, res) => {
   try {
+    const requiredCustomerFields = [
+      "FirstName",
+      "LastName",
+      "Email",
+      "CardDetails",
+    ];
+    const requiredCardFields = [
+      "Name",
+      "Number",
+      "ExpiryMonth",
+      "ExpiryYear",
+      "CVN",
+    ];
+    const requiredPaymentFields = ["TotalAmount", "CurrencyCode"];
 
-    const requiredCustomerFields = ['FirstName', 'LastName', 'Email', 'CardDetails'];
-    const requiredCardFields = ['Name', 'Number', 'ExpiryMonth', 'ExpiryYear', 'CVN'];
-    const requiredPaymentFields = ['TotalAmount', 'CurrencyCode'];
-
-    const { Customer, Payment } = req.body;
-
+    const { Customer, Payment, userId, subscriptionPlanId } = req.body;
     if (!Customer || !Payment) {
-      return res.status(400).json({ message: 'Missing Customer or Payment object' });
+      return res
+        .status(400)
+        .json({ message: "Missing Customer or Payment object" });
     }
-
-    const missingCustomerFields = requiredCustomerFields.filter(field => !Customer[field]);
-    const missingCardFields = requiredCardFields.filter(field => !Customer.CardDetails?.[field]);
-    const missingPaymentFields = requiredPaymentFields.filter(field => !Payment[field]);
-
-    if (missingCustomerFields.length || missingCardFields.length || missingPaymentFields.length) {
+    const missingCustomer = requiredCustomerFields.filter((f) => !Customer[f]);
+    const missingCard = requiredCardFields.filter(
+      (f) => !Customer.CardDetails?.[f]
+    );
+    const missingPayment = requiredPaymentFields.filter((f) => !Payment[f]);
+    if (missingCustomer.length || missingCard.length || missingPayment.length) {
       return res.status(400).json({
-        message: 'Missing required fields',
+        message: "Missing required fields",
         missingFields: {
-          Customer: missingCustomerFields,
-          CardDetails: missingCardFields,
-          Payment: missingPaymentFields
-        }
+          Customer: missingCustomer,
+          CardDetails: missingCard,
+          Payment: missingPayment,
+        },
       });
     }
 
     const paymentData = {
       Customer: {
-        FirstName: req.body.FirstName || 'Unknown',
-        LastName: req.body.LastName || 'Unknown',
-        Email: req.body.Email || 'noemail@example.com',
+        FirstName: Customer.FirstName,
+        LastName: Customer.LastName,
+        Email: Customer.Email,
         CardDetails: {
-          Name: req.body.CardName || `${req.body.FirstName} ${req.body.LastName}`,
-          Number: req.body.CardNumber?.replace(/\s/g, '') || '',
-          ExpiryMonth: req.body.ExpiryMonth?.padStart(2, '0') || '',
-          ExpiryYear: req.body.ExpiryYear?.length === 2 ? `20${req.body.ExpiryYear}` : req.body.ExpiryYear,
-          CVN: req.body.CVN || ''
-        }
+          Name: Customer.CardDetails.Name,
+          Number: Customer.CardDetails.Number.replace(/\s/g, ""),
+          ExpiryMonth: Customer.CardDetails.ExpiryMonth.padStart(2, "0"),
+          ExpiryYear:
+            Customer.CardDetails.ExpiryYear.length === 2
+              ? `20${Customer.CardDetails.ExpiryYear}`
+              : Customer.CardDetails.ExpiryYear,
+          CVN: Customer.CardDetails.CVN,
+        },
       },
       Payment: {
-        TotalAmount: Math.round((req.body.Amount || 0) * 100),
-        CurrencyCode: req.body.CurrencyCode || 'AUD'
+        TotalAmount: Payment.TotalAmount,
+        CurrencyCode: Payment.CurrencyCode,
       },
-      TransactionType: 'MOTO',
-      Capture: true
+      TransactionType: "MOTO",
+      Capture: true,
     };
 
-    const ewayResponse = await ewayService.createTransaction(req.body);
+    const ewayResponse = await ewayService.createTransaction(paymentData);
 
-    if (!ewayResponse.TransactionID) {
+    const txId = ewayResponse.TransactionID;
+    if (!txId) {
       return res.status(400).json({
-        message: 'Failed to process payment: Missing TransactionID',
-        error: 'TransactionID not found in response',
-        details: ewayResponse
+        message: "Failed to process payment: Missing TransactionID",
+        error: "TransactionID not found in response",
+        details: ewayResponse,
       });
     }
 
-    const transaction = new Transaction({
-      // userId: req.body.userId || '',
-      // subscriptionPlanId: req.body.subscriptionPlanId || '',
-      amount: (req.body.Payment?.TotalAmount || 0) / 100,
-      transactionId: ewayResponse.TransactionID,
-      paymentMethod: 'eway',
-      status: ewayResponse.TransactionStatus ? 'success' : 'failed',
-      transactionStatus: ewayResponse.TransactionStatus ? 'Success' : 'Failed',
-      transactionDate: new Date(),
-      transactionPrice: (ewayResponse.Payment?.TotalAmount || 0) / 100,
-      payer: ewayResponse.Customer?.CardDetails?.Name || `${ewayResponse.Customer?.FirstName || ''} ${ewayResponse.Customer?.LastName || ''}`.trim(),
-      email: ewayResponse.Customer?.Email || '',
-      payerId: ewayResponse.Customer?.TokenCustomerID || '',
-      paymentSource: 'eway',
-      gatewayResponse: ewayResponse
+    const txn = new Transaction({
+      userId,
+      subscriptionPlanId,
+
+      status: Payment
+        ? ewayResponse.TransactionStatus
+          ? "completed"
+          : "failed"
+        : "pending",
+      amount: (Payment.TotalAmount || 0) / 100,
+      currency: Payment.CurrencyCode,
+
+      transaction: {
+        transactionPrice: (ewayResponse.Payment?.TotalAmount || 0) / 100,
+        transactionStatus: ewayResponse.TransactionStatus
+          ? "Success"
+          : "Failed",
+        transactionType: ewayResponse.TransactionType,
+        authorisationCode: ewayResponse.AuthorisationCode,
+        transactionDate: new Date(),
+      },
+
+      payment: {
+        paymentSource: "eway",
+        totalAmount: (Payment.TotalAmount || 0) / 100,
+        countryCode: Payment.CurrencyCode,
+      },
+
+      payer: {
+        payerId: ewayResponse.Customer.TokenCustomerID || "",
+        payerName: ewayResponse.Customer.CardDetails.Name,
+        payerEmail: ewayResponse.Customer.Email,
+      },
     });
 
-    // await transaction.save();
+    await txn.save();
 
     return res.status(200).json({
-      message: 'Payment processed successfully',
-      transactionId: ewayResponse.TransactionID,
+      message: "Payment processed successfully",
+      userId,
+      subscriptionPlanId,
+      transactionId: txId,
       status: ewayResponse.TransactionStatus,
       responseCode: ewayResponse.ResponseCode,
-      amountCharged: req.body.amount
+      amountCharged: (Payment.TotalAmount || 0) / 100,
+      gatewayResponse: ewayResponse,
     });
-
   } catch (error) {
-    console.error('Payment Processing Error:', error);
+    console.error("Payment Processing Error:", error);
 
-    // Log the full error response for debugging
-    if (error.response) {
-      console.error('Error Response:', error.response.data);
+    if (error.response?.data) {
+      console.error("eWAY Error:", error.response.data);
       return res.status(500).json({
-        message: 'Payment initiation failed',
+        message: "Payment initiation failed",
         error: error.message,
         details: error.response.data,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
       });
     }
 
-    // If no response object exists, handle generic error
-    console.error('Error details:', error);
     return res.status(500).json({
-      message: 'Payment initiation failed',
+      message: "Payment initiation failed",
       error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
+  }
+};
+
+exports.getAllTransactions = async (req, res) => {
+  try {
+    const transactions = await Transaction
+      .find()
+      .sort({ 'transaction.transactionDate': -1 });
+
+    return res.status(200).json({
+      count: transactions.length,
+      transactions
+    });
+  } catch (error) {
+    console.error('Error fetching transactions:', error);
+    return res.status(500).json({
+      message: 'Failed to fetch transactions',
+      error:   error.message
     });
   }
 };
