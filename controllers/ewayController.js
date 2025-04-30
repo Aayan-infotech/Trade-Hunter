@@ -62,8 +62,8 @@ exports.initiatePayment = async (req, res) => {
     }
 
     const transaction = new Transaction({
-      userId: req.body.userId || '',
-      subscriptionPlanId: req.body.subscriptionPlanId || '',
+      // userId: req.body.userId || '',
+      // subscriptionPlanId: req.body.subscriptionPlanId || '',
       amount: (req.body.Payment?.TotalAmount || 0) / 100,
       transactionId: ewayResponse.TransactionID,
       paymentMethod: 'eway',
@@ -78,7 +78,7 @@ exports.initiatePayment = async (req, res) => {
       gatewayResponse: ewayResponse
     });
 
-    await transaction.save();
+    // await transaction.save();
 
     return res.status(200).json({
       message: 'Payment processed successfully',
