@@ -10,7 +10,6 @@ router.get('/transactions', transactionController.getAllTransactions);
 router.get('/transaction/:id', transactionController.getTransactionById);
 router.get('/transaction/userId/:userId', transactionController.getTransactionsByUserId)
 router.delete('/transaction/:id', transactionController.deleteTransaction);
-router.get('/totalRevenue', transactionController.getTotalSubscriptionRevenue);
 router.get('/subscription/getById',verifyUser, transactionController.getSubscriptionByUserId);
 
 

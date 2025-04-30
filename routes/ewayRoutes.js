@@ -17,6 +17,7 @@ const getAuthHeader = () => {
 
 router.post('/pay', ewayController.initiatePayment);
 router.get('/getAllTransactions', ewayController.getAllTransactions);
+router.get('/totalRevenue', ewayController.getTotalSubscriptionRevenue);
 
 
 module.exports = router;
