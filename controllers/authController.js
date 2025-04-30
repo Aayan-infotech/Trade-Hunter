@@ -57,16 +57,17 @@ const signUp = async (req, res) => {
       return res.status(400).json({ status: 400, success: false, message: "Password must be at least 8 characters long, including one letter, one number, and one special character." });
     }
 
-    const emailExistsHunter = await User.findOne({ email, isDeleted: { $ne: true } });
-    const emailExistProvider = await Provider.findOne({ email, isDeleted: { $ne: true } });
-
-    if (emailExistsHunter) {
-      return res.status(400).json({ status: 400, success: false, message: "Email already exists for Hunter." });
+    if (userType === "hunter") {
+      const emailExistsHunter = await User.findOne({ email, isDeleted: { $ne: true } });
+      if (emailExistsHunter) {
+        return res.status(400).json({ status: 400, success: false, message: "Email already exists for Hunter." });
+      }
+    } else if (userType === "provider") {
+      const emailExistProvider = await Provider.findOne({ email, isDeleted: { $ne: true } });
+      if (emailExistProvider) {
+        return res.status(400).json({ status: 400, success: false, message: "Email already exists for Provider." });
+      }
     }
-    if (emailExistProvider) {
-      return res.status(400).json({ status: 400, success: false, message: "Email already exists for Provider." });
-    }
-
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const address = {
