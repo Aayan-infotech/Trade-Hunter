@@ -147,7 +147,7 @@ exports.getAllTransactions = async (req, res) => {
   try {
     const transactions = await Transaction
       .find()
-      .sort({ 'transaction.transactionDate': -1 });
+      .sort({ 'transaction.transactionDate': -1 }).populate("userId","contactName email ").populate("subscriptionPlanId","planName kmRadius ");
 
     return res.status(200).json({
       count: transactions.length,
