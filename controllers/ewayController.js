@@ -1,33 +1,23 @@
 const Transaction = require("../models/TransactionModelNew");
 const ewayService = require("../services/ewayService");
+const SubscriptionVoucherUser = require("../models/SubscriptionVoucherUserModel");
+const SubscriptionPlan = require("../models/SubscriptionPlanModel");
+const SubscriptionType = require("../models/SubscriptionTypeModel");
+const Provider = require("../models/providerModel");
 
 exports.initiatePayment = async (req, res) => {
   try {
-    const requiredCustomerFields = [
-      "FirstName",
-      "LastName",
-      "Email",
-      "CardDetails",
-    ];
-    const requiredCardFields = [
-      "Name",
-      "Number",
-      "ExpiryMonth",
-      "ExpiryYear",
-      "CVN",
-    ];
+    const requiredCustomerFields = ["FirstName", "LastName", "Email", "CardDetails"];
+    const requiredCardFields = ["Name", "Number", "ExpiryMonth", "ExpiryYear", "CVN"];
     const requiredPaymentFields = ["TotalAmount", "CurrencyCode"];
 
     const { Customer, Payment, userId, subscriptionPlanId } = req.body;
     if (!Customer || !Payment) {
-      return res
-        .status(400)
-        .json({ message: "Missing Customer or Payment object" });
+      return res.status(400).json({ message: "Missing Customer or Payment object" });
     }
+
     const missingCustomer = requiredCustomerFields.filter((f) => !Customer[f]);
-    const missingCard = requiredCardFields.filter(
-      (f) => !Customer.CardDetails?.[f]
-    );
+    const missingCard = requiredCardFields.filter((f) => !Customer.CardDetails?.[f]);
     const missingPayment = requiredPaymentFields.filter((f) => !Payment[f]);
     if (missingCustomer.length || missingCard.length || missingPayment.length) {
       return res.status(400).json({
@@ -65,8 +55,8 @@ exports.initiatePayment = async (req, res) => {
     };
 
     const ewayResponse = await ewayService.createTransaction(paymentData);
-
     const txId = ewayResponse.TransactionID;
+
     if (!txId) {
       return res.status(400).json({
         message: "Failed to process payment: Missing TransactionID",
@@ -75,42 +65,106 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
+    const amountCharged = (Payment.TotalAmount || 0) / 100;
+
     const txn = new Transaction({
       userId,
       subscriptionPlanId,
-    
-      status: Payment
-        ? ewayResponse.TransactionStatus
-          ? "completed"
-          : "failed"
-        : "pending",
-      amount: (Payment.TotalAmount || 0) / 100,
+      status: ewayResponse.TransactionStatus ? "completed" : "failed",
+      amount: amountCharged,
       currency: Payment.CurrencyCode,
-    
       transaction: {
-        transactionPrice:   (ewayResponse.Payment?.TotalAmount || 0) / 100,
-        transactionStatus:  ewayResponse.TransactionStatus ? "Success" : "Failed",
-        transactionType:    ewayResponse.TransactionType,
-        authorisationCode:  ewayResponse.AuthorisationCode,
-        transactionDate:    new Date(),
-        transactionId:      txId                
+        transactionPrice: amountCharged,
+        transactionStatus: ewayResponse.TransactionStatus ? "Success" : "Failed",
+        transactionType: ewayResponse.TransactionType,
+        authorisationCode: ewayResponse.AuthorisationCode,
+        transactionDate: new Date(),
+        transactionId: txId,
       },
-    
       payment: {
         paymentSource: "eway",
-        totalAmount:   (Payment.TotalAmount || 0) / 100,
-        countryCode:   Payment.CurrencyCode,
+        totalAmount: amountCharged,
+        countryCode: Payment.CurrencyCode,
       },
-    
       payer: {
-        payerId:    ewayResponse.Customer.TokenCustomerID || "",
-        payerName:  ewayResponse.Customer.CardDetails.Name,
+        payerId: ewayResponse.Customer.TokenCustomerID || "",
+        payerName: ewayResponse.Customer.CardDetails.Name,
         payerEmail: ewayResponse.Customer.Email,
       },
     });
-    
 
     await txn.save();
+
+    // Fetch subscription plan
+    const subscriptionPlan = await SubscriptionPlan.findById(subscriptionPlanId);
+    if (!subscriptionPlan) {
+      return res.status(404).json({ message: "Subscription Plan not found" });
+    }
+
+    // Fetch subscription type
+    const subscriptionType = await SubscriptionType.findById(subscriptionPlan.type);
+    if (!subscriptionType) {
+      return res.status(404).json({ message: "Subscription Type not found" });
+    }
+
+    // Payment logic
+    const paymentSuccess = ewayResponse.TransactionStatus === true;
+    if (!paymentSuccess) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Payment failed",
+        data: null,
+      });
+    }
+
+    let newStartDate = new Date();
+    let newStatus = "active";
+
+    const existingVoucher = await SubscriptionVoucherUser.findOne({
+      userId,
+      type: "Voucher",
+      status: { $in: ["active", "expired"] },
+    });
+
+    if (existingVoucher?.status === "active") {
+      newStartDate = new Date(existingVoucher.endDate);
+    }
+
+    const existingActiveSubscription = await SubscriptionVoucherUser.findOne({
+      userId,
+      status: "active",
+    });
+
+    if (existingActiveSubscription) {
+      newStartDate = new Date(existingActiveSubscription.endDate);
+      newStatus = "upcoming";
+    }
+
+    const newEndDate = new Date(newStartDate);
+    newEndDate.setDate(newEndDate.getDate() + subscriptionPlan.validity);
+
+    const newSubscription = new SubscriptionVoucherUser({
+      userId,
+      type: subscriptionType.type,
+      subscriptionPlanId,
+      startDate: newStartDate,
+      endDate: newEndDate,
+      status: newStatus,
+      kmRadius: subscriptionPlan.kmRadius,
+    });
+
+    await newSubscription.save();
+
+    if (newStatus === "active") {
+      await Provider.findByIdAndUpdate(userId, {
+        subscriptionStatus: 1,
+        isGuestMode: false,
+        subscriptionType: subscriptionType.type,
+        subscriptionPlanId: subscriptionPlanId,
+        "address.radius": subscriptionPlan.kmRadius * 1000,
+      });
+    }
 
     return res.status(200).json({
       message: "Payment processed successfully",
@@ -119,14 +173,13 @@ exports.initiatePayment = async (req, res) => {
       transactionId: txId,
       status: ewayResponse.TransactionStatus,
       responseCode: ewayResponse.ResponseCode,
-      amountCharged: (Payment.TotalAmount || 0) / 100,
+      amountCharged: `${amountCharged}$`,
       gatewayResponse: ewayResponse,
     });
   } catch (error) {
     console.error("Payment Processing Error:", error);
 
     if (error.response?.data) {
-      console.error("eWAY Error:", error.response.data);
       return res.status(500).json({
         message: "Payment initiation failed",
         error: error.message,
@@ -142,6 +195,8 @@ exports.initiatePayment = async (req, res) => {
     });
   }
 };
+
+
 
 exports.getAllTransactions = async (req, res) => {
   try {
