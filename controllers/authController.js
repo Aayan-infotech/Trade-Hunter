@@ -151,7 +151,7 @@ const signUp = async (req, res) => {
         <p><strong>Phone:</strong> ${phoneNo}</p>
         <p><strong>Signed up as:</strong> ${userType}</p>
         <br />
-        <p>Regards,<br />Signup System</p>
+        <p>Regards,<br />Trade Hunters</p>
       </div>
       `
     );
