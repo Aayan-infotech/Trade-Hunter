@@ -41,20 +41,18 @@ const signUp = async (req, res) => {
       return res.status(400).json({ status: 400, success: false, message: `All ${userType} fields are required.` });
     }
 
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ status: 400, success: false, message: "Invalid email format." });
     }
 
-    // const phoneRegex = /^[0-9]{10,15}$/;
-    // if (!phoneRegex.test(phoneNo)) {
-    //   return res.status(400).json({ status: 400, success: false, message: "Invalid phone number format." });
-    // }
-
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
     if (!passwordRegex.test(password)) {
-      return res.status(400).json({ status: 400, success: false, message: "Password must be at least 8 characters long, including one letter, one number, and one special character." });
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Password must be at least 8 characters long, including one letter, one number, and one special character.",
+      });
     }
 
     if (userType === "hunter") {
@@ -62,12 +60,13 @@ const signUp = async (req, res) => {
       if (emailExistsHunter) {
         return res.status(400).json({ status: 400, success: false, message: "Email already exists for Hunter." });
       }
-    } else if (userType === "provider") {
+    } else {
       const emailExistProvider = await Provider.findOne({ email, isDeleted: { $ne: true } });
       if (emailExistProvider) {
         return res.status(400).json({ status: 400, success: false, message: "Email already exists for Provider." });
       }
     }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const address = {
@@ -109,10 +108,9 @@ const signUp = async (req, res) => {
             isGuestMode,
           });
 
-    // 10. Generate OTP for verification
+    // Generate and send OTP to user's email
     const verificationOTP = await generateverificationOTP(newUser);
 
-    // 11. Send verification email
     await sendEmail(
       email,
       "Account Verification OTP",
@@ -141,7 +139,23 @@ const signUp = async (req, res) => {
       }).save();
     }
 
-    // 14. Respond success
+    // ✉️ Send notification to admin
+    await sendEmail(
+      "rishabh.sharma@aayaninfotech.com",
+      `New ${userType} Signup - ${name}`,
+      `
+      <div style="font-family: Arial, sans-serif;">
+        <h2>New User Signup Notification</h2>
+        <p><strong>Name:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Phone:</strong> ${phoneNo}</p>
+        <p><strong>Signed up as:</strong> ${userType}</p>
+        <br />
+        <p>Regards,<br />Signup System</p>
+      </div>
+      `
+    );
+
     return res.status(200).json({
       status: 200,
       success: true,
@@ -158,6 +172,7 @@ const signUp = async (req, res) => {
     });
   }
 };
+
 
 
 const login = async (req, res) => {
