@@ -128,10 +128,8 @@ const signUp = async (req, res) => {
       `
     );
 
-    // 12. Save user
     const savedUser = await newUser.save();
 
-    // 13. If user is Hunter, also create Address separately (optional based on your DB design)
     if (userType === "hunter") {
       await new Address({
         userId: savedUser._id,
