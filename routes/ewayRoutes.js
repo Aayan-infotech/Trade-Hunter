@@ -1,11 +1,10 @@
 const express = require('express');
-const axios = require('axios');
 const router = express.Router();
 const ewayController = require('../controllers/ewayController');
 
-const API_KEY = 'C3AB9C5bfS+DBG9Rx9lZ2gZlXbX+ut8Xvni9NPznSIzTs6S7GUx4b+g2YPBTDnFjxRHzM8';
-const API_PASSWORD = 'a94hsJf1';
-const API_URL = 'https://api.sandbox.ewaypayments.com/Transaction'; 
+const API_KEY = process.env.EWAY_API_KEY;
+const API_PASSWORD = process.env.EWAY_PASSWORD;
+const API_URL = process.env.EWAY_URL;
 
 const getAuthHeader = () => {
   const authString = `${API_KEY}:${API_PASSWORD}`;
@@ -13,9 +12,8 @@ const getAuthHeader = () => {
   return `Basic ${base64Auth}`;
 };
 
-router.post('/pay', ewayController.initiatePayment);
+router.post('/pay', (req, res) => ewayController.initiatePayment(req, res, getAuthHeader(), API_URL));
 router.get('/getAllTransactions', ewayController.getAllTransactions);
 router.get('/totalRevenue', ewayController.getTotalSubscriptionRevenue);
-
 
 module.exports = router;
