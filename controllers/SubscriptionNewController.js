@@ -282,30 +282,22 @@ exports.getRetentionRate = async (req, res) => {
   try {
     const currentDate = new Date();
 
-    // Calculate start of this month
     const startOfThisMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-
-    // Calculate start and end dates for last month
     const startOfLastMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
     const endOfLastMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
 
-    // Count subscribers who joined last month
     const lastMonthCount = await SubscriptionUser.countDocuments({
       createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth }
     });
 
-    // Count new subscribers from the beginning of this month
     const newSubscribersThisMonth = await SubscriptionUser.countDocuments({
       createdAt: { $gte: startOfThisMonth }
     });
 
-    // Total number of subscription users
     const totalSubscribers = await SubscriptionUser.countDocuments();
 
-    // Calculate retained subscribers: those who joined before this month
     const retainedSubscribers = totalSubscribers - newSubscribersThisMonth;
 
-    // Calculate retention rate only if lastMonthCount > 0 and totalSubscribers > 0 to avoid division by zero
     let retentionRate = 0;
     if (lastMonthCount > 0 && totalSubscribers > 0) {
       retentionRate = (retainedSubscribers / totalSubscribers) * 100;

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const ewayController = require('../controllers/ewayController');
+const { verifyUser } = require("../middlewares/auth");
 
 const API_KEY = process.env.EWAY_API_KEY;
 const API_PASSWORD = process.env.EWAY_PASSWORD;
@@ -16,4 +17,5 @@ router.post('/pay', (req, res) => ewayController.initiatePayment(req, res, getAu
 router.get('/getAllTransactions', ewayController.getAllTransactions);
 router.get('/totalRevenue', ewayController.getTotalSubscriptionRevenue);
 
+router.get('/getSusbcriptionById' ,verifyUser,  ewayController.getSubscriptionByUserId);
 module.exports = router;

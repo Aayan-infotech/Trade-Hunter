@@ -281,3 +281,50 @@ exports.getTotalSubscriptionRevenue = async (req, res) => {
     }
   };
 
+
+  exports.getSubscriptionByUserId = async (req, res) => {
+    try {
+      const { userId } = req.user;
+  
+      const transactions = await Transaction.find({ userId })
+        .populate("subscriptionPlanId", "planName kmRadius")
+        .lean(); 
+  
+      const subscriptions = await SubscriptionVoucherUser.find({ userId })
+        .select("subscriptionPlanId startDate endDate status")
+        .lean();
+  
+      const combinedData = transactions.map((txn) => {
+        const planIdFromTxn = txn.subscriptionPlanId
+          ? txn.subscriptionPlanId._id?.toString() || txn.subscriptionPlanId.toString()
+          : null;
+  
+        const matchedVoucher = subscriptions.find(
+          (sub) => sub.subscriptionPlanId.toString() === planIdFromTxn
+        );
+  
+        return {
+          ...txn,
+          subscriptionStartDate: matchedVoucher?.startDate || null,
+          subscriptionEndDate: matchedVoucher?.endDate || null,
+          subscriptionStatus: matchedVoucher?.status || null,
+        };
+      });
+  
+      return res.status(200).json({
+        status: 200,
+        success: true,
+        message: "Data fetched successfully",
+        data: combinedData,
+      });
+    } catch (error) {
+      console.error("Error in getSubscriptionByUserId:", error);
+      return res.status(500).json({
+        status: 500,
+        success: false,
+        message: "Server error",
+        error: error.message,
+      });
+    }
+  };
+  
