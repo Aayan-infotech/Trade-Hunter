@@ -170,6 +170,7 @@ exports.initiatePayment = async (req, res) => {
       message: "Payment processed successfully",
       userId,
       subscriptionPlanId,
+      subscriptionType: subscriptionType.type,
       transactionId: txId,
       status: ewayResponse.TransactionStatus,
       responseCode: ewayResponse.ResponseCode,
