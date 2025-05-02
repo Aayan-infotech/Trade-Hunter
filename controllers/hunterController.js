@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const providerModel = require("../models/providerModel");
 const Hunter = require("../models/hunterModel");
 const Address = require("../models/addressModel");
+const sendEmail = require('../services/sendMail');
 
 exports.getNearbyServiceProviders = async (req, res) => {
   try {
@@ -93,8 +94,6 @@ exports.getNearbyServiceProviders = async (req, res) => {
   }
 };
 
-
-
 exports.updateHunterById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -183,9 +182,6 @@ exports.updateHunterById = async (req, res) => {
   }
 };
 
-
-
-
 exports.updateRadius = async (req, res) => {
   try {
     const id = req.user.userId;
@@ -240,5 +236,39 @@ exports.updateRadius = async (req, res) => {
       message: "Internal server error.",
       error: error.message
     });
+  }
+};
+
+exports.sendJobNotificationEmail = async (req, res) => {
+  try {
+    const { name, jobTitle, receverEmail } = req.body;
+
+    if (!name || !jobTitle || !receverEmail) {
+      return res.status(400).json({ message: 'All fields are required: name, jobTitle, receverEmail' });
+    }
+
+    const subject = '📩 New Job Message Notification';
+
+    const htmlMessage = `
+      <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f7f9fc; color: #333;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px;">
+          <h2 style="color: #2c3e50;">🔔 New Job Message Notification</h2>
+          <p style="font-size: 16px;">Hello,</p>
+          <p style="font-size: 16px;">
+            You have received a new message from <strong style="color: #2980b9;">${name}</strong> regarding the job titled 
+            <strong style="color: #27ae60;">${jobTitle}</strong>.
+          </p>
+          <p style="font-size: 14px; color: #7f8c8d;">Please log in to your account to view more details or respond to the message.</p>
+          <hr style="margin: 20px 0;" />
+          <p style="font-size: 12px; color: #95a5a6;">This is an automated message. Please do not reply to this email.</p>
+        </div>
+      </div>
+    `;
+
+    await sendEmail(receverEmail, subject, htmlMessage);
+
+    res.status(200).json({ message: 'Email sent successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to send email', error: error.message });
   }
 };
