@@ -531,18 +531,16 @@ exports.jobAcceptCount = async (req, res) => {
   }
 };
 
-
-
 exports.jobCompleteCount = async (req, res) => {
   try {
     const { providerId } = req.params;
+
     if (!mongoose.Types.ObjectId.isValid(providerId)) {
       return res
         .status(400)
         .json({ status: 400, message: "Invalid provider ID." });
     }
-
-    const provider = await Provider.findById(providerId);
+    const provider = await providerModel.findById(providerId);
     if (!provider) {
       return res
         .status(404)
@@ -550,14 +548,11 @@ exports.jobCompleteCount = async (req, res) => {
     }
 
     provider.jobCompleteCount = (provider.jobCompleteCount || 0) + 1;
-    if (
-      provider.subscriptionType === "Pay Per Lead"
-    ) {
-      const plan = await SubscriptionPlan.findById(
-        provider.subscriptionPlanId
-      );
+
+    if (provider.subscriptionType === "Pay Per Lead") {
+      const plan = await SubscriptionPlan.findById(provider.subscriptionPlanId);
       const allowedLeads = plan?.leadCount ?? 0;
-      const usedLeads = provider.leadCompleteCount || 0;
+      const usedLeads    = provider.leadCompleteCount || 0;
 
       if (usedLeads >= allowedLeads) {
         await expireSubscription(provider);
@@ -567,7 +562,6 @@ exports.jobCompleteCount = async (req, res) => {
             "Your allotted leads have been completed. Please purchase a new plan.",
         });
       }
-
       provider.leadCompleteCount = usedLeads + 1;
 
       if (provider.leadCompleteCount >= allowedLeads) {
@@ -610,6 +604,13 @@ async function expireSubscription(provider) {
   provider.leadCompleteCount = null;
   provider.address.radius = 10000;
 }
+
+
+
+
+
+
+
 
 
 
