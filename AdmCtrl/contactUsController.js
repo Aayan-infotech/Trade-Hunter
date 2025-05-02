@@ -5,6 +5,7 @@ const Contact = require("../models/contactUsModel");
 exports.createContact = async (req, res) => {
   try {
     const { name, email, message } = req.body;
+
     if (!name || !email || !message) {
       return res
         .status(400)
@@ -14,12 +15,15 @@ exports.createContact = async (req, res) => {
     const newContact = new Contact({ name, email, message });
     await newContact.save();
 
-    res
-      .status(201)
-      .json({
-        message: "Thank You for Contacting , We will get back to you soon :",
-        contact: newContact,
-      });
+    // Emit socket event to frontend
+    const io = req.app.get("io");
+    io.emit("newContact", newContact); // 💥 send to all connected clients
+
+    res.status(201).json({
+      message: "Thank you for contacting us, we will get back to you soon.",
+      contact: newContact,
+    });
+
   } catch (error) {
     res
       .status(500)
@@ -42,15 +46,16 @@ exports.deleteContact = async (req, res) => {
   try {
     const contactId = req.params.id;
     const deletedContact = await Contact.findByIdAndDelete(contactId);
+
     if (!deletedContact) {
       return res.status(404).json({ message: "Contact not found" });
     }
-    res
-      .status(200)
-      .json({
-        message: "Contact deleted successfully",
-        contact: deletedContact,
-      });
+
+    res.status(200).json({
+      message: "Contact deleted successfully",
+      contact: deletedContact,
+    });
+
   } catch (error) {
     res
       .status(500)
