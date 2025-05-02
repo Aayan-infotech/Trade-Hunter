@@ -9,5 +9,7 @@ router.get("/getRatings/:providerId",verifyUser,  ratingController.getRatings);
 
 router.get("/getAvgRating/:providerId",verifyUser,  ratingController.getAvgRating);
 
+router.get("/getRatingById/:jobId",verifyUser,  ratingController.getRatingByJob);
+
 module.exports = router;
     

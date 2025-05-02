@@ -7,7 +7,7 @@ exports.giveRating = async (req, res) => {
   try {
     const { userId } = req.user;
     const { providerId } = req.params;
-    const { rating, review } = req.body;
+    const { jobId, rating, review } = req.body;
 
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized: User not found." });
@@ -32,6 +32,7 @@ exports.giveRating = async (req, res) => {
     const newRating = new Rating({
       userId, 
       providerId,
+      jobId,
       rating,
       review,
     });
@@ -52,7 +53,7 @@ exports.giveRating = async (req, res) => {
   try {
     const { userId } = req.user;
     const { providerId } = req.params;
-    const { rating, review } = req.body;
+    const { jobId, rating, review } = req.body;
 
     if (!userId) {
       return res.status(401).json({ message: "Unauthorized: User not found." });
@@ -77,6 +78,7 @@ exports.giveRating = async (req, res) => {
     const newRating = new Rating({
       userId, 
       providerId,
+      jobId,
       rating,
       review,
     });
@@ -149,6 +151,31 @@ exports.getAvgRating = async (req, res) => {
       return res.status(500).json({ message: "Server error", error: error.message });
     }
   };
+
+
+
+  exports.getRatingByJob = async (req, res) => {
+    try {
+      const { jobId } = req.params;
   
-
-
+      if (!mongoose.Types.ObjectId.isValid(jobId)) {
+        return res.status(400).json({ message: "Invalid jobId." });
+      }
+  
+      const ratings = await Rating.find({ jobId })
+        .populate("userId", "name email images")        
+        .populate("providerId", "contactName email images") 
+        .populate("jobId");              
+      return res.status(200).json({
+        message: "Ratings for the job retrieved successfully.",
+        data: ratings,
+      });
+    } catch (error) {
+      console.error("Error in getRating:", error);
+      return res.status(500).json({
+        message: "Server error",
+        error: error.message,
+      });
+    }
+  };
+  

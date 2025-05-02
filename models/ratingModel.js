@@ -13,6 +13,11 @@ const ratingSchema = new mongoose.Schema({
     ref: "Provider",
     required: true
   },
+  jobId:{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "JobPost",
+    required: true
+  },
   rating: {
     type: Number,
     min: 1,
