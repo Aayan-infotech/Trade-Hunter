@@ -165,7 +165,7 @@ exports.getAvgRating = async (req, res) => {
       const ratings = await Rating.find({ jobId })
         .populate("userId", "name email images")        
         .populate("providerId", "contactName email images") 
-        .populate("jobId");              
+        .populate("jobId", "jobTitle jobDescription");              
       return res.status(200).json({
         message: "Ratings for the job retrieved successfully.",
         data: ratings,
