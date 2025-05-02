@@ -557,16 +557,18 @@ exports.jobCompleteCount = async (req, res) => {
 
       if (usedLeads >= allowedLeads) {
         await expireSubscription(provider);
-        return res.status(400).json({
+        await provider.save();                 
+        return res.status(400).json({            
           status: 400,
-          message:
-            "Your allotted leads have been completed. Please purchase a new plan.",
+          message: "Your allotted leads have been completed. Please purchase a new plan.",
         });
       }
+
       provider.leadCompleteCount = usedLeads + 1;
 
       if (provider.leadCompleteCount > allowedLeads) {
         await expireSubscription(provider);
+        await provider.save();                    
       }
     }
 
@@ -588,9 +590,8 @@ exports.jobCompleteCount = async (req, res) => {
   }
 };
 
-
 async function expireSubscription(provider) {
-  const voucher = await subscriptionVoucherUser.findOne({
+  const voucher = await SubscriptionVoucherUser.findOne({
     userId: provider._id,
     subscriptionPlanId: provider.subscriptionPlanId,
   });
@@ -599,12 +600,14 @@ async function expireSubscription(provider) {
     await voucher.save();
   }
 
-  provider.subscriptionStatus = 0;
-  provider.subscriptionPlanId = null;
-  provider.subscriptionType = null;
-  provider.leadCompleteCount = null;
-  provider.address.radius = 10000;
+  provider.subscriptionStatus   = 0;
+  provider.subscriptionPlanId   = null;
+  provider.subscriptionType     = null;
+  provider.leadCompleteCount    = null;
+  provider.address.radius       = 10000;
 }
+
+
 
 
 
