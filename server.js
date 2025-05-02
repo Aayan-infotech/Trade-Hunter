@@ -36,7 +36,6 @@ const devicetokenRoute = require("./routes/devicetokenRoute")
 const pushNotificationRoutes = require("./routes/pushNotificationRoutes")
 const matchRoutes = require("./routes/matchRoutes")
 const SubscriptionNewRoute = require("./routes/SubscriptionNewRoute")
-const transactionRoutes = require("./routes/transactionRoutes")
 const voucherRoutes = require("./routes/voucherRoutes")
 const backgroundImgRoutes = require("./routes/backgroundImgRoutes")
 const profilePhotoRoutes = require("./routes/profilePhotoRoute")
@@ -65,7 +64,6 @@ app.use("/api/devicetoken", devicetokenRoute);
 app.use("/api/pushNotification", pushNotificationRoutes);
 app.use("/api/match", matchRoutes);
 app.use("/api/SubscriptionNew", SubscriptionNewRoute);
-app.use("/api/demoTransaction", transactionRoutes);
 app.use("/api/voucher", voucherRoutes);
 app.use("/api/backgroundImg", backgroundImgRoutes);
 app.use("/api/providerPhoto", profilePhotoRoutes)
