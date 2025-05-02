@@ -152,16 +152,21 @@ const getJobPostByUserId = async (req, res) => {
     let limit = parseInt(req.query.limit) || 10;
     let skip = (page - 1) * limit;
     const search = req.query.search || "";
-    
+    const jobStatus = req.query.jobStatus; // new filter
+
     const query = { user: userId };
 
     if (search) {
       query["title"] = { $regex: search, $options: "i" };
     }
 
+    if (jobStatus) {
+      query["jobStatus"] = jobStatus;
+    }
+
     const totalJobs = await JobPost.countDocuments(query);
     const jobPosts = await JobPost.find(query)
-      .sort({ createdAt: -1 }) 
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
@@ -185,6 +190,7 @@ const getJobPostByUserId = async (req, res) => {
     });
   }
 };
+
 
 
 
