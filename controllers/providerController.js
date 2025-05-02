@@ -5,6 +5,7 @@ const providerModel = require("../models/providerModel");
 const jobpostModel = require("../models/jobpostModel");
 const providerPhotosModel = require("../models/providerPhotos");
 const SubscriptionPlan = require("../models/SubscriptionPlanModel");
+const subscriptionVoucherUser = require("../models/SubscriptionVoucherUserModel");
 const SubscriptionType = require("../models/SubscriptionTypeModel");
 
 const storage = multer.diskStorage({
@@ -564,7 +565,7 @@ exports.jobCompleteCount = async (req, res) => {
       }
       provider.leadCompleteCount = usedLeads + 1;
 
-      if (provider.leadCompleteCount >= allowedLeads) {
+      if (provider.leadCompleteCount > allowedLeads) {
         await expireSubscription(provider);
       }
     }
@@ -589,7 +590,7 @@ exports.jobCompleteCount = async (req, res) => {
 
 
 async function expireSubscription(provider) {
-  const voucher = await SubscriptionVoucherUser.findOne({
+  const voucher = await subscriptionVoucherUser.findOne({
     userId: provider._id,
     subscriptionPlanId: provider.subscriptionPlanId,
   });
