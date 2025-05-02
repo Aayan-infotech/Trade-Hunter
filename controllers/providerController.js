@@ -895,20 +895,43 @@ exports.getProvidersListing = async (req, res) => {
 
 
 exports.getAllProviders = async (req, res) => {
-
   try {
-    const providers = await providerModel.find({}).select("-password -__v");
-    res.status(200).json({
-      status: 200,
-      message: "Providers fetched successfully",
-      data: providers,
+    const page   = parseInt(req.query.page, 10)  || 1;
+    const limit  = parseInt(req.query.limit, 10) || 10;
+    const search = req.query.search?.trim()      || "";
+
+    const filter = {};
+    if (search) {
+      filter.businessName = { $regex: search, $options: "i" };
+    }
+
+    const total = await providerModel.countDocuments(filter);
+
+    const providers = await providerModel
+      .find(filter)
+      .select("-password -__v")
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return res.status(200).json({
+      status:     200,
+      message:    "Providers fetched successfully",
+      page,
+      limit,
+      total,
+      totalPages,
+      data:       providers,
     });
   } catch (error) {
-    res.status(500).json({
-      status: 500,
+    console.error("Error in getAllProviders:", error);
+    return res.status(500).json({
+      status:  500,
       message: "Internal server error",
-      error: error.message,
+      error:   error.message,
     });
   }
-}
+};
+
 
