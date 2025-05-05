@@ -337,7 +337,7 @@ exports.AllReadNotifications = async (req, res) => {
 
 exports.sendPushNotification2 = async (req, res) => {
   try {
-    const { title, body, receiverId, notificationType } = req.body;
+    const { title, body, receiverId, notificationType, jobId  } = req.body;
     const userId = req.user.userId;
 
     const newNotification = new Notification({
@@ -346,6 +346,7 @@ exports.sendPushNotification2 = async (req, res) => {
       title,
       body,
       notificationType,
+      jobId,
       createdAt: new Date()
     });
 
