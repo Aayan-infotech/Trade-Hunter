@@ -68,7 +68,7 @@ exports.applyVoucher = async (req, res) => {
   
       await Provider.findOneAndUpdate(
         { _id: userId },
-        { $set: { subscriptionStatus: 1, isGuestMode: false } }
+        { $set: { subscriptionStatus: 1, isGuestMode: false , 'adress.radius': 160000} }
       );
   
       return res.status(200).json({
