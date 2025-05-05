@@ -94,3 +94,14 @@ exports.getMassNotifications = async (req, res) => {
     return res.status(500).json({ error: "Internal server error." });
   }
 };
+
+
+exports.getAllMassNotifications = async (req, res) => {
+  try {
+    const notifications = await Notification.find().sort({ createdAt: -1 });
+    return res.status(200).json(notifications);
+  } catch (error) {
+    console.error("Error fetching all notifications:", error);
+    return res.status(500).json({ error: "Internal server error." });
+  }
+};

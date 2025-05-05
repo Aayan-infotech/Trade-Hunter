@@ -6,6 +6,7 @@ const { verifyUser } = require('../middlewares/auth');
 
 router.post("/",verifyUser, MassNotificationController.sendMassNotification);
 router.get("/",verifyUser,  MassNotificationController.getMassNotifications);
+router.get("/getAll", MassNotificationController.getAllMassNotifications);
 
 module.exports = router;
   
