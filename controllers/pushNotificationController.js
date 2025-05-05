@@ -179,6 +179,7 @@ exports.getNotificationsByUserId = async (req, res) => {
           ...notification._doc,
           userName: user.name,
           isRead: notification.isRead,
+          jobId: notification.jobId || null
         };
       } else {
         return null; 
