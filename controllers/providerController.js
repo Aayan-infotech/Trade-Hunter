@@ -902,7 +902,7 @@ exports.getAllProviders = async (req, res) => {
 
     const filter = {};
     if (search) {
-      filter.businessName = { $regex: search, $options: "i" };
+      filter.businessType = { $regex: search, $options: "i" };
     }
 
     const total = await providerModel.countDocuments(filter);
