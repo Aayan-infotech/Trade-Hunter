@@ -877,6 +877,7 @@ exports.getProvidersListing = async (req, res) => {
           address: 1,
           distance: 1,
           ABN_Number:1,
+          about: 1,
         },
       },
     ]);

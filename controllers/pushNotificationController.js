@@ -179,6 +179,7 @@ exports.getNotificationsByUserId = async (req, res) => {
           ...notification._doc,
           userName: user.name,
           isRead: notification.isRead,
+          jobId: notification.jobId || null
         };
       } else {
         return null; 
@@ -337,7 +338,7 @@ exports.AllReadNotifications = async (req, res) => {
 
 exports.sendPushNotification2 = async (req, res) => {
   try {
-    const { title, body, receiverId, notificationType } = req.body;
+    const { title, body, receiverId, notificationType, jobId  } = req.body;
     const userId = req.user.userId;
 
     const newNotification = new Notification({
@@ -346,6 +347,7 @@ exports.sendPushNotification2 = async (req, res) => {
       title,
       body,
       notificationType,
+      jobId,
       createdAt: new Date()
     });
 
