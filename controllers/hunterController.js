@@ -243,11 +243,16 @@ exports.sendJobNotificationEmail = async (req, res) => {
   try {
     const { name, jobTitle, receverEmail } = req.body;
 
-    if (!name  || !receverEmail) {
-      return res.status(400).json({ message: 'All fields are required: name,  receverEmail' });
+    if (!name || !receverEmail) {
+      return res.status(400).json({ message: 'All fields are required: name, receverEmail' });
     }
 
     const subject = '📩 New Job Message Notification';
+
+    // Conditionally include job title if it exists
+    const jobTitleSection = jobTitle
+      ? `regarding the job titled <strong style="color: #27ae60;">${jobTitle}</strong>`
+      : '';
 
     const htmlMessage = `
       <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f7f9fc; color: #333;">
@@ -255,8 +260,9 @@ exports.sendJobNotificationEmail = async (req, res) => {
           <h2 style="color: #2c3e50;">🔔 New Job Message Notification</h2>
           <p style="font-size: 16px;">Hello,</p>
           <p style="font-size: 16px;">
-            You have received a new message from <strong style="color: #2980b9;">${name}</strong> regarding the job titled 
-            <strong style="color: #27ae60;">${jobTitle}</strong>.
+            You have received a new message from 
+            <strong style="color: #2980b9;">${name}</strong> 
+            ${jobTitleSection ? jobTitleSection : ''}.
           </p>
           <p style="font-size: 14px; color: #7f8c8d;">Please log in to your account to view more details or respond to the message.</p>
           <hr style="margin: 20px 0;" />
@@ -272,3 +278,4 @@ exports.sendJobNotificationEmail = async (req, res) => {
     res.status(500).json({ message: 'Failed to send email', error: error.message });
   }
 };
+
