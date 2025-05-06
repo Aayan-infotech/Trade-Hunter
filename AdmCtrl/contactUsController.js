@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Contact = require("../models/contactUsModel");
+const sendEmail = require("../services/sendMail"); // already correctly imported
 
 exports.createContact = async (req, res) => {
   try {
@@ -15,9 +16,23 @@ exports.createContact = async (req, res) => {
     const newContact = new Contact({ name, email, message });
     await newContact.save();
 
-    // Emit socket event to frontend
+    const subject = "📨 New Contact Request Received";
+    const htmlMessage = `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>🔔 New Contact Follow-up</h2>
+        <p>You have received a new follow-up from:</p>
+        <ul>
+          <li><strong>Name:</strong> ${name}</li>
+          <li><strong>Email:</strong> ${email}</li>
+        </ul>
+        <p><strong>Message:</strong> ${message}</p>
+        <p style="font-size: 12px; color: gray;">This is an automated email from Trade Hunter</p>
+      </div>
+    `;
+    await sendEmail("rishabh.sharma@aayaninfotech.com", subject, htmlMessage);
+
     const io = req.app.get("io");
-    io.emit("newContact", newContact); // 💥 send to all connected clients
+    io.emit("newContact", newContact);
 
     res.status(201).json({
       message: "Thank you for contacting us, we will get back to you soon.",
@@ -30,6 +45,7 @@ exports.createContact = async (req, res) => {
       .json({ message: "Internal server error", error: error.message });
   }
 };
+
 
 exports.getAllContacts = async (req, res) => {
   try {
