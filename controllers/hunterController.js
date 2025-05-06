@@ -243,8 +243,8 @@ exports.sendJobNotificationEmail = async (req, res) => {
   try {
     const { name, jobTitle, receverEmail } = req.body;
 
-    if (!name || !jobTitle || !receverEmail) {
-      return res.status(400).json({ message: 'All fields are required: name, jobTitle, receverEmail' });
+    if (!name  || !receverEmail) {
+      return res.status(400).json({ message: 'All fields are required: name,  receverEmail' });
     }
 
     const subject = '📩 New Job Message Notification';
