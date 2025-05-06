@@ -847,8 +847,7 @@ exports.getProvidersListing = async (req, res) => {
 
     const latitude = parseFloat(lat);
     const longitude = parseFloat(lng);
-    radius = parseFloat(radius) || 20000; // Default to 160,000 meters if not provided
-
+    radius = parseFloat(radius) || 20000; 
     const businessTypesArray = Array.isArray(businessType)
       ? businessType
       : [businessType];

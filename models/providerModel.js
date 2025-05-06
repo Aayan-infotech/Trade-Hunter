@@ -24,7 +24,7 @@ const providerSchema = new mongoose.Schema(
     },
     email: { type: String, required: true, unique: true },
     phoneNo: {
-      type: Number,
+      type: String,
       required: true,
     },
     ABN_Number: { type: String, required: true },
