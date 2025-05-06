@@ -618,7 +618,7 @@ const getHunterProfile = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res
         .status(400)
-        .json({ status: 400, message: "Invalid provider ID" });
+        .json({ status: 400, message: "Invalid Hunter ID" });
     }
 
     const hunter = await Hunter.findById(id);
