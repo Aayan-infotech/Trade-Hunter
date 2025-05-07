@@ -5,7 +5,7 @@ const providerModel = require("../models/providerModel");
 const jobpostModel = require("../models/jobpostModel");
 const providerPhotosModel = require("../models/providerPhotos");
 const SubscriptionPlan = require("../models/SubscriptionPlanModel");
-const subscriptionVoucherUser = require("../models/SubscriptionVoucherUserModel");
+const SubscriptionVoucherUser = require("../models/SubscriptionVoucherUserModel");
 const SubscriptionType = require("../models/SubscriptionTypeModel");
 
 const storage = multer.diskStorage({
