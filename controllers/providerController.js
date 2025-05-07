@@ -42,10 +42,6 @@ const upload = multer({
 }).array("file", 10);
 
 exports.uploadFile = async (req, res) => {
-  // console.log("Request params:", req.params);
-  // console.log("Request body:", req.body);
-  // console.log("Request files:", req.files);
-
   const { description } = req.body;
   const { providerId } = req.params;
 
@@ -55,7 +51,6 @@ exports.uploadFile = async (req, res) => {
 
   try {
     const provider = await providerModel.findById(providerId).exec();
-    // console.log("Provider fetched:", provider);
     if (!provider) {
       return res.status(404).json({ status: 404, message: "Provider not found." });
     }
@@ -92,6 +87,39 @@ exports.uploadFile = async (req, res) => {
     return res.status(500).json({ status: 500, message: "Error saving file to the database.", error });
   }
 };
+
+
+exports.deleteFile = async (req, res) => {
+  const {  fileId } = req.params;
+
+  const { providerId } = req.user; 
+
+  if (!mongoose.Types.ObjectId.isValid(fileId)) {
+    return res.status(400).json({ status: 400, message: "Invalid file id." });
+  }
+
+  try {
+    const provider = await providerModel.findById(providerId);
+    if (!provider) {
+      return res.status(404).json({ status: 404, message: "Provider not found." });
+    }
+
+    const updatedFiles = provider.files.filter((file) => file.fileId.toString() !== fileId);
+    
+    if (updatedFiles.length === provider.files.length) {
+      return res.status(404).json({ status: 404, message: "File not found." });
+    }
+
+    provider.files = updatedFiles;
+    await provider.save();
+
+    return res.status(200).json({ status: 200, message: "File deleted successfully." });
+  } catch (error) {
+    console.error("Error in deleteFile:", error);
+    return res.status(500).json({ status: 500, message: "Server error.", error });
+  }
+};
+
 
 // plz check
 exports.getProviderByUserLocation = async (req, res) => {

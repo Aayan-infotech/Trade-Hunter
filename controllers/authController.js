@@ -61,24 +61,29 @@ const signUp = async (req, res) => {
           ];
 
     if (requiredFields.some((field) => !field)) {
-      return res
-        .status(400)
-        .json({
-          status: 400,
-          success: false,
-          message: `All ${userType} fields are required.`,
-        });
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: `All ${userType} fields are required.`,
+      });
+    }
+
+    const nameRegex = /^[A-Za-z\s]+$/;
+    if (!nameRegex.test(name)) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Name must contain only alphabets and spaces.",
+      });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res
-        .status(400)
-        .json({
-          status: 400,
-          success: false,
-          message: "Invalid email format.",
-        });
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Invalid email format.",
+      });
     }
 
     const passwordRegex =
@@ -108,13 +113,11 @@ const signUp = async (req, res) => {
         isDeleted: { $ne: true },
       });
       if (emailExistsHunter) {
-        return res
-          .status(400)
-          .json({
-            status: 400,
-            success: false,
-            message: "Email already exists for Hunter.",
-          });
+        return res.status(400).json({
+          status: 400,
+          success: false,
+          message: "Email already exists for Hunter.",
+        });
       }
     } else {
       const emailExistProvider = await Provider.findOne({
@@ -122,13 +125,11 @@ const signUp = async (req, res) => {
         isDeleted: { $ne: true },
       });
       if (emailExistProvider) {
-        return res
-          .status(400)
-          .json({
-            status: 400,
-            success: false,
-            message: "Email already exists for Provider.",
-          });
+        return res.status(400).json({
+          status: 400,
+          success: false,
+          message: "Email already exists for Provider.",
+        });
       }
     }
 
@@ -291,12 +292,10 @@ const login = async (req, res) => {
     if (!user.emailVerified) {
       const verificationOTP = await generateverificationOTP(user);
       await sendEmail(email, "Account Verification OTP", verificationOTP);
-      return res
-        .status(200)
-        .json({
-          status: 200,
-          message: "You are not verified, Please verify your email",
-        });
+      return res.status(200).json({
+        status: 200,
+        message: "You are not verified, Please verify your email",
+      });
     }
 
     if (user.userStatus == "Suspended") {
@@ -410,13 +409,11 @@ const verifyEmail = async (req, res) => {
     user.token = token;
     await user.save();
 
-    return res
-      .status(200)
-      .json({
-        status: 200,
-        message: "Email verified successfully",
-        data: { token, user },
-      });
+    return res.status(200).json({
+      status: 200,
+      message: "Email verified successfully",
+      data: { token, user },
+    });
   } catch (err) {
     return res
       .status(500)
