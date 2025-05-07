@@ -108,7 +108,6 @@ exports.updateHunterById = async (req, res) => {
       });
     }
 
-    // 2️⃣ Check if Hunter exists
     const hunterExists = await Hunter.findById(id);
     if (!hunterExists) {
       return res.status(404).json({ 
@@ -124,13 +123,13 @@ exports.updateHunterById = async (req, res) => {
     }
 
     if (updateData.phoneNo !== undefined) {
-      const mobileRegex = /^[0-9]+$/;
-      if (!mobileRegex.test(updateData.phoneNo)) {
+      const phoneRegex = /^\+?[0-9]+$/;
+      if (!phoneRegex.test(updateData.phoneNo)) {
         return res.status(400).json({
           status: 400,
           success: false,
-          message: "Mobile number should contain digits only",
-          data: []
+          message: "Phone number must contain only digits and may start with '+'.",
+          data: [],
         });
       }
     }
@@ -181,6 +180,7 @@ exports.updateHunterById = async (req, res) => {
     });
   }
 };
+
 
 exports.updateRadius = async (req, res) => {
   try {
