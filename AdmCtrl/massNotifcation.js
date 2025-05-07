@@ -105,3 +105,27 @@ exports.getAllMassNotifications = async (req, res) => {
     return res.status(500).json({ error: "Internal server error." });
   }
 };
+
+exports.deleteNotificationById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: 'Invalid notification ID.' });
+    }
+
+    const deletedNotification = await Notification.findByIdAndDelete(id);
+
+    if (!deletedNotification) {
+      return res.status(404).json({ error: 'Notification not found.' });
+    }
+
+    res.status(200).json({
+      message: 'Notification deleted successfully.',
+      data: deletedNotification
+    });
+  } catch (error) {
+    console.error('Error deleting notification:', error);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+};
