@@ -234,13 +234,13 @@ exports.getServicesForGuestLocation = async (req, res) => {
 };
 
 
-exports.getNearbyJobs  = async (req, res) => {
+exports.getNearbyJobs = async (req, res) => {
   try {
     const {
       businessType,
       latitude,
       longitude,
-      radius,  
+      radius,
       page = 1,
       limit = 10,
     } = req.body;
@@ -274,11 +274,11 @@ exports.getNearbyJobs  = async (req, res) => {
       {
         $match: {
           businessType: businessTypeCondition,
-          jobStatus: "Pending"
+          jobStatus: "Pending",
         },
       },
       {
-        $sort: { distance: 1 },
+        $sort: { createdAt: -1 },  
       },
       {
         $skip: (page - 1) * limit,
@@ -318,6 +318,7 @@ exports.getNearbyJobs  = async (req, res) => {
     });
   }
 };
+
 
 
 
