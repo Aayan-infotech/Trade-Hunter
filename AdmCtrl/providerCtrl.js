@@ -75,18 +75,19 @@ exports.updateProvider = async (req, res) => {
     const { id } = req.params;
     const updatedData = req.body;
 
-    if (updateData.phoneNo !== undefined) {
-      const mobileRegex = /^[0-9]+$/;
-      if (!mobileRegex.test(updateData.phoneNo)) {
+    if (updatedData.phoneNo !== undefined) {
+      const phoneRegex = /^\+?[0-9]+$/;
+      if (!phoneRegex.test(updatedData.phoneNo)) {
         return res.status(400).json({
           status: 400,
           success: false,
-          message: "Mobile number should contain digits only",
-          data: []
+          message: "Phone number must contain only digits and may start with '+'.",
+          data: [],
         });
       }
     }
 
+    // Handle businessType update separately if needed
     if (updatedData.businessType) {
       updatedData.$set = { businessType: updatedData.businessType };
       delete updatedData.businessType;
@@ -110,6 +111,7 @@ exports.updateProvider = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error", error });
   }
 };
+
 
 exports.getAllProvidersGuestMode = async (req, res) => {
   try {

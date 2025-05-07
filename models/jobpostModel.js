@@ -77,4 +77,7 @@ const JobPostSchema = new mongoose.Schema({
 
 JobPostSchema.index({ "jobLocation.location": "2dsphere" });
 
+
+
+
 module.exports = mongoose.model('JobPost', JobPostSchema);
