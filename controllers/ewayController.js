@@ -289,7 +289,7 @@ exports.getTotalSubscriptionRevenue = async (req, res) => {
   
       const transactions = await Transaction.find({ userId })
         .populate("subscriptionPlanId", "planName kmRadius")
-        .lean(); 
+        .lean();
   
       const subscriptions = await SubscriptionVoucherUser.find({ userId })
         .select("subscriptionPlanId startDate endDate status")
@@ -300,9 +300,23 @@ exports.getTotalSubscriptionRevenue = async (req, res) => {
           ? txn.subscriptionPlanId._id?.toString() || txn.subscriptionPlanId.toString()
           : null;
   
-        const matchedVoucher = subscriptions.find(
+        const txnDate = new Date(txn.transaction.transactionDate);
+  
+        const matchingVouchers = subscriptions.filter(
           (sub) => sub.subscriptionPlanId.toString() === planIdFromTxn
         );
+  
+        // Try to find the closest voucher starting at or just after the txn
+        let matchedVoucher = matchingVouchers
+          .filter((sub) => new Date(sub.startDate) >= txnDate)
+          .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))[0];
+  
+        // Fallback: get latest past voucher
+        if (!matchedVoucher) {
+          matchedVoucher = matchingVouchers
+            .filter((sub) => new Date(sub.startDate) <= txnDate)
+            .sort((a, b) => new Date(b.startDate) - new Date(a.startDate))[0];
+        }
   
         return {
           ...txn,
@@ -328,4 +342,6 @@ exports.getTotalSubscriptionRevenue = async (req, res) => {
       });
     }
   };
+  
+  
   
