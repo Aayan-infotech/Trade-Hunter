@@ -5,7 +5,7 @@ const Provider = require('../models/providerModel');
 const Notification = require('../models/massNotification');
 const admin =require('../config/firebaseConfig')
 const deviceTokenModel=require('../models/devicetokenModel');
-
+const mongoose = require('mongoose');
 
 const pushNotification = async (subject, message, deviceToken)=>{
   try {
