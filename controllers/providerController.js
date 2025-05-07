@@ -498,70 +498,33 @@ exports.getProviderProfile = async (req, res) => {
 exports.jobAcceptCount = async (req, res) => {
   try {
     const { providerId } = req.params;
+
     if (!mongoose.Types.ObjectId.isValid(providerId)) {
-      return res.status(400).json({ 
-        status: 400, 
-        message: "Invalid provider id." 
+      return res.status(400).json({
+        status: 400,
+        message: "Invalid provider id."
       });
     }
 
-    const updatedProvider = await providerModel.findByIdAndUpdate(
-      providerId,
-      { $inc: { jobAcceptCount: 1 } },
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedProvider) {
-      return res.status(404).json({ 
-        status: 404, 
-        message: "Provider not found." 
-      });
-    }
-
-    return res.status(200).json({
-      status: 200,
-      message: "Job accept count incremented successfully!",
-      jobAcceptCount: updatedProvider.jobAcceptCount,
-    });
-  } catch (error) {
-    console.error("Error in jobAcceptCount:", error);
-    return res.status(500).json({ 
-      status: 500, 
-      message: "Internal server error", 
-      error: error.message 
-    });
-  }
-};
-
-exports.jobCompleteCount = async (req, res) => {
-  try {
-    const { providerId } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(providerId)) {
-      return res
-        .status(400)
-        .json({ status: 400, message: "Invalid provider ID." });
-    }
     const provider = await providerModel.findById(providerId);
     if (!provider) {
-      return res
-        .status(404)
-        .json({ status: 404, message: "Provider not found." });
+      return res.status(404).json({
+        status: 404,
+        message: "Provider not found."
+      });
     }
-
-    provider.jobCompleteCount = (provider.jobCompleteCount || 0) + 1;
 
     if (provider.subscriptionType === "Pay Per Lead") {
       const plan = await SubscriptionPlan.findById(provider.subscriptionPlanId);
       const allowedLeads = plan?.leadCount ?? 0;
-      const usedLeads    = provider.leadCompleteCount || 0;
+      const usedLeads = provider.leadCompleteCount || 0;
 
       if (usedLeads >= allowedLeads) {
         await expireSubscription(provider);
-        await provider.save();                 
-        return res.status(400).json({            
+        await provider.save();
+        return res.status(400).json({
           status: 400,
-          message: "Your allotted leads have been completed. Please purchase a new plan.",
+          message: "Your allotted leads have been completed. Please purchase a new plan."
         });
       }
 
@@ -569,24 +532,25 @@ exports.jobCompleteCount = async (req, res) => {
 
       if (provider.leadCompleteCount > allowedLeads) {
         await expireSubscription(provider);
-        await provider.save();                    
       }
     }
+
+    provider.jobAcceptCount = (provider.jobAcceptCount || 0) + 1;
 
     await provider.save();
 
     return res.status(200).json({
       status: 200,
-      message: "Job complete count updated successfully.",
-      jobCompleteCount: provider.jobCompleteCount,
+      message: "Job accept count incremented successfully!",
+      jobAcceptCount: provider.jobAcceptCount,
       leadCompleteCount: provider.leadCompleteCount,
     });
   } catch (error) {
-    console.error("Error in jobCompleteCount:", error);
+    console.error("Error in jobAcceptCount:", error);
     return res.status(500).json({
       status: 500,
       message: "Internal server error",
-      error: error.message,
+      error: error.message
     });
   }
 };
@@ -607,6 +571,47 @@ async function expireSubscription(provider) {
   provider.leadCompleteCount    = null;
   provider.address.radius       = 10000;
 }
+
+
+
+exports.jobCompleteCount = async (req, res) => {
+  try {
+    const { providerId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(providerId)) {
+      return res.status(400).json({
+        status: 400,
+        message: "Invalid provider ID."
+      });
+    }
+
+    const provider = await providerModel.findById(providerId);
+    if (!provider) {
+      return res.status(404).json({
+        status: 404,
+        message: "Provider not found."
+      });
+    }
+
+    provider.jobCompleteCount = (provider.jobCompleteCount || 0) + 1;
+    await provider.save();
+
+    return res.status(200).json({
+      status: 200,
+      message: "Job complete count updated successfully.",
+      jobCompleteCount: provider.jobCompleteCount
+    });
+  } catch (error) {
+    console.error("Error in jobCompleteCount:", error);
+    return res.status(500).json({
+      status: 500,
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
+
+
 
 
 
