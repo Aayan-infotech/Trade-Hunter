@@ -12,6 +12,7 @@ exports.initiatePayment = async (req, res) => {
     const requiredPaymentFields = ["TotalAmount", "CurrencyCode"];
 
     const { Customer, Payment, userId, subscriptionPlanId } = req.body;
+
     if (!Customer || !Payment) {
       return res.status(400).json({ message: "Missing Customer or Payment object" });
     }
@@ -19,6 +20,7 @@ exports.initiatePayment = async (req, res) => {
     const missingCustomer = requiredCustomerFields.filter((f) => !Customer[f]);
     const missingCard = requiredCardFields.filter((f) => !Customer.CardDetails?.[f]);
     const missingPayment = requiredPaymentFields.filter((f) => !Payment[f]);
+
     if (missingCustomer.length || missingCard.length || missingPayment.length) {
       return res.status(400).json({
         message: "Missing required fields",
@@ -95,21 +97,17 @@ exports.initiatePayment = async (req, res) => {
 
     await txn.save();
 
-    // Fetch subscription plan
     const subscriptionPlan = await SubscriptionPlan.findById(subscriptionPlanId);
     if (!subscriptionPlan) {
       return res.status(404).json({ message: "Subscription Plan not found" });
     }
 
-    // Fetch subscription type
     const subscriptionType = await SubscriptionType.findById(subscriptionPlan.type);
     if (!subscriptionType) {
       return res.status(404).json({ message: "Subscription Type not found" });
     }
 
-    // Payment logic
-    const paymentSuccess = ewayResponse.TransactionStatus === true;
-    if (!paymentSuccess) {
+    if (!ewayResponse.TransactionStatus) {
       return res.status(400).json({
         status: 400,
         success: false,
@@ -121,23 +119,14 @@ exports.initiatePayment = async (req, res) => {
     let newStartDate = new Date();
     let newStatus = "active";
 
-    const existingVoucher = await SubscriptionVoucherUser.findOne({
+    const latestSub = await SubscriptionVoucherUser.findOne({
       userId,
-      type: "Voucher",
-      status: { $in: ["active", "expired"] },
-    });
+      type: subscriptionType.type,
+      status: { $in: ["active", "upcoming"] },
+    }).sort({ endDate: -1 });
 
-    if (existingVoucher?.status === "active") {
-      newStartDate = new Date(existingVoucher.endDate);
-    }
-
-    const existingActiveSubscription = await SubscriptionVoucherUser.findOne({
-      userId,
-      status: "active",
-    });
-
-    if (existingActiveSubscription) {
-      newStartDate = new Date(existingActiveSubscription.endDate);
+    if (latestSub) {
+      newStartDate = new Date(latestSub.endDate);
       newStatus = "upcoming";
     }
 
@@ -161,7 +150,7 @@ exports.initiatePayment = async (req, res) => {
         subscriptionStatus: 1,
         isGuestMode: false,
         subscriptionType: subscriptionType.type,
-        subscriptionPlanId: subscriptionPlanId,
+        subscriptionPlanId,
         "address.radius": subscriptionPlan.kmRadius * 1000,
       });
     }
@@ -177,6 +166,7 @@ exports.initiatePayment = async (req, res) => {
       amountCharged: `${amountCharged}$`,
       gatewayResponse: ewayResponse,
     });
+
   } catch (error) {
     console.error("Payment Processing Error:", error);
 
@@ -196,6 +186,7 @@ exports.initiatePayment = async (req, res) => {
     });
   }
 };
+
 
 
 
