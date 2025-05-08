@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 const User = require("../models/hunterModel");
 const JobPost = require('../models/jobpostModel');  
 const Provider = require("../models/providerModel");  
-// Get all users
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find();
@@ -12,7 +11,6 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// Get user by ID`
 exports.getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -25,7 +23,6 @@ exports.getUserById = async (req, res) => {
   }
 };
 
-// Update user
 exports.updateUser = async (req, res) => {
   try {
     const user = await User.findByIdAndUpdate(req.params.id, req.body, {
@@ -41,7 +38,6 @@ exports.updateUser = async (req, res) => {
   }
 };
 
-// Delete user
 exports.deleteUser = async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
@@ -56,11 +52,11 @@ exports.deleteUser = async (req, res) => {
 
 exports.getUsersByType = async (req, res) => {
   try {
-    const { type } = req.params; // Extract user type from params
-    const limit = parseInt(req.params.pagelimit) || 10; // Extract pagelimit from params
-    const page = Math.max(1, parseInt(req.query.page) || 1); // Extract page from query
-    const search = req.query.search || ""; // Extract search query
-    const userStatusFilter = req.query.userStatus; // Extract userStatus filter
+    const { type } = req.params; 
+    const limit = parseInt(req.params.pagelimit) || 10; 
+    const page = Math.max(1, parseInt(req.query.page) || 1); 
+    const search = req.query.search || ""; 
+    const userStatusFilter = req.query.userStatus; 
 
     if (!type) {
       return res.status(400).json({ message: "User type is required" });
@@ -77,16 +73,13 @@ exports.getUsersByType = async (req, res) => {
       ],
     };
 
-    // Apply userStatus filter if provided
     if (userStatusFilter) {
       query.userStatus = userStatusFilter;
     }
 
-    // console.log("Query:", query);
 
-    // Apply sorting first, then pagination (skip & limit)
     const users = await User.find(query)
-      .sort({ createdAt: -1 }) // Sort by creation date descending (latest first)
+      .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
 
@@ -105,7 +98,6 @@ exports.getUsersByType = async (req, res) => {
   }
 };
 
-// GET Job Posts By User Id
 exports.getJobPostsByUser = async (req, res) => {
   try {
     const userId = req.params.userId;

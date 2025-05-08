@@ -15,6 +15,7 @@ const {
   jobsByBusinessType,
   incrementJobAcceptCount,
   updateJobPost,
+  completionNotified,
 } = require("../controllers/jobpostController");
 const multer = require("multer");
 const upload = multer();
@@ -22,12 +23,11 @@ const { uploadToS3files } = require("../common/multerconfig2");
 const { verifyUser } = require("../middlewares/auth");
 const router = express.Router();
 
-// Updated route: using uploadToS3files middleware
 router.post(
   "/jobpost",
   verifyUser,
   upload.array("documents"),
-  uploadToS3files, // This middleware processes files and sets req.fileLocations
+  uploadToS3files, 
   createJobPost
 );
 
@@ -45,5 +45,7 @@ router.get("/businessTypes", businessTypes);
 router.get("/jobsByBusinessType", jobsByBusinessType);
 router.put("/job/accept/:jobId", incrementJobAcceptCount);
 router.put("/:id",verifyUser,upload.array("documents"),uploadToS3files, updateJobPost);
+router.put("/notifyCompletion/:jobId",verifyUser, completionNotified);
+
 
 module.exports = router;

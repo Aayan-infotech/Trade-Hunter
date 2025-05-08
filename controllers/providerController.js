@@ -5,19 +5,21 @@ const providerModel = require("../models/providerModel");
 const jobpostModel = require("../models/jobpostModel");
 const providerPhotosModel = require("../models/providerPhotos");
 const SubscriptionPlan = require("../models/SubscriptionPlanModel");
+const SubscriptionVoucherUser = require("../models/SubscriptionVoucherUserModel");
 const SubscriptionType = require("../models/SubscriptionTypeModel");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    // console.log("Destination callback called. File received:", file);
-    cb(null, "uploads/"); 
+    cb(null, "uploads/");
   },
   filename: function (req, file, cb) {
-    // console.log("Filename callback called. File received:", file);
     if (!file || !file.originalname) {
       return cb(new Error("No file provided or file is undefined."));
     }
-    cb(null, file.fieldname + "-" + Date.now() + path.extname(file.originalname));
+    cb(
+      null,
+      file.fieldname + "-" + Date.now() + path.extname(file.originalname)
+    );
   },
 });
 
@@ -25,13 +27,14 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 1024 * 1024 * 5 },
   fileFilter: function (req, file, cb) {
-    // console.log("File filter invoked. File received:", file);
     if (!file) {
       return cb(new Error("No file provided."));
     }
     const filetypes = /jpeg|jpg|png|gif|webp|jfif|pdf/;
     const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const extname = filetypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
     if (mimetype && extname) {
       return cb(null, true);
     } else {
@@ -41,28 +44,31 @@ const upload = multer({
 }).array("file", 10);
 
 exports.uploadFile = async (req, res) => {
-  // console.log("Request params:", req.params);
-  // console.log("Request body:", req.body);
-  // console.log("Request files:", req.files);
-
   const { description } = req.body;
   const { providerId } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(providerId)) {
-    return res.status(400).json({ status: 400, message: "Invalid provider id." });
+    return res
+      .status(400)
+      .json({ status: 400, message: "Invalid provider id." });
   }
 
   try {
     const provider = await providerModel.findById(providerId).exec();
-    // console.log("Provider fetched:", provider);
     if (!provider) {
-      return res.status(404).json({ status: 404, message: "Provider not found." });
+      return res
+        .status(404)
+        .json({ status: 404, message: "Provider not found." });
     }
     if (!provider.userType || provider.userType.toLowerCase() !== "provider") {
-      return res.status(403).json({ status: 403, message: "Unauthorized: Not a provider." });
+      return res
+        .status(403)
+        .json({ status: 403, message: "Unauthorized: Not a provider." });
     }
     if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ status: 400, message: "Please upload at least one file." });
+      return res
+        .status(400)
+        .json({ status: 400, message: "Please upload at least one file." });
     }
     const filesData = req.files.map((file) => ({
       filename: file.key || file.filename,
@@ -88,11 +94,55 @@ exports.uploadFile = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in uploadFile:", error);
-    return res.status(500).json({ status: 500, message: "Error saving file to the database.", error });
+    return res
+      .status(500)
+      .json({
+        status: 500,
+        message: "Error saving file to the database.",
+        error,
+      });
   }
 };
 
-// plz check
+exports.deleteFile = async (req, res) => {
+  const { fileId } = req.params;
+
+  const { providerId } = req.user;
+
+  if (!mongoose.Types.ObjectId.isValid(fileId)) {
+    return res.status(400).json({ status: 400, message: "Invalid file id." });
+  }
+
+  try {
+    const provider = await providerModel.findById(providerId);
+    if (!provider) {
+      return res
+        .status(404)
+        .json({ status: 404, message: "Provider not found." });
+    }
+
+    const updatedFiles = provider.files.filter(
+      (file) => file.fileId.toString() !== fileId
+    );
+
+    if (updatedFiles.length === provider.files.length) {
+      return res.status(404).json({ status: 404, message: "File not found." });
+    }
+
+    provider.files = updatedFiles;
+    await provider.save();
+
+    return res
+      .status(200)
+      .json({ status: 200, message: "File deleted successfully." });
+  } catch (error) {
+    console.error("Error in deleteFile:", error);
+    return res
+      .status(500)
+      .json({ status: 500, message: "Server error.", error });
+  }
+};
+
 exports.getProviderByUserLocation = async (req, res) => {
   try {
     const RADIUS_OF_EARTH = 6371;
@@ -169,7 +219,6 @@ exports.getProviderByUserLocation = async (req, res) => {
   }
 };
 
-// for guest user
 exports.getServicesForGuestLocation = async (req, res) => {
   try {
     const RADIUS_OF_EARTH = 6371;
@@ -232,14 +281,13 @@ exports.getServicesForGuestLocation = async (req, res) => {
   }
 };
 
-
-exports.getNearbyJobs  = async (req, res) => {
+exports.getNearbyJobs = async (req, res) => {
   try {
     const {
       businessType,
       latitude,
       longitude,
-      radius,  
+      radius,
       page = 1,
       limit = 10,
     } = req.body;
@@ -247,14 +295,14 @@ exports.getNearbyJobs  = async (req, res) => {
     if (!businessType || !latitude || !longitude || !radius) {
       return res.status(400).json({
         status: 400,
-        message: "Missing required fields"
+        message: "Missing required fields",
       });
     }
 
     let businessTypeCondition;
     if (Array.isArray(businessType)) {
       businessTypeCondition = {
-        $in: businessType.map((bt) => new RegExp(`^${bt}$`, "i"))
+        $in: businessType.map((bt) => new RegExp(`^${bt}$`, "i")),
       };
     } else {
       businessTypeCondition = new RegExp(`^${businessType}$`, "i");
@@ -273,11 +321,11 @@ exports.getNearbyJobs  = async (req, res) => {
       {
         $match: {
           businessType: businessTypeCondition,
-          jobStatus: "Pending"
+          jobStatus: "Pending",
         },
       },
       {
-        $sort: { distance: 1 },
+        $sort: { createdAt: -1 },
       },
       {
         $skip: (page - 1) * limit,
@@ -318,8 +366,6 @@ exports.getNearbyJobs  = async (req, res) => {
   }
 };
 
-
-
 exports.getNearbyJobsForGuest = async (req, res) => {
   try {
     const { latitude, longitude, page = 1, limit = 10 } = req.body;
@@ -341,21 +387,20 @@ exports.getNearbyJobsForGuest = async (req, res) => {
       },
       {
         $match: {
-          jobStatus: "Pending", // Fetch only pending jobs
+          jobStatus: "Pending", 
         },
       },
       {
-        $sort: { distance: 1 }, // Sort by nearest first
+        $sort: { distance: 1 }, 
       },
       {
-        $skip: (page - 1) * limit, // Pagination: Skip previous pages
+        $skip: (page - 1) * limit, 
       },
       {
-        $limit: limit, // Limit results per page
+        $limit: limit, 
       },
     ]);
 
-    // Get total job count for pagination metadata
     const totalJobs = await jobpostModel.countDocuments({
       jobStatus: "Pending",
     });
@@ -382,7 +427,9 @@ exports.getJobByIdForGuest = async (req, res) => {
     const { jobId } = req.params;
 
     if (!jobId) {
-      return res.status(400).json({ status: 400, message: "Job ID is required" });
+      return res
+        .status(400)
+        .json({ status: 400, message: "Job ID is required" });
     }
 
     const job = await jobpostModel.findById(jobId);
@@ -391,10 +438,14 @@ exports.getJobByIdForGuest = async (req, res) => {
       return res.status(404).json({ status: 404, message: "Job not found" });
     }
 
-    return res.status(200).json({ status: 200, message: "Job fetched successfully", data: job });
+    return res
+      .status(200)
+      .json({ status: 200, message: "Job fetched successfully", data: job });
   } catch (error) {
     console.error("Error fetching job by ID:", error);
-    return res.status(500).json({ status: 500, message: "Error fetching job: " + error });
+    return res
+      .status(500)
+      .json({ status: 500, message: "Error fetching job: " + error });
   }
 };
 
@@ -403,28 +454,30 @@ exports.updateProviderById = async (req, res) => {
     const { id } = req.params;
     let updateData = { ...req.body };
 
+    console.log("Request Body:", updateData);
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid ID format" });
     }
 
-    if (updateData.email !== undefined) {
-      delete updateData.email;
-    }
+    if (updateData.email !== undefined) delete updateData.email;
 
-    if (updateData.addressLine !== undefined) {
+    if (updateData.addressLine) {
       updateData["address.addressLine"] = updateData.addressLine;
       delete updateData.addressLine;
     }
-    if (updateData.latitude !== undefined && updateData.longitude !== undefined) {
+
+    if (updateData.latitude && updateData.longitude) {
       updateData["address.location.coordinates"] = [
         Number(updateData.longitude),
         Number(updateData.latitude),
       ];
-      updateData["address.location.type"] = 'Point';
+      updateData["address.location.type"] = "Point";
       delete updateData.latitude;
       delete updateData.longitude;
     }
-    if (updateData.radius !== undefined) {
+
+    if (updateData.radius) {
       updateData["address.radius"] = Number(updateData.radius);
       delete updateData.radius;
     }
@@ -453,33 +506,32 @@ exports.updateProviderById = async (req, res) => {
   }
 };
 
-
 exports.getProviderProfile = async (req, res) => {
   try {
     const { providerId } = req.params;
+    const provider = await providerModel.findById(providerId).populate({
+      path: "assignedJobs",
+      populate: {
+        path: "user",
+        select: "name email",
+      },
+    });
 
-    // Fetch provider details and populate assignedJobs with user details
-    const provider = await providerModel.findById(providerId)
-      .populate({
-        path: "assignedJobs",
-        populate: {
-          path: "user",
-          select: "name email"
-        }
-      });
-
-    // Fetch work gallery with correct query
-    const workgallery = await providerPhotosModel.findOne({ userId: providerId }).select("files");
+    const workgallery = await providerPhotosModel
+      .findOne({ userId: providerId })
+      .select("files");
 
     if (!provider) {
-      return res.status(404).json({ success: false, message: "Provider not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Provider not found" });
     }
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Provider fetched successfully", 
+    res.status(200).json({
+      success: true,
+      message: "Provider fetched successfully",
       data: provider,
-      workgallery
+      workgallery,
     });
   } catch (error) {
     console.error("Error fetching provider profile:", error);
@@ -490,76 +542,107 @@ exports.getProviderProfile = async (req, res) => {
 exports.jobAcceptCount = async (req, res) => {
   try {
     const { providerId } = req.params;
+
     if (!mongoose.Types.ObjectId.isValid(providerId)) {
-      return res.status(400).json({ 
-        status: 400, 
-        message: "Invalid provider id." 
+      return res.status(400).json({
+        status: 400,
+        message: "Invalid provider id.",
       });
-    }
-
-    const updatedProvider = await providerModel.findByIdAndUpdate(
-      providerId,
-      { $inc: { jobAcceptCount: 1 } },
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedProvider) {
-      return res.status(404).json({ 
-        status: 404, 
-        message: "Provider not found." 
-      });
-    }
-
-    return res.status(200).json({
-      status: 200,
-      message: "Job accept count incremented successfully!",
-      jobAcceptCount: updatedProvider.jobAcceptCount,
-    });
-  } catch (error) {
-    console.error("Error in jobAcceptCount:", error);
-    return res.status(500).json({ 
-      status: 500, 
-      message: "Internal server error", 
-      error: error.message 
-    });
-  }
-};
-
-
-exports.jobCompleteCount = async (req, res) => {
-  try {
-    const { providerId } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(providerId)) {
-      return res.status(400).json({ status: 400, message: "Invalid provider ID." });
     }
 
     const provider = await providerModel.findById(providerId);
     if (!provider) {
-      return res.status(404).json({ status: 404, message: "Provider not found." });
+      return res.status(404).json({
+        status: 404,
+        message: "Provider not found.",
+      });
     }
 
-    // Always bump the job count
-    provider.jobCompleteCount += 1;
+    if (provider.subscriptionType === "Pay Per Lead") {
+      const plan = await SubscriptionPlan.findById(provider.subscriptionPlanId);
+      const allowedLeads = plan?.leadCount ?? 0;
+      const usedLeads = provider.leadCompleteCount || 0;
 
-    // Check for Pay Per Lead plans
-    if (provider.subscriptionPlanId) {
-      // Mongoose will cast the string to ObjectId under the hood
-      const subscriptionPlan = await SubscriptionPlan
-        .findById(provider.subscriptionPlanId)
-        .populate('type'); // populate the SubscriptionType :contentReference[oaicite:3]{index=3}
+      if (usedLeads >= allowedLeads) {
+        await expireSubscription(provider);
+        await provider.save();
+        return res.status(400).json({
+          status: 400,
+          message:
+            "Your allotted leads have been completed. Please purchase a new plan.",
+        });
+      }
 
-      if (subscriptionPlan?.type?.type === "Pay Per Lead") {
-        provider.leadCompleteCount += 1;
+      provider.leadCompleteCount = usedLeads + 1;
+
+      if (provider.leadCompleteCount > allowedLeads) {
+        await expireSubscription(provider);
       }
     }
 
+    provider.jobAcceptCount = (provider.jobAcceptCount || 0) + 1;
+
+    await provider.save();
+
+    return res.status(200).json({
+      status: 200,
+      message: "Job accept count incremented successfully!",
+      jobAcceptCount: provider.jobAcceptCount,
+      leadCompleteCount: provider.leadCompleteCount,
+    });
+  } catch (error) {
+    console.error("Error in jobAcceptCount:", error);
+    return res.status(500).json({
+      status: 500,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+async function expireSubscription(provider) {
+  const voucher = await SubscriptionVoucherUser.findOne({
+    userId: provider._id,
+    subscriptionPlanId: provider.subscriptionPlanId,
+  });
+  if (voucher) {
+    voucher.status = "expired";
+    await voucher.save();
+  }
+
+  provider.subscriptionStatus = 0;
+  provider.subscriptionPlanId = null;
+  provider.subscriptionType = null;
+  provider.leadCompleteCount = null;
+  provider.address.radius = 10000;
+}
+
+exports.jobCompleteCount = async (req, res) => {
+  try {
+    const { providerId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(providerId)) {
+      return res.status(400).json({
+        status: 400,
+        message: "Invalid provider ID.",
+      });
+    }
+
+    const provider = await providerModel.findById(providerId);
+    if (!provider) {
+      return res.status(404).json({
+        status: 404,
+        message: "Provider not found.",
+      });
+    }
+
+    provider.jobCompleteCount = (provider.jobCompleteCount || 0) + 1;
     await provider.save();
 
     return res.status(200).json({
       status: 200,
       message: "Job complete count updated successfully.",
       jobCompleteCount: provider.jobCompleteCount,
-      leadCompleteCount: provider.leadCompleteCount,
     });
   } catch (error) {
     console.error("Error in jobCompleteCount:", error);
@@ -571,43 +654,39 @@ exports.jobCompleteCount = async (req, res) => {
   }
 };
 
-
-
 exports.completionRate = async (req, res) => {
   try {
     const { providerId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(providerId)) {
-      return res.status(400).json({ 
-        status: 400, 
-        message: "Invalid provider id." 
+      return res.status(400).json({
+        status: 400,
+        message: "Invalid provider id.",
       });
     }
 
     const provider = await providerModel.findById(providerId);
     if (!provider) {
-      return res.status(404).json({ 
-        status: 404, 
-        message: "Provider not found." 
+      return res.status(404).json({
+        status: 404,
+        message: "Provider not found.",
       });
     }
 
     const { jobAcceptCount, jobCompleteCount } = provider;
-    // Prevent division by zero; if no accepted jobs, completion rate is 0%
-    const completionRate = jobAcceptCount > 0 
-      ? (jobCompleteCount / jobAcceptCount) * 100 
-      : 0;
+    const completionRate =
+      jobAcceptCount > 0 ? (jobCompleteCount / jobAcceptCount) * 100 : 0;
 
     return res.status(200).json({
       status: 200,
       message: "Completion rate computed successfully!",
-      completionRate: completionRate
+      completionRate: completionRate,
     });
   } catch (error) {
     console.error("Error computing completion rate:", error);
-    return res.status(500).json({ 
-      status: 500, 
-      message: "Internal server error", 
-      error: error.message 
+    return res.status(500).json({
+      status: 500,
+      message: "Internal server error",
+      error: error.message,
     });
   }
 };
@@ -618,36 +697,40 @@ exports.deleteFile = async (req, res) => {
     if (!fileId) {
       return res.status(400).json({ message: "File ID is required." });
     }
-    
-    // Get the authenticated provider's ID from the request (set by your auth middleware)
     const providerId = req.user.userId;
-    
-    // Find the provider using the Provider model. Rename the variable to avoid conflict.
+
     const foundProvider = await providerModel.findById(providerId);
     if (!foundProvider) {
       return res.status(404).json({ message: "Provider not found." });
     }
-    
-    // Check if there are any files in the provider's files array
+
     if (!foundProvider.files || foundProvider.files.length === 0) {
-      return res.status(404).json({ message: "No files found for this provider." });
+      return res
+        .status(404)
+        .json({ message: "No files found for this provider." });
     }
-    
+
     const initialCount = foundProvider.files.length;
-    
-    // Filter out the file with the matching fileId
     foundProvider.files = foundProvider.files.filter(
       (file) => file._id.toString() !== fileId
     );
-    
+
     if (foundProvider.files.length === initialCount) {
       return res.status(404).json({ message: "File not found." });
     }
-    
+
     await foundProvider.save();
-    return res.status(200).json({ status:200,message: "File deleted successfully." });
+    return res
+      .status(200)
+      .json({ status: 200, message: "File deleted successfully." });
   } catch (error) {
-    return res.status(500).json({ status:500, message: "Internal server error", error: error.message });
+    return res
+      .status(500)
+      .json({
+        status: 500,
+        message: "Internal server error",
+        error: error.message,
+      });
   }
 };
 
@@ -670,36 +753,36 @@ exports.getProvidersByBusinessType = async (req, res) => {
       ? businessType
       : [businessType];
 
-      const providers = await providerModel.aggregate([
-        {
-          $geoNear: {
-            near: { type: "Point", coordinates: [longitude, latitude] },
-            distanceField: "distance",
-            maxDistance,
-            spherical: true,
-            key: "address.location"
-          }
+    const providers = await providerModel.aggregate([
+      {
+        $geoNear: {
+          near: { type: "Point", coordinates: [longitude, latitude] },
+          distanceField: "distance",
+          maxDistance,
+          spherical: true,
+          key: "address.location",
         },
-        {
-          $match: {
-            businessType: { $in: businessTypesArray },
-            subscriptionType: "Advertising"
-          }
+      },
+      {
+        $match: {
+          businessType: { $in: businessTypesArray },
+          subscriptionType: "Advertising",
         },
-        {
-          $project: {
-            _id: 1,
-            contactName: 1,
-            email: 1,
-            businessName: 1,
-            businessType: 1,
-            address: 1,
-            distance: 1,
-            subscriptionType: 1
-          }
-        }
-      ]);
-      
+      },
+      {
+        $project: {
+          _id: 1,
+          contactName: 1,
+          email: 1,
+          businessName: 1,
+          businessType: 1,
+          address: 1,
+          distance: 1,
+          subscriptionType: 1,
+        },
+      },
+    ]);
+
     return res.status(200).json({
       status: 200,
       message: "Providers retrieved successfully.",
@@ -710,9 +793,6 @@ exports.getProvidersByBusinessType = async (req, res) => {
   }
 };
 
-
-
-// Create or Update "about" field
 exports.upsertAbout = async (req, res) => {
   try {
     const { about } = req.body;
@@ -723,7 +803,6 @@ exports.upsertAbout = async (req, res) => {
         status: 400,
         success: false,
         message: "About field is required",
-
       });
     }
 
@@ -757,7 +836,6 @@ exports.upsertAbout = async (req, res) => {
   }
 };
 
-// Get "about" field
 exports.getAbout = async (req, res) => {
   try {
     const provider = await providerModel.findById(req.params.id, "about");
@@ -786,8 +864,6 @@ exports.getAbout = async (req, res) => {
   }
 };
 
-
-
 exports.getProvidersListing = async (req, res) => {
   try {
     const { lat, lng, businessType } = req.body;
@@ -802,8 +878,7 @@ exports.getProvidersListing = async (req, res) => {
 
     const latitude = parseFloat(lat);
     const longitude = parseFloat(lng);
-    radius = parseFloat(radius) || 160000; // Default to 160,000 meters if not provided
-
+    radius = parseFloat(radius) || 20000;
     const businessTypesArray = Array.isArray(businessType)
       ? businessType
       : [businessType];
@@ -815,7 +890,7 @@ exports.getProvidersListing = async (req, res) => {
           distanceField: "distance",
           spherical: true,
           key: "address.location",
-          maxDistance: radius, // Apply the radius filter
+          maxDistance: radius, 
         },
       },
       {
@@ -832,6 +907,8 @@ exports.getProvidersListing = async (req, res) => {
           businessType: 1,
           address: 1,
           distance: 1,
+          ABN_Number: 1,
+          about: 1,
         },
       },
     ]);
@@ -846,23 +923,42 @@ exports.getProvidersListing = async (req, res) => {
   }
 };
 
-
-
 exports.getAllProviders = async (req, res) => {
-
   try {
-    const providers = await providerModel.find({}).select("-password -__v");
-    res.status(200).json({
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const search = req.query.search?.trim() || "";
+
+    const filter = {};
+    if (search) {
+      filter.businessType = { $regex: search, $options: "i" };
+    }
+
+    const total = await providerModel.countDocuments(filter);
+
+    const providers = await providerModel
+      .find(filter)
+      .select("-password -__v")
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return res.status(200).json({
       status: 200,
       message: "Providers fetched successfully",
+      page,
+      limit,
+      total,
+      totalPages,
       data: providers,
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("Error in getAllProviders:", error);
+    return res.status(500).json({
       status: 500,
       message: "Internal server error",
       error: error.message,
     });
   }
-}
-
+};

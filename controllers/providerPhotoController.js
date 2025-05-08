@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const ProviderPhoto = require("../models/providerPhotos"); // Ensure the file name matches
+const ProviderPhoto = require("../models/providerPhotos"); 
 
 const uploadProviderImages = async (req, res) => {
   try {
@@ -15,9 +15,7 @@ const uploadProviderImages = async (req, res) => {
       return res.status(400).json({ message: "Missing userId" });
     }
 
-    // Map each uploaded file to an object containing a unique _id and a valid URL.
     const newFileObjects = req.files.map((file) => {
-      // Try to use file.location (from multerS3) or fallback to file.path.
       const url = file.location || file.path;
       if (!url) {
         throw new Error(`File ${file.originalname} did not return a valid URL.`);
@@ -28,10 +26,8 @@ const uploadProviderImages = async (req, res) => {
       };
     });
 
-    // Check if a ProviderPhoto document for the given userId exists.
     let providerPhoto = await ProviderPhoto.findOne({ userId });
     if (providerPhoto) {
-      // Append new files to the existing files array.
       providerPhoto.files.push(...newFileObjects);
       await providerPhoto.save();
       return res.status(200).json({
@@ -39,7 +35,6 @@ const uploadProviderImages = async (req, res) => {
         data: providerPhoto,
       });
     } else {
-      // Create a new ProviderPhoto document.
       const newProviderPhoto = new ProviderPhoto({
         userId,
         files: newFileObjects,

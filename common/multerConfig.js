@@ -32,10 +32,7 @@ const getS3Client = async () => {
   try {
     const credentials = await getAwsCredentials();
     return new S3({
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey:  process.env.AWS_SECRET_ACCESS_KEY,
-      },
+      credentials,
       region: process.env.AWS_REGION,
     });
   } catch (error) {
@@ -51,16 +48,20 @@ const uploadToS3 = async (req, res, next) => {
     return next();
   }
 
-
   try {
-    console.log(req.file)
     const file = req.file;
-
     const files = Array.isArray(file) ? file : [file];
     const fileLocations = [];
-    console.log(file)
+
+    const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
     for (const file of files) {
+      if (!allowedMimeTypes.includes(file.mimetype)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid file type: ${file.mimetype}. Only image files are allowed.`,
+        });
+      }
 
       const params = {
         Bucket: process.env.AWS_S3_BUCKET_NAME,

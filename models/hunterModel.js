@@ -31,13 +31,8 @@ const hunterSchema = new mongoose.Schema(
       required: true,
     },
     phoneNo: {
-      type: Number,
-      validate: {
-        validator: function (v) {
-          return /^\d{10}$/.test(v);
-        },
-        message: (props) => `${props.value} is not a valid phone number!`,
-      },
+      type: String,
+      required: true,
     },
     userType: {
       type: String,
@@ -88,7 +83,7 @@ const hunterSchema = new mongoose.Schema(
     address: {
       location: {
         type: { type: String, enum: ['Point'], required: false },
-        coordinates: { type: [Number], required: false }, // [longitude, latitude]
+        coordinates: { type: [Number], required: false }, 
       },
       addressLine: { type: String, required: false, trim: true },
       radius: { type: Number, required: false },
@@ -102,7 +97,6 @@ const hunterSchema = new mongoose.Schema(
     },
     UID: {
       type: String,
-      // unique: true,
       default: null,
     },    
     isNotificationEnable: {

@@ -9,7 +9,7 @@ const JobPostSchema = new mongoose.Schema({
   jobLocation: {
     location: {
       type: { type: String, enum: ['Point'], required: true },
-      coordinates: { type: [Number], required: true }, // [longitude, latitude]
+      coordinates: { type: [Number], required: true }, 
     },
     city: { type: String, required: true },
     jobAddressLine: { type: String, required: true, trim: true },
@@ -24,10 +24,6 @@ const JobPostSchema = new mongoose.Schema({
     type: [String],
     required: true,
   },
-  // services: {
-  //   type: String,
-  //   required: true,
-  // },
   date: {
     type: Date,
     required: true,
@@ -72,9 +68,18 @@ const JobPostSchema = new mongoose.Schema({
     }],
     default: []
   },
+  completionNotified: {
+    type: Boolean,
+    default: false,
+  },
+  
+
   deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
 }, { timestamps: true });
 
 JobPostSchema.index({ "jobLocation.location": "2dsphere" });
+
+
+
 
 module.exports = mongoose.model('JobPost', JobPostSchema);

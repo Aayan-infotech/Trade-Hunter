@@ -102,10 +102,12 @@ const createJobPost = async (req, res) => {
 
 const getJobPostById = async (req, res) => {
   try {
-    const jobPost = await JobPost.findById(req.params.id);
+    const jobPost = await JobPost.findById(req.params.id).populate("user", "name email");
+
     if (!jobPost) {
       return apiResponse.error(res, "Job post not found.", 404);
     }
+
     return apiResponse.success(
       res,
       "Job post retrieved successfully.",
@@ -117,6 +119,7 @@ const getJobPostById = async (req, res) => {
     });
   }
 };
+
 
 
 const deleteJobPost = async (req, res) => {
@@ -152,16 +155,20 @@ const getJobPostByUserId = async (req, res) => {
     let limit = parseInt(req.query.limit) || 10;
     let skip = (page - 1) * limit;
     const search = req.query.search || "";
-    
+    const jobStatus = req.query.jobStatus; 
     const query = { user: userId };
 
     if (search) {
       query["title"] = { $regex: search, $options: "i" };
     }
 
+    if (jobStatus) {
+      query["jobStatus"] = jobStatus;
+    }
+
     const totalJobs = await JobPost.countDocuments(query);
     const jobPosts = await JobPost.find(query)
-      .sort({ createdAt: -1 }) 
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
@@ -185,10 +192,6 @@ const getJobPostByUserId = async (req, res) => {
     });
   }
 };
-
-
-
-//change job status
 
 
 
@@ -504,8 +507,6 @@ const jobProviderAccept = async (req, res) => {
     }
 
     const hunterId = req.user.userId;
-
-    // Find the job post and verify ownership and status
     const jobPost = await JobPost.findById(jobId);
     if (!jobPost) {
       return res.status(404).json({ message: "Job post not found." });
@@ -531,14 +532,12 @@ const jobProviderAccept = async (req, res) => {
       return res.status(404).json({ message: "Hunter not found." });
     }
 
-    // Update the job post with the provider id and change the status atomically using $set
     const updatedJobPost = await JobPost.findByIdAndUpdate(
       jobId,
       { $set: { provider: provider._id, jobStatus: "Assigned" } },
       { new: true, runValidators: true }
     );
 
-    // Update provider's assignedJobs if not already added
     if (!provider.assignedJobs) {
       provider.assignedJobs = [];
     }
@@ -781,6 +780,33 @@ const updateJobPost = async (req, res) => {
   }
 };
 
+const completionNotified = async (req, res) => {
+  try {
+    const jobPost = await JobPost.findByIdAndUpdate(
+      req.params.jobId,
+      { completionNotified: true },
+      { new: true }
+    );
+
+    if (!jobPost) {
+      return apiResponse.error(res, "Job post not found.", 404);
+    }
+
+    return apiResponse.success(
+      res,
+      "Job post marked as completion notified.",
+      jobPost
+    );
+  } catch (error) {
+    console.error("Error in completionNotified:", error);
+    return apiResponse.error(res, "Internal server error.", 500, {
+      error: error.message,
+    });
+  }
+};
+
+
+
 
 
 
@@ -801,4 +827,5 @@ module.exports = {
   deleteJobPost,
   incrementJobAcceptCount,
   updateJobPost,
+  completionNotified,
 };

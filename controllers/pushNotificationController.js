@@ -7,66 +7,6 @@ const Provider = require("../models/providerModel");
 const SubscriptionVoucherUser = require('../models/SubscriptionVoucherUserModel');
 
 
-// exports.sendPushNotification = async (req, res) => {
-//   try {
-//     const { title, body, receiverId, notificationType } = req.body;
-//     const userId = req.user.userId;
-
-//     if (!title || !body || !receiverId || !notificationType) {
-//       return res.status(400).json({
-//         status: 400,
-//         success: false,
-//         message: "Title and body are required.",
-//         data: []
-//       });
-//     }
-//     // Validate notificationType
-//     const validTypes = ['job_alert', 'voucher_update', 'job_accept', 'job_complete'];
-//     if (!validTypes.includes(notificationType)) {
-//       return res.status(400).json({
-//         status: 400,
-//         success: false,
-//         message: "Invalid notificationType. Allowed types: " + validTypes.join(", "),
-//         data: []
-//       });
-//     }
-
-//     const device = await DeviceToken.findOne({ userId });
-//     if (!device) {
-//       return res.status(404).json({
-//         status: 404,
-//         success: false,
-//         message: "Device token not found for the user.",
-//         data: []
-//       });
-//     }
-
-//     const message = {
-//       notification: { title, body },
-//       token: device.deviceToken,
-//     };
-
-//     await admin.messaging().send(message);
-//     const notificationData = await Notification.create({ userId, title, body, receiverId, notificationType });
-
-//     res.status(200).json({
-//       status: 200,
-//       success: true,
-//       message: "Notification sent successfully.",
-//       data: [notificationData]
-//     });
-//   } catch (error) {
-//     console.error("Error sending notification:", error);
-//     res.status(500).json({
-//       status: 500,
-//       success: false,
-//       message: "Failed to send notification.",
-//       data: [],
-//       error: error.message
-//     });
-//   }
-// };
-
 
 exports.sendPushNotification = async (req, res) => {
   try {
@@ -103,7 +43,6 @@ exports.sendPushNotification = async (req, res) => {
       });
     }
 
-    // 🧠 Check isNotificationEnable based on userType provider and hunter
     let shouldSend = false;
 
     if (device.userType === "provider") {
@@ -129,7 +68,6 @@ exports.sendPushNotification = async (req, res) => {
       await admin.messaging().send(message);
     }
 
-    // Always store notification in DB, even if not sent
     notificationData = await Notification.create({
       userId,
       title,
@@ -179,6 +117,7 @@ exports.getNotificationsByUserId = async (req, res) => {
           ...notification._doc,
           userName: user.name,
           isRead: notification.isRead,
+          jobId: notification.jobId || null
         };
       } else {
         return null; 
@@ -305,7 +244,6 @@ exports.AllReadNotifications = async (req, res) => {
   }
 
   try {
-    // Fetch all notifications with isRead set to true for the given receiverId
     const notifications = await Notification.find({ receiverId, isRead: true });
 
     if (notifications.length === 0) {
@@ -337,7 +275,7 @@ exports.AllReadNotifications = async (req, res) => {
 
 exports.sendPushNotification2 = async (req, res) => {
   try {
-    const { title, body, receiverId, notificationType } = req.body;
+    const { title, body, receiverId, notificationType, jobId  } = req.body;
     const userId = req.user.userId;
 
     const newNotification = new Notification({
@@ -346,6 +284,7 @@ exports.sendPushNotification2 = async (req, res) => {
       title,
       body,
       notificationType,
+      jobId,
       createdAt: new Date()
     });
 
@@ -381,10 +320,8 @@ exports.sendAdminNotification = async (req, res) => {
     }
     const notificationData = await Notification.create({ title, body, receiverId, notificationType });
 
-    // Find device token (optional)
     const device = await DeviceToken.findOne({ userId: receiverId });
 
-    // If device token is not found, just return success without sending notification
     if (!device) {
       return res.status(200).json({
         status: 200,
@@ -394,7 +331,6 @@ exports.sendAdminNotification = async (req, res) => {
       });
     }
 
-    // Send notification if device token exists
     const message = {
       notification: { title, body },
       token: device.deviceToken,
@@ -508,7 +444,6 @@ exports.deleteNotificationById = async (req, res) => {
   }
 };
 
-// Notification setting both hunter and provider
 exports.updateNotificationStatus = async (req, res) => {
   try {
     const { id, type } = req.params;
@@ -595,49 +530,3 @@ exports.getExpiringSoonVouchers = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
-
-
-
-/*const getExpiringSoonVouchers = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const now = new Date();
-    const next24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-
-    const expiringItems = await SubscriptionVoucherUser.find({
-      userId: userId,
-      endDate: { $gte: now, $lte: next24Hours },
-      status: 'active'
-    });
-
-    const expiringSubscriptions = expiringItems.filter(item => item.type === 'subscription');
-    const expiringVouchers = expiringItems.filter(item => item.type === 'voucher');
-
-    const messages = [];
-
-    if (expiringSubscriptions.length > 0) {
-      messages.push('Your subscription will expire within 24 hours.');
-    }
-
-    if (expiringVouchers.length > 0) {
-      messages.push('Your voucher will expire within 24 hours.');
-    }
-
-    if (messages.length > 0) {
-      return res.status(200).json({
-        message: messages.join(' '),
-        data: {
-          expiringSubscriptions,
-          expiringVouchers
-        }
-      });
-    } else {
-      return res.status(200).json({
-        message: 'No subscriptions or vouchers expiring within 24 hours.'
-      });
-    }
-  } catch (error) {
-    console.error('Error checking expiring items:', error);
-    return res.status(500).json({ message: 'Internal server error' });
-  }
-}; */

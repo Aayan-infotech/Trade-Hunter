@@ -5,11 +5,11 @@ const devicetokenSchema = new Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
-        unique: true // Ensure only one token per user
+        unique: true
     },
     deviceToken: {
         type: String,
-        required: false, // Can be null but shouldn't be empty
+        required: false, 
     },
     deviceType: {
         type: String,

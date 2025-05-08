@@ -30,14 +30,12 @@ router.get("/subscription-type",verifyUser, getAllSubscriptionTypes);
 router.delete("/subscription-type/:id",verifyUser, deleteSubscriptionType);
 
 
-// SubscriptionPlan
 router.post("/subscription-plan", verifyUser, createSubscriptionPlan);
 router.get("/subscription-plans",verifyUser, getAllSubscriptionPlans);
 router.get("/subscription-plan/:id",verifyUser ,getSubscriptionPlanById);
 router.put("/subscription-plan/:id",verifyUser, updateSubscriptionPlan);
 router.delete("/subscription-plan/:id",verifyUser, deleteSubscriptionPlan);
 
-// subscription user
 router.post("/subscription-user", verifyUser,createSubscriptionUser);
 router.get("/subscription-users", verifyUser , getAllSubscriptionUsers);
 router.get("/subscription-user/:id",verifyUser, getSubscriptionUserById);
@@ -45,8 +43,6 @@ router.put("/subscription-user/:id",verifyUser, updateSubscriptionUser);
 router.delete("/subscription-user/:id",verifyUser, deleteSubscriptionUser);
  
 
-
-// Subscription Routes
 router.get('/subscriptions',verifyUser, getAllSubscriptions);
 router.get('/subscription/:id',verifyUser, getSubscriptionById);
 router.post('/subscription',verifyUser, createSubscription);

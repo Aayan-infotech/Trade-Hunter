@@ -66,11 +66,9 @@ exports.uploadBackgroundImg = async (req, res) => {
       
       const imageUrl = req.fileLocations[0];
       
-      // Check if a record exists for the given userId and userType
       let backgroundImgRecord = await BackgroundImg.findOne({ userType, userId });
       
       if (backgroundImgRecord) {
-        // Update the existing record
         backgroundImgRecord.backgroundImg = imageUrl;
         await backgroundImgRecord.save();
         return res.status(200).json({ 
@@ -80,7 +78,6 @@ exports.uploadBackgroundImg = async (req, res) => {
           data: [backgroundImgRecord] 
         });
       } else {
-        // Create a new record
         const newBackgroundImg = new BackgroundImg({
           backgroundImg: imageUrl,
           userType,
@@ -110,7 +107,6 @@ exports.uploadBackgroundImg = async (req, res) => {
         const { userId } = req.params;
         const backgroundImg = await BackgroundImg.findOne({ userId });
 
-        // If no background image is found, return a success response with empty data
         if (!backgroundImg) {
             return res.status(201).json({
                 status: 201,

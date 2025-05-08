@@ -5,12 +5,12 @@ const { uploadToS3 } = require("../common/multerConfig3");
 const { verifyUser } = require("../middlewares/auth");
 const multer = require("multer");
 const upload = multer();
-// Route to handle file upload
 router.get('/getAllProviders', fileController.getAllProviders);
 
 router.post('/getNearbyJobs', verifyUser,fileController.getNearbyJobs);
 router.post('/byBusinessType',verifyUser,  fileController.getProvidersByBusinessType)
 router.post('/upload/:providerId',verifyUser, uploadToS3, fileController.uploadFile);
+router.delete('/deleteFile/:fileId',verifyUser, fileController.deleteFile);
 router.post('/getProviderLocation', verifyUser, fileController.getProviderByUserLocation);
 router.post('/getNearbyJobs',verifyUser, fileController.getNearbyJobs);
 router.post('/getNearbyJobsForGuest', verifyUser,fileController.getNearbyJobsForGuest);   

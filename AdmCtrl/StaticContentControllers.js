@@ -1,6 +1,5 @@
 const StaticContent = require('../models/StaticContentModel');
 
-// Get content by section
 exports.getContent = async (req, res) => {
   try {
     const { section } = req.params;
@@ -14,7 +13,6 @@ exports.getContent = async (req, res) => {
   }
 };
 
-// Create or update content
 exports.upsertContent = async (req, res) => {
   try {
     const { section, content } = req.body;
@@ -30,13 +28,10 @@ exports.upsertContent = async (req, res) => {
 };
 
 
-
-// wab
 exports.getStaticContent = async (req, res) => {
   try {
     const { section } = req.params;
 
-    // Map short section names to full names
     const sectionMap = {
       "About": "about",
       "Conditions": "terms",

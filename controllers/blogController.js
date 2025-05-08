@@ -103,7 +103,6 @@ exports.updateBlog = async (req, res) => {
   }
 };
 
-// Delete a blog post by its ID
 exports.deleteBlog = async (req, res) => {
   try {
     const deletedBlog = await Blog.findByIdAndDelete(req.params.id);

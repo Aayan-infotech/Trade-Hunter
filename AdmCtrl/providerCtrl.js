@@ -46,7 +46,6 @@ exports.getAllProviders = async (req, res) => {
 
 
 
-// Delete a Provider
 exports.deleteProvider = async (req, res) => {
   try {
     const { id } = req.params;
@@ -68,21 +67,19 @@ exports.deleteProvider = async (req, res) => {
   }
 };
 
-
-// Update a Provider
 exports.updateProvider = async (req, res) => {
   try {
     const { id } = req.params;
     const updatedData = req.body;
 
-    if (updateData.phoneNo !== undefined) {
-      const mobileRegex = /^[0-9]+$/;
-      if (!mobileRegex.test(updateData.phoneNo)) {
+    if (updatedData.phoneNo !== undefined) {
+      const phoneRegex = /^\+?[0-9]+$/;
+      if (!phoneRegex.test(updatedData.phoneNo)) {
         return res.status(400).json({
           status: 400,
           success: false,
-          message: "Mobile number should contain digits only",
-          data: []
+          message: "Phone number must contain only digits and may start with '+'.",
+          data: [],
         });
       }
     }
@@ -111,6 +108,7 @@ exports.updateProvider = async (req, res) => {
   }
 };
 
+
 exports.getAllProvidersGuestMode = async (req, res) => {
   try {
     const { limit = 10, page = 1, search = "", userStatus, isGuestMode = false } = req.query;
@@ -129,9 +127,8 @@ exports.getAllProvidersGuestMode = async (req, res) => {
       query.userStatus = userStatus;
     }
 
-    // Apply sorting first, then pagination
     const providers = await Provider.find(query)
-      .sort({ createdAt: -1 }) // Sort by creation date descending (latest first)
+      .sort({ createdAt: -1 }) 
       .skip((page - 1) * parseInt(limit))
       .limit(parseInt(limit));
 

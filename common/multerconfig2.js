@@ -49,7 +49,6 @@ const uploadToS3files = async (req, res, next) => {
   try {
     const file = req.files;
 
-    // If no file is provided, simply assign an empty array and proceed.
     if (!file) {
       req.fileLocations = [];
       return next();

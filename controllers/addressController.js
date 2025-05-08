@@ -8,8 +8,6 @@ const createAddress = async (req, res) => {
     const { addressType, latitude, longitude, address } = req.body;
 
     const userId = req.user.userId;
-
-    // Check if the user has already added a "home" address
     const homeAddress = await Address.findOne({
       userId: userId,
       addressType: "home",
@@ -20,7 +18,6 @@ const createAddress = async (req, res) => {
         .json({ message: "You can only add one home address." });
     }
 
-    // Check if the user has already added an "office" address
     const officeAddress = await Address.findOne({
       userId: userId,
       addressType: "office",
@@ -31,7 +28,6 @@ const createAddress = async (req, res) => {
         .json({ message: "You can only add one office address." });
     }
 
-    // Create new address
     const newAddress = new Address({
       addressType,
       latitude,

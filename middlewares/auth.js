@@ -41,46 +41,6 @@ const authenticateUser = (req, res, next) => {
   }
 };
 
-// const refreshToken = async (req, res) => {
-//   try {
-//     const { refreshToken, userType } = req.body;
-//     const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-
-//     let user;
-//     if (userType === "hunter") {
-//       user = await User.findOne({ _id: decoded.userId, refreshToken });
-//     }
-
-//     if (userType === "provider") {
-//       user = await Provider.findOne({ _id: decoded.userId, refreshToken });
-//     }
-
-//     if (!user) {
-//       return res.status(403).json({
-//         status: 403,
-//         message: ["Invalid refresh token."],
-//       });
-//     }
-
-//     const newAccessToken = jwt.sign(
-//       { id: user._id, email: user.email },
-//       process.env.JWT_SECRET,
-//       { expiresIn: "24h" }
-//     );
-
-//     return res.status(200).json({
-//       status: 200,
-//       message: ["New access token generated."],
-//       accessToken: newAccessToken,
-//     });
-//   } catch (error) {
-//     return res.status(403).json({
-//       status: 403,
-//       message: error.message,
-//     });
-//   }
-// };
-
 const refreshToken = async (req, res) => {
   try {
     const { refreshToken, userType } = req.body;
@@ -105,7 +65,6 @@ const refreshToken = async (req, res) => {
       { expiresIn: "24h" }
     );
 
-    // Update the token field in the database
     user.token = newAccessToken;
     await user.save();
 
