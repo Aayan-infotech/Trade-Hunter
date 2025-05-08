@@ -11,14 +11,17 @@ const SubscriptionType = require("../models/SubscriptionTypeModel");
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     // console.log("Destination callback called. File received:", file);
-    cb(null, "uploads/"); 
+    cb(null, "uploads/");
   },
   filename: function (req, file, cb) {
     // console.log("Filename callback called. File received:", file);
     if (!file || !file.originalname) {
       return cb(new Error("No file provided or file is undefined."));
     }
-    cb(null, file.fieldname + "-" + Date.now() + path.extname(file.originalname));
+    cb(
+      null,
+      file.fieldname + "-" + Date.now() + path.extname(file.originalname)
+    );
   },
 });
 
@@ -32,7 +35,9 @@ const upload = multer({
     }
     const filetypes = /jpeg|jpg|png|gif|webp|jfif|pdf/;
     const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const extname = filetypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
     if (mimetype && extname) {
       return cb(null, true);
     } else {
@@ -46,19 +51,27 @@ exports.uploadFile = async (req, res) => {
   const { providerId } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(providerId)) {
-    return res.status(400).json({ status: 400, message: "Invalid provider id." });
+    return res
+      .status(400)
+      .json({ status: 400, message: "Invalid provider id." });
   }
 
   try {
     const provider = await providerModel.findById(providerId).exec();
     if (!provider) {
-      return res.status(404).json({ status: 404, message: "Provider not found." });
+      return res
+        .status(404)
+        .json({ status: 404, message: "Provider not found." });
     }
     if (!provider.userType || provider.userType.toLowerCase() !== "provider") {
-      return res.status(403).json({ status: 403, message: "Unauthorized: Not a provider." });
+      return res
+        .status(403)
+        .json({ status: 403, message: "Unauthorized: Not a provider." });
     }
     if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ status: 400, message: "Please upload at least one file." });
+      return res
+        .status(400)
+        .json({ status: 400, message: "Please upload at least one file." });
     }
     const filesData = req.files.map((file) => ({
       filename: file.key || file.filename,
@@ -84,15 +97,20 @@ exports.uploadFile = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in uploadFile:", error);
-    return res.status(500).json({ status: 500, message: "Error saving file to the database.", error });
+    return res
+      .status(500)
+      .json({
+        status: 500,
+        message: "Error saving file to the database.",
+        error,
+      });
   }
 };
 
-
 exports.deleteFile = async (req, res) => {
-  const {  fileId } = req.params;
+  const { fileId } = req.params;
 
-  const { providerId } = req.user; 
+  const { providerId } = req.user;
 
   if (!mongoose.Types.ObjectId.isValid(fileId)) {
     return res.status(400).json({ status: 400, message: "Invalid file id." });
@@ -101,11 +119,15 @@ exports.deleteFile = async (req, res) => {
   try {
     const provider = await providerModel.findById(providerId);
     if (!provider) {
-      return res.status(404).json({ status: 404, message: "Provider not found." });
+      return res
+        .status(404)
+        .json({ status: 404, message: "Provider not found." });
     }
 
-    const updatedFiles = provider.files.filter((file) => file.fileId.toString() !== fileId);
-    
+    const updatedFiles = provider.files.filter(
+      (file) => file.fileId.toString() !== fileId
+    );
+
     if (updatedFiles.length === provider.files.length) {
       return res.status(404).json({ status: 404, message: "File not found." });
     }
@@ -113,13 +135,16 @@ exports.deleteFile = async (req, res) => {
     provider.files = updatedFiles;
     await provider.save();
 
-    return res.status(200).json({ status: 200, message: "File deleted successfully." });
+    return res
+      .status(200)
+      .json({ status: 200, message: "File deleted successfully." });
   } catch (error) {
     console.error("Error in deleteFile:", error);
-    return res.status(500).json({ status: 500, message: "Server error.", error });
+    return res
+      .status(500)
+      .json({ status: 500, message: "Server error.", error });
   }
 };
-
 
 // plz check
 exports.getProviderByUserLocation = async (req, res) => {
@@ -261,7 +286,6 @@ exports.getServicesForGuestLocation = async (req, res) => {
   }
 };
 
-
 exports.getNearbyJobs = async (req, res) => {
   try {
     const {
@@ -276,14 +300,14 @@ exports.getNearbyJobs = async (req, res) => {
     if (!businessType || !latitude || !longitude || !radius) {
       return res.status(400).json({
         status: 400,
-        message: "Missing required fields"
+        message: "Missing required fields",
       });
     }
 
     let businessTypeCondition;
     if (Array.isArray(businessType)) {
       businessTypeCondition = {
-        $in: businessType.map((bt) => new RegExp(`^${bt}$`, "i"))
+        $in: businessType.map((bt) => new RegExp(`^${bt}$`, "i")),
       };
     } else {
       businessTypeCondition = new RegExp(`^${businessType}$`, "i");
@@ -306,7 +330,7 @@ exports.getNearbyJobs = async (req, res) => {
         },
       },
       {
-        $sort: { createdAt: -1 },  
+        $sort: { createdAt: -1 },
       },
       {
         $skip: (page - 1) * limit,
@@ -346,9 +370,6 @@ exports.getNearbyJobs = async (req, res) => {
     });
   }
 };
-
-
-
 
 exports.getNearbyJobsForGuest = async (req, res) => {
   try {
@@ -412,7 +433,9 @@ exports.getJobByIdForGuest = async (req, res) => {
     const { jobId } = req.params;
 
     if (!jobId) {
-      return res.status(400).json({ status: 400, message: "Job ID is required" });
+      return res
+        .status(400)
+        .json({ status: 400, message: "Job ID is required" });
     }
 
     const job = await jobpostModel.findById(jobId);
@@ -421,10 +444,14 @@ exports.getJobByIdForGuest = async (req, res) => {
       return res.status(404).json({ status: 404, message: "Job not found" });
     }
 
-    return res.status(200).json({ status: 200, message: "Job fetched successfully", data: job });
+    return res
+      .status(200)
+      .json({ status: 200, message: "Job fetched successfully", data: job });
   } catch (error) {
     console.error("Error fetching job by ID:", error);
-    return res.status(500).json({ status: 500, message: "Error fetching job: " + error });
+    return res
+      .status(500)
+      .json({ status: 500, message: "Error fetching job: " + error });
   }
 };
 
@@ -489,33 +516,35 @@ exports.updateProviderById = async (req, res) => {
   }
 };
 
-
 exports.getProviderProfile = async (req, res) => {
   try {
     const { providerId } = req.params;
 
     // Fetch provider details and populate assignedJobs with user details
-    const provider = await providerModel.findById(providerId)
-      .populate({
-        path: "assignedJobs",
-        populate: {
-          path: "user",
-          select: "name email"
-        }
-      });
+    const provider = await providerModel.findById(providerId).populate({
+      path: "assignedJobs",
+      populate: {
+        path: "user",
+        select: "name email",
+      },
+    });
 
     // Fetch work gallery with correct query
-    const workgallery = await providerPhotosModel.findOne({ userId: providerId }).select("files");
+    const workgallery = await providerPhotosModel
+      .findOne({ userId: providerId })
+      .select("files");
 
     if (!provider) {
-      return res.status(404).json({ success: false, message: "Provider not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Provider not found" });
     }
 
-    res.status(200).json({ 
-      success: true, 
-      message: "Provider fetched successfully", 
+    res.status(200).json({
+      success: true,
+      message: "Provider fetched successfully",
       data: provider,
-      workgallery
+      workgallery,
     });
   } catch (error) {
     console.error("Error fetching provider profile:", error);
@@ -530,7 +559,7 @@ exports.jobAcceptCount = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(providerId)) {
       return res.status(400).json({
         status: 400,
-        message: "Invalid provider id."
+        message: "Invalid provider id.",
       });
     }
 
@@ -538,7 +567,7 @@ exports.jobAcceptCount = async (req, res) => {
     if (!provider) {
       return res.status(404).json({
         status: 404,
-        message: "Provider not found."
+        message: "Provider not found.",
       });
     }
 
@@ -552,7 +581,8 @@ exports.jobAcceptCount = async (req, res) => {
         await provider.save();
         return res.status(400).json({
           status: 400,
-          message: "Your allotted leads have been completed. Please purchase a new plan."
+          message:
+            "Your allotted leads have been completed. Please purchase a new plan.",
         });
       }
 
@@ -578,7 +608,7 @@ exports.jobAcceptCount = async (req, res) => {
     return res.status(500).json({
       status: 500,
       message: "Internal server error",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -593,14 +623,12 @@ async function expireSubscription(provider) {
     await voucher.save();
   }
 
-  provider.subscriptionStatus   = 0;
-  provider.subscriptionPlanId   = null;
-  provider.subscriptionType     = null;
-  provider.leadCompleteCount    = null;
-  provider.address.radius       = 10000;
+  provider.subscriptionStatus = 0;
+  provider.subscriptionPlanId = null;
+  provider.subscriptionType = null;
+  provider.leadCompleteCount = null;
+  provider.address.radius = 10000;
 }
-
-
 
 exports.jobCompleteCount = async (req, res) => {
   try {
@@ -609,7 +637,7 @@ exports.jobCompleteCount = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(providerId)) {
       return res.status(400).json({
         status: 400,
-        message: "Invalid provider ID."
+        message: "Invalid provider ID.",
       });
     }
 
@@ -617,7 +645,7 @@ exports.jobCompleteCount = async (req, res) => {
     if (!provider) {
       return res.status(404).json({
         status: 404,
-        message: "Provider not found."
+        message: "Provider not found.",
       });
     }
 
@@ -627,66 +655,52 @@ exports.jobCompleteCount = async (req, res) => {
     return res.status(200).json({
       status: 200,
       message: "Job complete count updated successfully.",
-      jobCompleteCount: provider.jobCompleteCount
+      jobCompleteCount: provider.jobCompleteCount,
     });
   } catch (error) {
     console.error("Error in jobCompleteCount:", error);
     return res.status(500).json({
       status: 500,
       message: "Internal server error",
-      error: error.message
+      error: error.message,
     });
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 exports.completionRate = async (req, res) => {
   try {
     const { providerId } = req.params;
     if (!mongoose.Types.ObjectId.isValid(providerId)) {
-      return res.status(400).json({ 
-        status: 400, 
-        message: "Invalid provider id." 
+      return res.status(400).json({
+        status: 400,
+        message: "Invalid provider id.",
       });
     }
 
     const provider = await providerModel.findById(providerId);
     if (!provider) {
-      return res.status(404).json({ 
-        status: 404, 
-        message: "Provider not found." 
+      return res.status(404).json({
+        status: 404,
+        message: "Provider not found.",
       });
     }
 
     const { jobAcceptCount, jobCompleteCount } = provider;
     // Prevent division by zero; if no accepted jobs, completion rate is 0%
-    const completionRate = jobAcceptCount > 0 
-      ? (jobCompleteCount / jobAcceptCount) * 100 
-      : 0;
+    const completionRate =
+      jobAcceptCount > 0 ? (jobCompleteCount / jobAcceptCount) * 100 : 0;
 
     return res.status(200).json({
       status: 200,
       message: "Completion rate computed successfully!",
-      completionRate: completionRate
+      completionRate: completionRate,
     });
   } catch (error) {
     console.error("Error computing completion rate:", error);
-    return res.status(500).json({ 
-      status: 500, 
-      message: "Internal server error", 
-      error: error.message 
+    return res.status(500).json({
+      status: 500,
+      message: "Internal server error",
+      error: error.message,
     });
   }
 };
@@ -697,36 +711,46 @@ exports.deleteFile = async (req, res) => {
     if (!fileId) {
       return res.status(400).json({ message: "File ID is required." });
     }
-    
+
     // Get the authenticated provider's ID from the request (set by your auth middleware)
     const providerId = req.user.userId;
-    
+
     // Find the provider using the Provider model. Rename the variable to avoid conflict.
     const foundProvider = await providerModel.findById(providerId);
     if (!foundProvider) {
       return res.status(404).json({ message: "Provider not found." });
     }
-    
+
     // Check if there are any files in the provider's files array
     if (!foundProvider.files || foundProvider.files.length === 0) {
-      return res.status(404).json({ message: "No files found for this provider." });
+      return res
+        .status(404)
+        .json({ message: "No files found for this provider." });
     }
-    
+
     const initialCount = foundProvider.files.length;
-    
+
     // Filter out the file with the matching fileId
     foundProvider.files = foundProvider.files.filter(
       (file) => file._id.toString() !== fileId
     );
-    
+
     if (foundProvider.files.length === initialCount) {
       return res.status(404).json({ message: "File not found." });
     }
-    
+
     await foundProvider.save();
-    return res.status(200).json({ status:200,message: "File deleted successfully." });
+    return res
+      .status(200)
+      .json({ status: 200, message: "File deleted successfully." });
   } catch (error) {
-    return res.status(500).json({ status:500, message: "Internal server error", error: error.message });
+    return res
+      .status(500)
+      .json({
+        status: 500,
+        message: "Internal server error",
+        error: error.message,
+      });
   }
 };
 
@@ -749,36 +773,36 @@ exports.getProvidersByBusinessType = async (req, res) => {
       ? businessType
       : [businessType];
 
-      const providers = await providerModel.aggregate([
-        {
-          $geoNear: {
-            near: { type: "Point", coordinates: [longitude, latitude] },
-            distanceField: "distance",
-            maxDistance,
-            spherical: true,
-            key: "address.location"
-          }
+    const providers = await providerModel.aggregate([
+      {
+        $geoNear: {
+          near: { type: "Point", coordinates: [longitude, latitude] },
+          distanceField: "distance",
+          maxDistance,
+          spherical: true,
+          key: "address.location",
         },
-        {
-          $match: {
-            businessType: { $in: businessTypesArray },
-            subscriptionType: "Advertising"
-          }
+      },
+      {
+        $match: {
+          businessType: { $in: businessTypesArray },
+          subscriptionType: "Advertising",
         },
-        {
-          $project: {
-            _id: 1,
-            contactName: 1,
-            email: 1,
-            businessName: 1,
-            businessType: 1,
-            address: 1,
-            distance: 1,
-            subscriptionType: 1
-          }
-        }
-      ]);
-      
+      },
+      {
+        $project: {
+          _id: 1,
+          contactName: 1,
+          email: 1,
+          businessName: 1,
+          businessType: 1,
+          address: 1,
+          distance: 1,
+          subscriptionType: 1,
+        },
+      },
+    ]);
+
     return res.status(200).json({
       status: 200,
       message: "Providers retrieved successfully.",
@@ -788,8 +812,6 @@ exports.getProvidersByBusinessType = async (req, res) => {
     return res.status(500).json({ status: 500, error: error.message });
   }
 };
-
-
 
 // Create or Update "about" field
 exports.upsertAbout = async (req, res) => {
@@ -802,7 +824,6 @@ exports.upsertAbout = async (req, res) => {
         status: 400,
         success: false,
         message: "About field is required",
-
       });
     }
 
@@ -865,8 +886,6 @@ exports.getAbout = async (req, res) => {
   }
 };
 
-
-
 exports.getProvidersListing = async (req, res) => {
   try {
     const { lat, lng, businessType } = req.body;
@@ -881,7 +900,7 @@ exports.getProvidersListing = async (req, res) => {
 
     const latitude = parseFloat(lat);
     const longitude = parseFloat(lng);
-    radius = parseFloat(radius) || 20000; 
+    radius = parseFloat(radius) || 20000;
     const businessTypesArray = Array.isArray(businessType)
       ? businessType
       : [businessType];
@@ -910,7 +929,7 @@ exports.getProvidersListing = async (req, res) => {
           businessType: 1,
           address: 1,
           distance: 1,
-          ABN_Number:1,
+          ABN_Number: 1,
           about: 1,
         },
       },
@@ -926,13 +945,11 @@ exports.getProvidersListing = async (req, res) => {
   }
 };
 
-
-
 exports.getAllProviders = async (req, res) => {
   try {
-    const page   = parseInt(req.query.page, 10)  || 1;
-    const limit  = parseInt(req.query.limit, 10) || 10;
-    const search = req.query.search?.trim()      || "";
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const search = req.query.search?.trim() || "";
 
     const filter = {};
     if (search) {
@@ -950,22 +967,20 @@ exports.getAllProviders = async (req, res) => {
     const totalPages = Math.ceil(total / limit);
 
     return res.status(200).json({
-      status:     200,
-      message:    "Providers fetched successfully",
+      status: 200,
+      message: "Providers fetched successfully",
       page,
       limit,
       total,
       totalPages,
-      data:       providers,
+      data: providers,
     });
   } catch (error) {
     console.error("Error in getAllProviders:", error);
     return res.status(500).json({
-      status:  500,
+      status: 500,
       message: "Internal server error",
-      error:   error.message,
+      error: error.message,
     });
   }
 };
-
-
