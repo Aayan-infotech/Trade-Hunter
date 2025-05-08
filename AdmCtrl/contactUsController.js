@@ -13,7 +13,7 @@ exports.createContact = async (req, res) => {
         .json({ message: "Name, email, and message are required." });
     }
 
-    const newContact = new Contact({ name, email, message });
+    const newContact = new Contact({ name, email, message, isRead: false });
     await newContact.save();
 
     const subject = "📨 New Contact Request Received";
