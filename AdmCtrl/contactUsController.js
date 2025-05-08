@@ -78,3 +78,26 @@ exports.deleteContact = async (req, res) => {
       .json({ message: "Internal server error", error: error.message });
   }
 };
+
+
+
+exports.getReadCount = async (req, res) => {
+  try {
+    const count = await Contact.countDocuments({ isRead: false });
+    res.json({ isReadCount: count });
+  } catch (error) {
+    console.error("Error fetching read count:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+// Mark all contacts as read
+exports.markAllAsRead = async (req, res) => {
+  try {
+    const result = await Contact.updateMany({}, { isRead: true });
+    res.json({ message: "All messages marked as read", modifiedCount: result.modifiedCount });
+  } catch (error) {
+    console.error("Error updating contacts:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
