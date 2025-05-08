@@ -179,7 +179,7 @@ const signUp = async (req, res) => {
 
     await sendEmail(
       email,
-      "Account Verification OTP",
+      "Account Verification OTP - Trade Hunters",
       `
       <div style="font-family: Arial, sans-serif; line-height: 1.6;">
         <h2>Hello ${name},</h2>
@@ -365,14 +365,11 @@ const logout = async (req, res) => {
   }
 };
 
-//
-
 const verifyEmail = async (req, res) => {
   const { email, verificationOTP, userType } = req.body;
   let user;
 
   try {
-    // Determine which collection to query based on userType
     if (userType === "hunter") {
       user = await User.findOne({ email, userType });
     } else {
@@ -395,14 +392,12 @@ const verifyEmail = async (req, res) => {
       return res.status(401).json({ status: 401, message: "Invalid OTP." });
     }
 
-    // Generate JWT Token
     const token = jwt.sign(
       { userId: user._id, email: user.email, userType: user.userType },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    // Update the user fields to reflect email verification
     user.emailVerified = true;
     user.verificationOTP = null;
     user.verificationOTPExpires = null;
@@ -426,11 +421,8 @@ const forgotPassword = async (req, res) => {
 
   try {
     let user;
-
-    // Check if the email exists in the User model
     user = await User.findOne({ email });
     if (!user) {
-      // If not found in User, check in Provider model
       user = await Provider.findOne({ email });
     }
 
@@ -438,17 +430,22 @@ const forgotPassword = async (req, res) => {
       return res.status(404).json({ status: 404, message: "User not found" });
     }
 
-    // Generate OTP
     const otp = await generateverificationOTP(user);
-
-    // Send OTP to user's email
     await sendEmail(
       email,
-      "Password Reset OTP",
-      `Your OTP for password reset is: ${otp}. It is valid for 15 minutes.`
+      "Reset Password OTP - Trade Hunters",
+      `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <h2>Hello ${name},</h2>
+        <p>Welcome aboard! Here is your Otp for Reset Password:</p>
+        <h3 style="color: #2c3e50;">Your OTP: <span style="color: #e74c3c;">${verificationOTP}</span></h3>
+        <p>This OTP is valid for 10 minutes. Do not share it with anyone.</p>
+        <br />
+        <p>Cheers,<br /><strong>Trade Hunters</strong></p>
+      </div>
+      `
     );
 
-    // Respond with success message
     return res.status(200).json({
       status: 200,
       message: "OTP sent to your email. Please check your inbox.",
@@ -465,11 +462,8 @@ const verifyOtp = async (req, res) => {
 
   try {
     let user;
-
-    // Check if the email exists in the User model
     user = await User.findOne({ email });
     if (!user) {
-      // If not found in User, check in Provider model
       user = await Provider.findOne({ email });
     }
 
@@ -579,8 +573,6 @@ const changePassword = async (req, res) => {
 const getProviderProfile = async (req, res) => {
   try {
     const id = req.user.userId;
-
-    // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res
         .status(400)
@@ -610,8 +602,6 @@ const getProviderProfile = async (req, res) => {
 const getHunterProfile = async (req, res) => {
   try {
     const id = req.user.userId;
-
-    // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res
         .status(400)

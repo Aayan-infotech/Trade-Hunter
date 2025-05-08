@@ -790,6 +790,33 @@ const updateJobPost = async (req, res) => {
   }
 };
 
+const completionNotified = async (req, res) => {
+  try {
+    const jobPost = await JobPost.findByIdAndUpdate(
+      req.params.id,
+      { completionNotified: true },
+      { new: true }
+    );
+
+    if (!jobPost) {
+      return apiResponse.error(res, "Job post not found.", 404);
+    }
+
+    return apiResponse.success(
+      res,
+      "Job post marked as completion notified.",
+      jobPost
+    );
+  } catch (error) {
+    console.error("Error in completionNotified:", error);
+    return apiResponse.error(res, "Internal server error.", 500, {
+      error: error.message,
+    });
+  }
+};
+
+
+
 
 
 
@@ -810,4 +837,5 @@ module.exports = {
   deleteJobPost,
   incrementJobAcceptCount,
   updateJobPost,
+  completionNotified,
 };
