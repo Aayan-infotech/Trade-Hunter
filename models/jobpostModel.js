@@ -72,10 +72,12 @@ const JobPostSchema = new mongoose.Schema({
     }],
     default: []
   },
-  completetionNotified: {
+  completionNotified: {
     type: Boolean,
     default: false,
   },
+  
+
   deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
 }, { timestamps: true });
 

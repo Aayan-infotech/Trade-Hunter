@@ -793,7 +793,7 @@ const updateJobPost = async (req, res) => {
 const completionNotified = async (req, res) => {
   try {
     const jobPost = await JobPost.findByIdAndUpdate(
-      req.params.id,
+      req.params.jobId,
       { completionNotified: true },
       { new: true }
     );

@@ -45,7 +45,7 @@ router.get("/businessTypes", businessTypes);
 router.get("/jobsByBusinessType", jobsByBusinessType);
 router.put("/job/accept/:jobId", incrementJobAcceptCount);
 router.put("/:id",verifyUser,upload.array("documents"),uploadToS3files, updateJobPost);
-router.put("/notifyCompletion/:id/",verifyUser, completionNotified);
+router.put("/notifyCompletion/:jobId",verifyUser, completionNotified);
 
 
 module.exports = router;
