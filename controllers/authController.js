@@ -433,7 +433,7 @@ const forgotPassword = async (req, res) => {
       "Reset Password OTP - Trade Hunters",
       `
       <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-        <h2>Hello ${name},</h2>
+        <h2>Hello ,</h2>
         <p>Welcome aboard! Here is your Otp for Reset Password:</p>
         <h3 style="color: #2c3e50;">Your OTP: <span style="color: #e74c3c;">${verificationOTP}</span></h3>
         <p>This OTP is valid for 10 minutes. Do not share it with anyone.</p>
