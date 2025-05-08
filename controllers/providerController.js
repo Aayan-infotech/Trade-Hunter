@@ -558,28 +558,34 @@ exports.jobAcceptCount = async (req, res) => {
       });
     }
 
+    let leadLimitReached = false;
+
     if (provider.subscriptionType === "Pay Per Lead") {
       const plan = await SubscriptionPlan.findById(provider.subscriptionPlanId);
       const allowedLeads = plan?.leadCount ?? 0;
-      const usedLeads = provider.leadCompleteCount || 0;
+      const usedLeadsBefore = provider.leadCompleteCount || 0;
 
-      if (usedLeads >= allowedLeads) {
+      if (usedLeadsBefore >= allowedLeads) {
         await expireSubscription(provider);
         await provider.save();
         return res.status(400).json({
           status: 400,
-          message:
-            "Your allotted leads have been completed. Please purchase a new plan.",
+          message: "Your allotted leads have been completed. Please purchase a new plan.",
         });
       }
 
-      provider.leadCompleteCount = usedLeads + 1;
+      // ⬆️ Increase lead count
+      const usedLeadsAfter = usedLeadsBefore + 1;
+      provider.leadCompleteCount = usedLeadsAfter;
 
-      if (provider.leadCompleteCount > allowedLeads) {
-        await expireSubscription(provider);
+      // ✅ Check AFTER incrementing if it now reaches the limit
+      if (usedLeadsAfter >= allowedLeads) {
+        leadLimitReached = true;
+        await expireSubscription(provider); // Expire after this last allowed lead
       }
     }
 
+    // 🔁 Increment job accept count
     provider.jobAcceptCount = (provider.jobAcceptCount || 0) + 1;
 
     await provider.save();
@@ -589,6 +595,7 @@ exports.jobAcceptCount = async (req, res) => {
       message: "Job accept count incremented successfully!",
       jobAcceptCount: provider.jobAcceptCount,
       leadCompleteCount: provider.leadCompleteCount,
+      leadLimitReached,
     });
   } catch (error) {
     console.error("Error in jobAcceptCount:", error);
@@ -599,6 +606,7 @@ exports.jobAcceptCount = async (req, res) => {
     });
   }
 };
+
 
 async function expireSubscription(provider) {
   const voucher = await SubscriptionVoucherUser.findOne({
