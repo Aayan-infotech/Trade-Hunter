@@ -11,5 +11,7 @@ router.get("/getAvgRating/:providerId",verifyUser,  ratingController.getAvgRatin
 
 router.get("/getRatingById/:jobId",  ratingController.getRatingByJob);
 
+router.get("/getAllProviderRatings", ratingController.getProvidersWithAvgRatings);
+
 module.exports = router;
     

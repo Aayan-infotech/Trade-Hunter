@@ -74,7 +74,7 @@ const JobPostSchema = new mongoose.Schema({
   },
   
 
-  deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+  deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "hunter", default: null },
 }, { timestamps: true });
 
 JobPostSchema.index({ "jobLocation.location": "2dsphere" });

@@ -179,3 +179,97 @@ exports.getAvgRating = async (req, res) => {
     }
   };
   
+
+  exports.getProvidersWithAvgRatings = async (req, res) => {
+    try {
+      const data = await Rating.aggregate([
+        // Group ratings by provider
+        {
+          $group: {
+            _id: "$providerId",
+            avgRating: { $avg: "$rating" },
+            totalRatings: { $sum: 1 },
+            ratings: { $push: "$$ROOT" }
+          }
+        },
+        // Lookup provider details
+        {
+          $lookup: {
+            from: "providers", // Collection name for Provider model
+            localField: "_id",
+            foreignField: "_id",
+            as: "providerInfo"
+          }
+        },
+        { $unwind: "$providerInfo" },
+        // Flatten and replace userId in ratings with user details
+        {
+          $unwind: "$ratings"
+        },
+        {
+          $lookup: {
+            from: "hunters", // Collection name for users
+            localField: "ratings.userId",
+            foreignField: "_id",
+            as: "userInfo"
+          }
+        },
+        {
+          $addFields: {
+            "ratings.user": { $arrayElemAt: ["$userInfo", 0] }
+          }
+        },
+        {
+          $group: {
+            _id: "$_id",
+            avgRating: { $first: "$avgRating" },
+            totalRatings: { $first: "$totalRatings" },
+            ratings: { $push: "$ratings" },
+            providerInfo: { $first: "$providerInfo" }
+          }
+        },
+        {
+          $project: {
+            providerId: "$_id",
+            contactName: "$providerInfo.contactName",
+            email: "$providerInfo.email",
+            avgRating: { $round: ["$avgRating", 1] },
+            totalRatings: 1,
+            ratings: {
+              $map: {
+                input: "$ratings",
+                as: "rating",
+                in: {
+                  rating: "$$rating.rating",
+                  review: "$$rating.review",
+                  jobId: "$$rating.jobId",
+                  createdAt: "$$rating.createdAt",
+                  user: {
+                    _id: "$$rating.user._id",
+                    name: "$$rating.user.name",
+                    email: "$$rating.user.email"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]);
+  
+      return res.status(200).json({
+        message: "Provider ratings and details retrieved successfully.",
+        data
+      });
+  
+    } catch (error) {
+      console.error("Error:", error);
+      return res.status(500).json({
+        message: "Server error",
+        error: error.message
+      });
+    }
+  };
+  
+  
+
+
