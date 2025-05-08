@@ -13,7 +13,6 @@ const TransactionSchema = new mongoose.Schema({
     required: [true, 'Subscription plan ID is required']
   },
 
-  // Top-level fields
   status: {
     type: String,
     enum: ['pending', 'completed', 'failed', 'refunded', 'cancelled', 'disputed'],
@@ -33,7 +32,6 @@ const TransactionSchema = new mongoose.Schema({
     uppercase: true
   },
 
-  // Nested transaction sub-document
   transaction: {
     transactionPrice: {
       type: Number,
@@ -62,7 +60,6 @@ const TransactionSchema = new mongoose.Schema({
     }
   },
 
-  // Nested payment sub-document
   payment: {
     paymentSource: {
       type: String,
@@ -80,7 +77,6 @@ const TransactionSchema = new mongoose.Schema({
     }
   },
 
-  // Nested payer sub-document
   payer: {
     payerId: {
       type: String,
@@ -117,17 +113,14 @@ const TransactionSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes for fast lookup
 TransactionSchema.index({ userId: 1, status: 1 });
 TransactionSchema.index({ 'transaction.transactionDate': -1 });
 TransactionSchema.index({ amount: 1 });
 
-// Virtual for formatted amount
 TransactionSchema.virtual('amountFormatted').get(function() {
   return `${this.currency} ${this.amount.toFixed(2)}`;
 });
 
-// Auto-update updatedAt
 TransactionSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();

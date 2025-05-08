@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Contact = require("../models/contactUsModel");
-const sendEmail = require("../services/sendMail"); // already correctly imported
+const sendEmail = require("../services/sendMail"); 
 
 exports.createContact = async (req, res) => {
   try {

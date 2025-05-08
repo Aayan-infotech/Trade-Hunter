@@ -174,7 +174,6 @@ const signUp = async (req, res) => {
             isGuestMode,
           });
 
-    // Generate and send OTP to user's email
     const verificationOTP = await generateverificationOTP(newUser);
 
     await sendEmail(
@@ -205,7 +204,6 @@ const signUp = async (req, res) => {
       }).save();
     }
 
-    // ✉️ Send notification to admin
     await sendEmail(
       "rishabh.sharma@aayaninfotech.com",
       `New ${userType} Signup - ${name}`,
@@ -350,7 +348,6 @@ const logout = async (req, res) => {
       });
     }
 
-    // Remove refresh token from database
     user.refreshToken = "";
     await user.save();
 

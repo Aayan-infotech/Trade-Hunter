@@ -49,22 +49,19 @@ const getS3Client = async () => {
 };
 
 
-// Create an S3 client using credentials from your .env file
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION, // e.g., 'us-east-1'
+  region: process.env.AWS_REGION, 
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
 });
 
-// Configure multer-s3 storage (note: we do not set ACL since your bucket disallows ACLs)
 const s3Storage = multerS3({
   s3: s3Client,
-  bucket: process.env.AWS_S3_BUCKET_NAME, // from your .env (e.g., "trade-hunt")
+  bucket: process.env.AWS_S3_BUCKET_NAME, 
   contentType: multerS3.AUTO_CONTENT_TYPE,
   key: function (req, file, cb) {
-    // Log file details to debug undefined properties
     console.log("In multerS3 key function, file:", file);
     if (!file || !file.originalname) {
       return cb(new Error("File is undefined or missing originalname."));
@@ -74,7 +71,6 @@ const s3Storage = multerS3({
   },
 });
 
-// Configure multer to accept up to 10 files with a 5MB limit per file
 const uploadToS3 = multer({
   storage: s3Storage,
   limits: { fileSize: 1024 * 1024 * 5 },

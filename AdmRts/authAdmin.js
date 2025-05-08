@@ -6,7 +6,6 @@ const HARD_EMAIL = "aayaninfotech@gmail.com";
 const HARD_PASSWORD = "aayaninfotech";
 const AdminId = "YWF5YW5pbmZvdGVjaEBnbWFpbC5jb20=";
 
-// POST /api/auth/login
 router.post("/login", (req, res) => {
   const { email, password } = req.body;
 

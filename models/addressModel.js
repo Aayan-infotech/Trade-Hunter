@@ -18,7 +18,7 @@ const addressSchema = new mongoose.Schema({
   },
   location: {
     type: { type: String, enum: ['Point'], required: true },
-    coordinates: { type: [Number], required: true }, // [longitude, latitude]
+    coordinates: { type: [Number], required: true }, 
   },
   address: {
     type: String,
@@ -28,7 +28,7 @@ const addressSchema = new mongoose.Schema({
   radius: {
     type: Number,
     required: false,
-    default: 10, // Default radius in km
+    default: 10, 
   },
   createdAt: {
     type: Date,
@@ -36,7 +36,6 @@ const addressSchema = new mongoose.Schema({
   },
 });
 
-// Create 2dsphere index for geospatial queries
 addressSchema.index({ location: '2dsphere' });
 
 module.exports = mongoose.model("Address", addressSchema);

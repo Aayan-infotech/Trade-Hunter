@@ -155,8 +155,7 @@ const getJobPostByUserId = async (req, res) => {
     let limit = parseInt(req.query.limit) || 10;
     let skip = (page - 1) * limit;
     const search = req.query.search || "";
-    const jobStatus = req.query.jobStatus; // new filter
-
+    const jobStatus = req.query.jobStatus; 
     const query = { user: userId };
 
     if (search) {
@@ -193,11 +192,6 @@ const getJobPostByUserId = async (req, res) => {
     });
   }
 };
-
-
-
-
-//change job status
 
 
 
@@ -513,8 +507,6 @@ const jobProviderAccept = async (req, res) => {
     }
 
     const hunterId = req.user.userId;
-
-    // Find the job post and verify ownership and status
     const jobPost = await JobPost.findById(jobId);
     if (!jobPost) {
       return res.status(404).json({ message: "Job post not found." });
@@ -540,14 +532,12 @@ const jobProviderAccept = async (req, res) => {
       return res.status(404).json({ message: "Hunter not found." });
     }
 
-    // Update the job post with the provider id and change the status atomically using $set
     const updatedJobPost = await JobPost.findByIdAndUpdate(
       jobId,
       { $set: { provider: provider._id, jobStatus: "Assigned" } },
       { new: true, runValidators: true }
     );
 
-    // Update provider's assignedJobs if not already added
     if (!provider.assignedJobs) {
       provider.assignedJobs = [];
     }

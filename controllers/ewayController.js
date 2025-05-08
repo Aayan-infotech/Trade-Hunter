@@ -316,12 +316,10 @@ exports.getSubscriptionByUserId = async (req, res) => {
         (sub) => sub.subscriptionPlanId.toString() === planIdFromTxn
       );
 
-      // Try to find the closest voucher starting at or just after the txn
       let matchedVoucher = matchingVouchers
         .filter((sub) => new Date(sub.startDate) >= txnDate)
         .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))[0];
 
-      // Fallback: get latest past voucher
       if (!matchedVoucher) {
         matchedVoucher = matchingVouchers
           .filter((sub) => new Date(sub.startDate) <= txnDate)

@@ -7,11 +7,11 @@ const sendEmail = async (recipient, subject, htmlMessage) => {
       port: 587, 
       secure: false,
       auth: {
-        user: 'development.aayaninfotech@gmail.com', // Your Gmail address
-        pass: 'defe qhhm kgmu ztkf', // Your App Password
+        user: 'development.aayaninfotech@gmail.com', 
+        pass: 'defe qhhm kgmu ztkf',
       },
       tls: {
-        rejectUnauthorized: false, // Optional for development
+        rejectUnauthorized: false, 
       },
     });
 
@@ -19,13 +19,13 @@ const sendEmail = async (recipient, subject, htmlMessage) => {
       from: '"Trade Hunter" <development.aayaninfotech@gmail.com>',
       to: recipient,
       subject: subject,
-      html: htmlMessage, // ✅ Send as HTML, not plain text
+      html: htmlMessage, 
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent:', info.response); // Optional logging
+    console.log('Email sent:', info.response); 
   } catch (error) {
-    console.error('Error sending email:', error); // Optional debugging
+    console.error('Error sending email:', error); 
     throw new Error('Email sending failed');
   }
 };

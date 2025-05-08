@@ -84,14 +84,12 @@ exports.getAllSubscriptionPlans = async (req, res) => {
   try {
     const plans = await SubscriptionPlan.find();
 
-    // Fetch all Subscription Types to map their IDs to names
     const subscriptionTypes = await SubscriptionType.find();
     const typeMap = subscriptionTypes.reduce((acc, type) => {
       acc[type._id.toString()] = type.type;
       return acc;
     }, {});
 
-    // Replace type ID with name
     const formattedPlans = plans.map(plan => ({
       ...plan.toObject(),
       type: typeMap[plan.type.toString()] || "N/A"

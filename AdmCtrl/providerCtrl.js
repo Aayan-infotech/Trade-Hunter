@@ -46,7 +46,6 @@ exports.getAllProviders = async (req, res) => {
 
 
 
-// Delete a Provider
 exports.deleteProvider = async (req, res) => {
   try {
     const { id } = req.params;
@@ -68,8 +67,6 @@ exports.deleteProvider = async (req, res) => {
   }
 };
 
-
-// Update a Provider
 exports.updateProvider = async (req, res) => {
   try {
     const { id } = req.params;
@@ -87,7 +84,6 @@ exports.updateProvider = async (req, res) => {
       }
     }
 
-    // Handle businessType update separately if needed
     if (updatedData.businessType) {
       updatedData.$set = { businessType: updatedData.businessType };
       delete updatedData.businessType;
@@ -131,9 +127,8 @@ exports.getAllProvidersGuestMode = async (req, res) => {
       query.userStatus = userStatus;
     }
 
-    // Apply sorting first, then pagination
     const providers = await Provider.find(query)
-      .sort({ createdAt: -1 }) // Sort by creation date descending (latest first)
+      .sort({ createdAt: -1 }) 
       .skip((page - 1) * parseInt(limit))
       .limit(parseInt(limit));
 

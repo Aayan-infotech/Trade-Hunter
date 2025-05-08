@@ -56,7 +56,6 @@ const uploadToS3 = async (req, res, next) => {
     const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
     for (const file of files) {
-      // ✅ Validate MIME type before uploading
       if (!allowedMimeTypes.includes(file.mimetype)) {
         return res.status(400).json({
           success: false,

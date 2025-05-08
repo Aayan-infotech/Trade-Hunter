@@ -24,11 +24,9 @@ exports.getMatchedData = async (req, res) => {
             return res.status(404).json({ message: "One or more records not found.", status: false, data: {} });
         }
 
-        // Determine sender and receiver roles
         const senderType = senderHunter ? "hunter" : "provider";
         const receiverType = receiverHunter ? "hunter" : "provider";
 
-        // Send the response
         res.status(200).json({
             message: "Data fetched successfully.",
             status: true,

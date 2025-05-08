@@ -83,7 +83,7 @@ const hunterSchema = new mongoose.Schema(
     address: {
       location: {
         type: { type: String, enum: ['Point'], required: false },
-        coordinates: { type: [Number], required: false }, // [longitude, latitude]
+        coordinates: { type: [Number], required: false }, 
       },
       addressLine: { type: String, required: false, trim: true },
       radius: { type: Number, required: false },
@@ -97,7 +97,6 @@ const hunterSchema = new mongoose.Schema(
     },
     UID: {
       type: String,
-      // unique: true,
       default: null,
     },    
     isNotificationEnable: {

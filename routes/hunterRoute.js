@@ -6,7 +6,6 @@ const multer = require("multer");
 const upload = multer();
 const { uploadToS3 } = require("../common/multerConfig");
 
-// Route to handle file upload
 router.post('/getNearbyServiceProviders',verifyUser ,hunterController.getNearbyServiceProviders);
 router.put('/updateById/:id', verifyUser, upload.single("images"), uploadToS3, hunterController.updateHunterById);
 router.patch('/updateRadius', verifyUser, hunterController.updateRadius);

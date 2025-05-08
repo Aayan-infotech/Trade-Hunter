@@ -249,7 +249,6 @@ exports.sendJobNotificationEmail = async (req, res) => {
 
     const subject = '📩 New Job Message Notification';
 
-    // Conditionally include job title if it exists
     const jobTitleSection = jobTitle
       ? `regarding the job titled <strong style="color: #27ae60;">${jobTitle}</strong>`
       : '';

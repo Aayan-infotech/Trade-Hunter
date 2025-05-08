@@ -31,7 +31,7 @@ const checkSubscriptionOrVoucher = async (req, res, next) => {
             return res.status(403).json({ success: false, message: `Subscription/Voucher expired`, status: false, endDate: record.endDate });
         }
         
-        req.subscriptionOrVoucher = record; // Pass the record to the next middleware or route
+        req.subscriptionOrVoucher = record; 
         next();
     } catch (error) {
         console.error('Error in checkSubscriptionOrVoucher middleware:', error);
@@ -39,7 +39,6 @@ const checkSubscriptionOrVoucher = async (req, res, next) => {
     }
 };
 
-// module.exports = checkSubscriptionOrVoucher;
 
 module.exports = {
     checkSubscriptionOrVoucher

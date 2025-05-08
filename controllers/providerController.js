@@ -10,11 +10,9 @@ const SubscriptionType = require("../models/SubscriptionTypeModel");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    // console.log("Destination callback called. File received:", file);
     cb(null, "uploads/");
   },
   filename: function (req, file, cb) {
-    // console.log("Filename callback called. File received:", file);
     if (!file || !file.originalname) {
       return cb(new Error("No file provided or file is undefined."));
     }
@@ -29,7 +27,6 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 1024 * 1024 * 5 },
   fileFilter: function (req, file, cb) {
-    // console.log("File filter invoked. File received:", file);
     if (!file) {
       return cb(new Error("No file provided."));
     }
@@ -146,7 +143,6 @@ exports.deleteFile = async (req, res) => {
   }
 };
 
-// plz check
 exports.getProviderByUserLocation = async (req, res) => {
   try {
     const RADIUS_OF_EARTH = 6371;
@@ -223,7 +219,6 @@ exports.getProviderByUserLocation = async (req, res) => {
   }
 };
 
-// for guest user
 exports.getServicesForGuestLocation = async (req, res) => {
   try {
     const RADIUS_OF_EARTH = 6371;
@@ -392,21 +387,20 @@ exports.getNearbyJobsForGuest = async (req, res) => {
       },
       {
         $match: {
-          jobStatus: "Pending", // Fetch only pending jobs
+          jobStatus: "Pending", 
         },
       },
       {
-        $sort: { distance: 1 }, // Sort by nearest first
+        $sort: { distance: 1 }, 
       },
       {
-        $skip: (page - 1) * limit, // Pagination: Skip previous pages
+        $skip: (page - 1) * limit, 
       },
       {
-        $limit: limit, // Limit results per page
+        $limit: limit, 
       },
     ]);
 
-    // Get total job count for pagination metadata
     const totalJobs = await jobpostModel.countDocuments({
       jobStatus: "Pending",
     });
@@ -466,16 +460,13 @@ exports.updateProviderById = async (req, res) => {
       return res.status(400).json({ message: "Invalid ID format" });
     }
 
-    // Protect email from being changed
     if (updateData.email !== undefined) delete updateData.email;
 
-    // Convert addressLine
     if (updateData.addressLine) {
       updateData["address.addressLine"] = updateData.addressLine;
       delete updateData.addressLine;
     }
 
-    // Convert lat/lng
     if (updateData.latitude && updateData.longitude) {
       updateData["address.location.coordinates"] = [
         Number(updateData.longitude),
@@ -491,7 +482,6 @@ exports.updateProviderById = async (req, res) => {
       delete updateData.radius;
     }
 
-    // Images
     if (req.fileLocations && req.fileLocations.length > 0) {
       updateData.images = req.fileLocations[0];
     }
@@ -519,8 +509,6 @@ exports.updateProviderById = async (req, res) => {
 exports.getProviderProfile = async (req, res) => {
   try {
     const { providerId } = req.params;
-
-    // Fetch provider details and populate assignedJobs with user details
     const provider = await providerModel.findById(providerId).populate({
       path: "assignedJobs",
       populate: {
@@ -529,7 +517,6 @@ exports.getProviderProfile = async (req, res) => {
       },
     });
 
-    // Fetch work gallery with correct query
     const workgallery = await providerPhotosModel
       .findOne({ userId: providerId })
       .select("files");
@@ -686,7 +673,6 @@ exports.completionRate = async (req, res) => {
     }
 
     const { jobAcceptCount, jobCompleteCount } = provider;
-    // Prevent division by zero; if no accepted jobs, completion rate is 0%
     const completionRate =
       jobAcceptCount > 0 ? (jobCompleteCount / jobAcceptCount) * 100 : 0;
 
@@ -711,17 +697,13 @@ exports.deleteFile = async (req, res) => {
     if (!fileId) {
       return res.status(400).json({ message: "File ID is required." });
     }
-
-    // Get the authenticated provider's ID from the request (set by your auth middleware)
     const providerId = req.user.userId;
 
-    // Find the provider using the Provider model. Rename the variable to avoid conflict.
     const foundProvider = await providerModel.findById(providerId);
     if (!foundProvider) {
       return res.status(404).json({ message: "Provider not found." });
     }
 
-    // Check if there are any files in the provider's files array
     if (!foundProvider.files || foundProvider.files.length === 0) {
       return res
         .status(404)
@@ -729,8 +711,6 @@ exports.deleteFile = async (req, res) => {
     }
 
     const initialCount = foundProvider.files.length;
-
-    // Filter out the file with the matching fileId
     foundProvider.files = foundProvider.files.filter(
       (file) => file._id.toString() !== fileId
     );
@@ -813,7 +793,6 @@ exports.getProvidersByBusinessType = async (req, res) => {
   }
 };
 
-// Create or Update "about" field
 exports.upsertAbout = async (req, res) => {
   try {
     const { about } = req.body;
@@ -857,7 +836,6 @@ exports.upsertAbout = async (req, res) => {
   }
 };
 
-// Get "about" field
 exports.getAbout = async (req, res) => {
   try {
     const provider = await providerModel.findById(req.params.id, "about");
@@ -912,7 +890,7 @@ exports.getProvidersListing = async (req, res) => {
           distanceField: "distance",
           spherical: true,
           key: "address.location",
-          maxDistance: radius, // Apply the radius filter
+          maxDistance: radius, 
         },
       },
       {
