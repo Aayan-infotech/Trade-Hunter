@@ -183,7 +183,9 @@ exports.getAvgRating = async (req, res) => {
 
   exports.getProvidersWithAvgRatings = async (req, res) => {
     try {
-      const data = await Rating.aggregate([
+      const { search } = req.query;
+  
+      const pipeline = [
         {
           $group: {
             _id: "$providerId",
@@ -201,6 +203,21 @@ exports.getAvgRating = async (req, res) => {
           }
         },
         { $unwind: "$providerInfo" },
+      ];
+  
+      // 🟡 Add search filter if provided
+      if (search) {
+        pipeline.push({
+          $match: {
+            $or: [
+              { "providerInfo.email": { $regex: search, $options: "i" } },
+              { "providerInfo.contactName": { $regex: search, $options: "i" } }
+            ]
+          }
+        });
+      }
+  
+      pipeline.push(
         { $unwind: "$ratings" },
   
         // Get user info
@@ -274,7 +291,9 @@ exports.getAvgRating = async (req, res) => {
             }
           }
         }
-      ]);
+      );
+  
+      const data = await Rating.aggregate(pipeline);
   
       return res.status(200).json({
         message: "Provider ratings and details retrieved successfully.",
@@ -289,6 +308,7 @@ exports.getAvgRating = async (req, res) => {
       });
     }
   };
+  
   
   
   
