@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Rating = require("../models/ratingModel");
 const hunter = require("../models/hunterModel"); 
 const Provider = require("../models/providerModel");
+const job = require("../models/jobpostModel");
 
 exports.giveRating = async (req, res) => {
   try {
@@ -183,7 +184,6 @@ exports.getAvgRating = async (req, res) => {
   exports.getProvidersWithAvgRatings = async (req, res) => {
     try {
       const data = await Rating.aggregate([
-        // Group ratings by provider
         {
           $group: {
             _id: "$providerId",
@@ -192,23 +192,21 @@ exports.getAvgRating = async (req, res) => {
             ratings: { $push: "$$ROOT" }
           }
         },
-        // Lookup provider details
         {
           $lookup: {
-            from: "providers", // Collection name for Provider model
+            from: "providers",
             localField: "_id",
             foreignField: "_id",
             as: "providerInfo"
           }
         },
         { $unwind: "$providerInfo" },
-        // Flatten and replace userId in ratings with user details
-        {
-          $unwind: "$ratings"
-        },
+        { $unwind: "$ratings" },
+  
+        // Get user info
         {
           $lookup: {
-            from: "hunters", // Collection name for users
+            from: "hunters",
             localField: "ratings.userId",
             foreignField: "_id",
             as: "userInfo"
@@ -219,6 +217,23 @@ exports.getAvgRating = async (req, res) => {
             "ratings.user": { $arrayElemAt: ["$userInfo", 0] }
           }
         },
+  
+        // Get job info
+        {
+          $lookup: {
+            from: "jobposts",
+            localField: "ratings.jobId",
+            foreignField: "_id",
+            as: "jobInfo"
+          }
+        },
+        {
+          $addFields: {
+            "ratings.job": { $arrayElemAt: ["$jobInfo", 0] }
+          }
+        },
+  
+        // Regroup ratings
         {
           $group: {
             _id: "$_id",
@@ -228,6 +243,8 @@ exports.getAvgRating = async (req, res) => {
             providerInfo: { $first: "$providerInfo" }
           }
         },
+  
+        // Final projection
         {
           $project: {
             providerId: "$_id",
@@ -242,8 +259,11 @@ exports.getAvgRating = async (req, res) => {
                 in: {
                   rating: "$$rating.rating",
                   review: "$$rating.review",
-                  jobId: "$$rating.jobId",
                   createdAt: "$$rating.createdAt",
+                  job: {
+                    _id: "$$rating.job._id",
+                    title: "$$rating.job.title",
+                  },
                   user: {
                     _id: "$$rating.user._id",
                     name: "$$rating.user.name",
@@ -269,6 +289,7 @@ exports.getAvgRating = async (req, res) => {
       });
     }
   };
+  
   
   
 
