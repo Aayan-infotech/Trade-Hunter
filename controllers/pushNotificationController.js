@@ -112,21 +112,18 @@ exports.sendPushNotificationAdmin = async (req, res) => {
 
     const device = await DeviceToken.findOne({ userId: receiverId });
 
-    
+    if (!device) {
+      return res.status(404).json({
+        status: 404,
+        success: false,
+        message: "Device token not found for the user.",
+        data: []
+      });
+    }
 
     let shouldSend = false;
 
-    if (device.userType === "provider") {
-      const provider = await Provider.findById(receiverId);
-      if (provider && provider.isNotificationEnable === true) {
-        shouldSend = true;
-      }
-    } else if (device.userType === "hunter") {
-      const hunter = await Hunter.findById(receiverId);
-      if (hunter && hunter.isNotificationEnable === true) {
-        shouldSend = true;
-      }
-    }
+  
 
     let notificationData = null;
 
