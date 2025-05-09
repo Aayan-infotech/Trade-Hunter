@@ -14,7 +14,7 @@ exports.getNearbyServiceProviders = async (req, res) => {
       limit = 10
     } = req.body;
 
-    const { search = "" } = req.query; 
+    const { search = "", filter = "" } = req.query; 
     const offset = (page - 1) * limit;
 
     if (!latitude || !longitude || !radius) {
@@ -46,13 +46,20 @@ exports.getNearbyServiceProviders = async (req, res) => {
       });
     }
 
+    if (filter) {
+      aggregation.push({
+        $match: {
+          businessType: filter,
+        },
+      });
+    }
+
     aggregation.push({
       $facet: {
         totalData: [{ $skip: offset }, { $limit: limit }],
         total: [{ $count: "total" }],
       },
     });
-
     aggregation.push({
       $project: {
         data: "$totalData",
@@ -93,6 +100,8 @@ exports.getNearbyServiceProviders = async (req, res) => {
     });
   }
 };
+
+
 
 exports.updateHunterById = async (req, res) => {
   try {
