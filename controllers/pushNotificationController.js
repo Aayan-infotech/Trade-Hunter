@@ -132,6 +132,7 @@ exports.sendPushNotificationAdmin = async (req, res) => {
       title,
       body,
       receiverId,
+      notificationType: "admin_message",
     });
 
     return res.status(200).json({
