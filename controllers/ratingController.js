@@ -211,7 +211,7 @@ exports.getAvgRating = async (req, res) => {
           $match: {
             $or: [
               { "providerInfo.email": { $regex: search, $options: "i" } },
-              { "providerInfo.contactName": { $regex: search, $options: "i" } }
+              { "providerInfo.businessName": { $regex: search, $options: "i" } }
             ]
           }
         });
@@ -250,7 +250,6 @@ exports.getAvgRating = async (req, res) => {
           }
         },
   
-        // Regroup ratings
         {
           $group: {
             _id: "$_id",
@@ -261,10 +260,10 @@ exports.getAvgRating = async (req, res) => {
           }
         },
   
-        // Final projection
         {
           $project: {
             providerId: "$_id",
+            businessName: "$providerInfo.businessName",
             contactName: "$providerInfo.contactName",
             email: "$providerInfo.email",
             avgRating: { $round: ["$avgRating", 1] },

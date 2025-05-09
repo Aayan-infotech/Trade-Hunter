@@ -12,6 +12,7 @@ exports.getAllProviders = async (req, res) => {
       isGuestMode: false,
       $or: [
         { contactName: { $regex: `.*${search}.*`, $options: "i" } },
+        {businessName: { $regex: `.*${search}.*`, $options: "i" } },
         { email: { $regex: `.*${search}.*`, $options: "i" } },
         { "address.addressLine": { $regex: `.*${search}.*`, $options: "i" } },
       ],
@@ -117,6 +118,7 @@ exports.getAllProvidersGuestMode = async (req, res) => {
       isGuestMode: true,
       $or: [
         { contactName: { $regex: `.*${search}.*`, $options: "i" } },
+        { businessName: { $regex: `.*${search}.*`, $options: "i" } },
         { email: { $regex: `.*${search}.*`, $options: "i" } },
         { "address.addressLine": { $regex: `.*${search}.*`, $options: "i" } },
       ],
