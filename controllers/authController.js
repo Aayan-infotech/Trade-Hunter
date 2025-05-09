@@ -8,6 +8,7 @@ const apiResponse = require("../utils/responsehandler");
 const Provider = require("../models/providerModel");
 const Hunter = require("../models/hunterModel");
 const Address = require("../models/addressModel");
+const DeviceToken = require('../models/devicetokenModel');
 
 const signUp = async (req, res) => {
   try {
@@ -350,6 +351,11 @@ const logout = async (req, res) => {
 
     user.refreshToken = "";
     await user.save();
+     // Find and update deviceToken if userId matches
+    await DeviceToken.findOneAndUpdate(
+      { userId: req.user.userId },
+      { $set: { deviceToken: "" } }
+    );
 
     return res.status(200).json({
       status: 200,
