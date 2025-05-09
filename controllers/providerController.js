@@ -289,9 +289,8 @@ exports.getNearbyJobs = async (req, res) => {
       radius,
       page = 1,
       limit = 10,
+      filter = [],
     } = req.body;
-
-    const { filter = "" } = req.query;
 
     if (!latitude || !longitude || !radius) {
       return res.status(400).json({
@@ -299,15 +298,12 @@ exports.getNearbyJobs = async (req, res) => {
         message: "Missing required fields",
       });
     }
-    let filterCondition = {};
-    if (filter) {
-      const filters = Array.isArray(filter)
-        ? filter
-        : filter.split(",").map((f) => f.trim());
 
+    let filterCondition = {};
+    if (Array.isArray(filter) && filter.length > 0) {
       filterCondition = {
         businessType: {
-          $in: filters.map((f) => new RegExp(`^${f}$`, "i")),
+          $in: filter.map((f) => new RegExp(`^${f}$`, "i")),
         },
       };
     }
