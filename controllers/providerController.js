@@ -284,7 +284,6 @@ exports.getServicesForGuestLocation = async (req, res) => {
 exports.getNearbyJobs = async (req, res) => {
   try {
     const {
-      businessType,
       latitude,
       longitude,
       radius,
@@ -292,20 +291,25 @@ exports.getNearbyJobs = async (req, res) => {
       limit = 10,
     } = req.body;
 
-    if (!businessType || !latitude || !longitude || !radius) {
+    const { filter = "" } = req.query;
+
+    if (!latitude || !longitude || !radius) {
       return res.status(400).json({
         status: 400,
         message: "Missing required fields",
       });
     }
+    let filterCondition = {};
+    if (filter) {
+      const filters = Array.isArray(filter)
+        ? filter
+        : filter.split(",").map((f) => f.trim());
 
-    let businessTypeCondition;
-    if (Array.isArray(businessType)) {
-      businessTypeCondition = {
-        $in: businessType.map((bt) => new RegExp(`^${bt}$`, "i")),
+      filterCondition = {
+        businessType: {
+          $in: filters.map((f) => new RegExp(`^${f}$`, "i")),
+        },
       };
-    } else {
-      businessTypeCondition = new RegExp(`^${businessType}$`, "i");
     }
 
     const jobs = await jobpostModel.aggregate([
@@ -320,24 +324,19 @@ exports.getNearbyJobs = async (req, res) => {
       },
       {
         $match: {
-          businessType: businessTypeCondition,
+          ...filterCondition,
           jobStatus: "Pending",
         },
       },
-      {
-        $sort: { createdAt: -1 },
-      },
-      {
-        $skip: (page - 1) * limit,
-      },
-      {
-        $limit: limit,
-      },
+      { $sort: { createdAt: -1 } },
+      { $skip: (page - 1) * limit },
+      { $limit: limit },
     ]);
 
     const radiusInRadians = radius / 6378100;
+
     const totalJobs = await jobpostModel.countDocuments({
-      businessType: businessTypeCondition,
+      ...filterCondition,
       jobStatus: "Pending",
       "jobLocation.location": {
         $geoWithin: {
@@ -365,6 +364,7 @@ exports.getNearbyJobs = async (req, res) => {
     });
   }
 };
+
 
 exports.getNearbyJobsForGuest = async (req, res) => {
   try {
