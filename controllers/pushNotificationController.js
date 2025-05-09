@@ -100,50 +100,64 @@ exports.sendPushNotification = async (req, res) => {
 exports.sendPushNotificationAdmin = async (req, res) => {
   try {
     const { title, body, receiverId } = req.body;
-
-    if (!title || !body || !receiverId ) {
+ 
+    if (!title || !body || !receiverId) {
       return res.status(400).json({
         status: 400,
         success: false,
-        message: "Title and body are required.",
+        message: "Title, body, and receiverId are required.",
         data: []
       });
     }
-
+ 
     const device = await DeviceToken.findOne({ userId: receiverId });
-
-    
+ 
     let shouldSend = false;
-
-  
-
-    let notificationData = null;
-
-    if (shouldSend) {
+    let deviceToken = null;
+ 
+    if (device) {
+      deviceToken = device.deviceToken;
+ 
+      if (device.userType === "provider") {
+        const provider = await Provider.findById(receiverId);
+        if (provider?.isNotificationEnable) {
+          shouldSend = true;
+        }
+      } else if (device.userType === "hunter") {
+        const hunter = await Hunter.findById(receiverId);
+        if (hunter?.isNotificationEnable) {
+          shouldSend = true;
+        }
+      }
+    }
+ 
+    if (shouldSend && deviceToken) {
       const message = {
         notification: { title, body },
-        token: device.deviceToken,
+        token: deviceToken,
       };
-
+ 
       await admin.messaging().send(message);
     }
-
-    notificationData = await Notification.create({
+ 
+    const notificationData = await Notification.create({
       title,
       body,
       receiverId,
       notificationType: "admin_message",
     });
-
+ 
     return res.status(200).json({
       status: 200,
       success: true,
       message: shouldSend
-        ? "Notification sent successfully."
-        : "Notification saved but not sent (notifications disabled).",
+        ? "Notification sent and saved successfully."
+        : device
+          ? "Notification saved but not sent (notifications disabled)."
+          : "Notification saved but not sent (device token not found).",
       data: [notificationData],
     });
-
+ 
   } catch (error) {
     console.error("Error sending notification:", error);
     return res.status(500).json({
@@ -155,6 +169,7 @@ exports.sendPushNotificationAdmin = async (req, res) => {
     });
   }
 };
+ 
  
 
 exports.getNotificationsByUserId = async (req, res) => {
