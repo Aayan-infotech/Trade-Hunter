@@ -967,3 +967,34 @@ exports.getAllProviders = async (req, res) => {
     });
   }
 };
+
+exports.getVoucherUsers = async (req, res) => {
+  try {
+    const voucherUsers = await SubscriptionVoucherUser
+      .find({ type: "Voucher" })
+      .populate('userId', 'contactName email')  // ← populate only these two fields
+      .exec();
+
+    if (!voucherUsers.length) {
+      return res.status(404).json({
+        status: 404,
+        message: "No voucher users found.",
+      });
+    }
+
+    return res.status(200).json({
+      status: 200,
+      message: "Voucher users fetched successfully",
+      data: voucherUsers,    // now each item’s userId is an object with contactName & email
+    });
+  } catch (error) {
+    console.error("Error fetching voucher users:", error);
+    return res.status(500).json({
+      status: 500,
+      message: "Error fetching voucher users",
+      error: error.message,
+    });
+  }
+};
+
+
