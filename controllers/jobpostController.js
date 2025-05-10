@@ -714,6 +714,7 @@ const incrementJobAcceptCount = async (req, res) => {
 const updateJobPost = async (req, res) => {
   try {
     const updates = { ...req.body };
+
     if (updates.estimatedBudget !== undefined) {
       if (updates.estimatedBudget === "null") {
         updates.estimatedBudget = null;
@@ -754,24 +755,23 @@ const updateJobPost = async (req, res) => {
     if (Object.keys(jobLocation).length > 0) {
       updates.jobLocation = jobLocation;
     }
+    const existingJobPost = await JobPost.findById(req.params.id);
+    if (!existingJobPost) {
+      return apiResponse.error(res, "Job post not found.", 404);
+    }
 
     if (req.fileLocations && req.fileLocations.length > 0) {
-      updates.documents = req.fileLocations;
+      updates.documents = [
+        ...(existingJobPost.documents || []),
+        ...req.fileLocations,
+      ];
     }
 
     const jobPost = await JobPost.findByIdAndUpdate(req.params.id, updates, {
       new: true,
     });
 
-    if (!jobPost) {
-      return apiResponse.error(res, "Job post not found.", 404);
-    }
-
-    return apiResponse.success(
-      res,
-      "Job post updated successfully.",
-      jobPost
-    );
+    return apiResponse.success(res, "Job post updated successfully.", jobPost);
   } catch (error) {
     console.error("Error in updateJobPost:", error);
     return apiResponse.error(res, "Internal server error.", 500, {
