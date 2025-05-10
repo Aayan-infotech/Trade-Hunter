@@ -114,16 +114,12 @@ exports.initiatePayment = async (req, res) => {
 
     await txn.save();
 
-    const subscriptionPlan = await SubscriptionPlan.findById(
-      subscriptionPlanId
-    );
+    const subscriptionPlan = await SubscriptionPlan.findById(subscriptionPlanId);
     if (!subscriptionPlan) {
       return res.status(404).json({ message: "Subscription Plan not found" });
     }
 
-    const subscriptionType = await SubscriptionType.findById(
-      subscriptionPlan.type
-    );
+    const subscriptionType = await SubscriptionType.findById(subscriptionPlan.type);
     if (!subscriptionType) {
       return res.status(404).json({ message: "Subscription Type not found" });
     }
@@ -137,17 +133,22 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
-    let newStartDate = new Date();
+    
+    function setToMidnight(date) {
+      date.setHours(0, 0, 0, 0);
+      return date;
+    }
+
+    let newStartDate = setToMidnight(new Date());
     let newStatus = "active";
 
     const latestSub = await SubscriptionVoucherUser.findOne({
       userId,
-      type: subscriptionType.type,
       status: { $in: ["active", "upcoming"] },
     }).sort({ endDate: -1 });
 
     if (latestSub) {
-      newStartDate = new Date(latestSub.endDate);
+      newStartDate = setToMidnight(new Date(latestSub.endDate));
       newStatus = "upcoming";
     }
 
@@ -206,6 +207,7 @@ exports.initiatePayment = async (req, res) => {
     });
   }
 };
+
 
 exports.getAllTransactions = async (req, res) => {
   try {
