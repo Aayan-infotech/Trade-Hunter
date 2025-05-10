@@ -186,7 +186,6 @@ exports.getNotificationsByUserId = async (req, res) => {
     });
 
     const resolvedNotifications = await Promise.all(filteredUserNotificationsPromises);
-
     const validUserNotifications = resolvedNotifications.filter(notification => notification !== null);
 
     const massNotifications = await massNotification.find({ userType });
@@ -197,8 +196,9 @@ exports.getNotificationsByUserId = async (req, res) => {
     }));
 
     const allNotifications = [...validUserNotifications, ...formattedMassNotifications];
-
     allNotifications.sort((a, b) => b.createdAt - a.createdAt);
+
+    const unreadCount = allNotifications.filter(n => !n.isRead).length;
 
     const paginatedNotifications = allNotifications.slice(skip, skip + limit);
     const total = allNotifications.length;
@@ -210,6 +210,7 @@ exports.getNotificationsByUserId = async (req, res) => {
       total,
       page,
       limit,
+      unreadCount, 
       message: "Fetched all valid notifications with pagination!"
     });
 
