@@ -101,7 +101,7 @@ exports.sendPushNotificationAdmin = async (req, res) => {
   try {
     const { title, body, receiverId } = req.body;
 
-    if (!title || !body || !receiverId) {
+    if (!title || !body || !receiverId ) {
       return res.status(400).json({
         status: 400,
         success: false,
@@ -109,44 +109,32 @@ exports.sendPushNotificationAdmin = async (req, res) => {
         data: []
       });
     }
-
+ 
     const device = await DeviceToken.findOne({ userId: receiverId });
 
+    
     let shouldSend = false;
-    let deviceToken = null;
 
-    if (device) {
-      deviceToken = device.deviceToken;
+  
 
-      if (device.userType === "provider") {
-        const provider = await Provider.findById(receiverId);
-        if (provider?.isNotificationEnable) {
-          shouldSend = true;
-        }
-      } else if (device.userType === "hunter") {
-        const hunter = await Hunter.findById(receiverId);
-        if (hunter?.isNotificationEnable) {
-          shouldSend = true;
-        }
-      }
-    }
+    let notificationData = null;
 
-    if (shouldSend && deviceToken) {
+    if (shouldSend) {
       const message = {
         notification: { title, body },
         token: deviceToken,
       };
-
+ 
       await admin.messaging().send(message);
     }
 
-    const notificationData = await Notification.create({
+    notificationData = await Notification.create({
       title,
       body,
       receiverId,
       notificationType: "admin_message",
     });
-
+ 
     return res.status(200).json({
       status: 200,
       success: true,
@@ -157,7 +145,7 @@ exports.sendPushNotificationAdmin = async (req, res) => {
           : "Notification saved but not sent (device token not found).",
       data: [notificationData],
     });
-
+ 
   } catch (error) {
     console.error("Error sending notification:", error);
     return res.status(500).json({
@@ -169,7 +157,6 @@ exports.sendPushNotificationAdmin = async (req, res) => {
     });
   }
 };
-
  
 
 exports.getNotificationsByUserId = async (req, res) => {
