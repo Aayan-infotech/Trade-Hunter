@@ -1,5 +1,9 @@
-const Transaction = require("../models/TransactionModelNew");
+const PDFDocument = require('pdfkit');
+const fs          = require('fs');
+const path        = require('path');
+const sendEmail   = require("../services/sendMail");
 const ewayService = require("../services/ewayService");
+const Transaction = require("../models/TransactionModelNew");
 const SubscriptionVoucherUser = require("../models/SubscriptionVoucherUserModel");
 const SubscriptionPlan = require("../models/SubscriptionPlanModel");
 const SubscriptionType = require("../models/SubscriptionTypeModel");
@@ -7,68 +11,57 @@ const Provider = require("../models/providerModel");
 
 exports.initiatePayment = async (req, res) => {
   try {
-    const requiredCustomerFields = [
-      "FirstName",
-      "LastName",
-      "Email",
-      "CardDetails",
-    ];
-    const requiredCardFields = [
-      "Name",
-      "Number",
-      "ExpiryMonth",
-      "ExpiryYear",
-      "CVN",
-    ];
-    const requiredPaymentFields = ["TotalAmount", "CurrencyCode"];
-
+    const requiredCustomerFields = ["FirstName", "LastName", "Email", "CardDetails"];
+    const requiredCardFields     = ["Name", "Number", "ExpiryMonth", "ExpiryYear", "CVN"];
+    const requiredPaymentFields  = ["TotalAmount", "CurrencyCode"];
     const { Customer, Payment, userId, subscriptionPlanId } = req.body;
 
     if (!Customer || !Payment) {
-      return res
-        .status(400)
-        .json({ message: "Missing Customer or Payment object" });
+      return res.status(400).json({ message: "Missing Customer or Payment object" });
     }
 
-    const missingCustomer = requiredCustomerFields.filter((f) => !Customer[f]);
-    const missingCard = requiredCardFields.filter(
-      (f) => !Customer.CardDetails?.[f]
-    );
-    const missingPayment = requiredPaymentFields.filter((f) => !Payment[f]);
+    const missingCustomer = requiredCustomerFields.filter(f => !Customer[f]);
+    const missingCard     = requiredCardFields.filter(f => !Customer.CardDetails?.[f]);
+    const missingPayment  = requiredPaymentFields.filter(f => !Payment[f]);
 
     if (missingCustomer.length || missingCard.length || missingPayment.length) {
       return res.status(400).json({
         message: "Missing required fields",
-        missingFields: {
-          Customer: missingCustomer,
-          CardDetails: missingCard,
-          Payment: missingPayment,
-        },
+        missingFields: { Customer: missingCustomer, CardDetails: missingCard, Payment: missingPayment }
       });
     }
+
+    const provider         = await Provider.findById(userId).lean();
+    const subscriptionPlan = await SubscriptionPlan.findById(subscriptionPlanId).lean();
+    const subscriptionType = subscriptionPlan
+      ? await SubscriptionType.findById(subscriptionPlan.type).lean()
+      : null;
+
+    if (!provider) return res.status(404).json({ message: "Provider not found" });
+    if (!subscriptionPlan) return res.status(404).json({ message: "Subscription Plan not found" });
+    if (!subscriptionType) return res.status(404).json({ message: "Subscription Type not found" });
 
     const paymentData = {
       Customer: {
         FirstName: Customer.FirstName,
-        LastName: Customer.LastName,
-        Email: Customer.Email,
+        LastName:  Customer.LastName,
+        Email:     Customer.Email,
         CardDetails: {
-          Name: Customer.CardDetails.Name,
-          Number: Customer.CardDetails.Number.replace(/\s/g, ""),
+          Name:        Customer.CardDetails.Name,
+          Number:      Customer.CardDetails.Number.replace(/\s/g, ""),
           ExpiryMonth: Customer.CardDetails.ExpiryMonth.padStart(2, "0"),
-          ExpiryYear:
-            Customer.CardDetails.ExpiryYear.length === 2
-              ? `20${Customer.CardDetails.ExpiryYear}`
-              : Customer.CardDetails.ExpiryYear,
-          CVN: Customer.CardDetails.CVN,
-        },
+          ExpiryYear:  Customer.CardDetails.ExpiryYear.length === 2
+                        ? `20${Customer.CardDetails.ExpiryYear}`
+                        : Customer.CardDetails.ExpiryYear,
+          CVN:         Customer.CardDetails.CVN
+        }
       },
       Payment: {
-        TotalAmount: Payment.TotalAmount,
-        CurrencyCode: Payment.CurrencyCode,
+        TotalAmount:  Payment.TotalAmount,
+        CurrencyCode: Payment.CurrencyCode
       },
       TransactionType: "MOTO",
-      Capture: true,
+      Capture:         true
     };
 
     const ewayResponse = await ewayService.createTransaction(paymentData);
@@ -77,13 +70,12 @@ exports.initiatePayment = async (req, res) => {
     if (!txId) {
       return res.status(400).json({
         message: "Failed to process payment: Missing TransactionID",
-        error: "TransactionID not found in response",
-        details: ewayResponse,
+        error:   "TransactionID not found in response",
+        details: ewayResponse
       });
     }
 
     const amountCharged = (Payment.TotalAmount || 0) / 100;
-
     const txn = new Transaction({
       userId,
       subscriptionPlanId,
@@ -91,65 +83,39 @@ exports.initiatePayment = async (req, res) => {
       amount: amountCharged,
       currency: Payment.CurrencyCode,
       transaction: {
-        transactionPrice: amountCharged,
-        transactionStatus: ewayResponse.TransactionStatus
-          ? "Success"
-          : "Failed",
-        transactionType: ewayResponse.TransactionType,
+        transactionPrice:  amountCharged,
+        transactionStatus: ewayResponse.TransactionStatus ? "Success" : "Failed",
+        transactionType:   ewayResponse.TransactionType,
         authorisationCode: ewayResponse.AuthorisationCode,
-        transactionDate: new Date(),
-        transactionId: txId,
+        transactionDate:   new Date(),
+        transactionId:     txId
       },
       payment: {
         paymentSource: "eway",
-        totalAmount: amountCharged,
-        countryCode: Payment.CurrencyCode,
+        totalAmount:   amountCharged,
+        countryCode:   Payment.CurrencyCode
       },
       payer: {
-        payerId: ewayResponse.Customer.TokenCustomerID || "",
+        payerId:   ewayResponse.Customer.TokenCustomerID || "",
         payerName: ewayResponse.Customer.CardDetails.Name,
-        payerEmail: ewayResponse.Customer.Email,
-      },
+        payerEmail: ewayResponse.Customer.Email
+      }
     });
 
     await txn.save();
 
-    const subscriptionPlan = await SubscriptionPlan.findById(subscriptionPlanId);
-    if (!subscriptionPlan) {
-      return res.status(404).json({ message: "Subscription Plan not found" });
-    }
-
-    const subscriptionType = await SubscriptionType.findById(subscriptionPlan.type);
-    if (!subscriptionType) {
-      return res.status(404).json({ message: "Subscription Type not found" });
-    }
-
-    if (!ewayResponse.TransactionStatus) {
-      return res.status(400).json({
-        status: 400,
-        success: false,
-        message: "Payment failed",
-        data: null,
-      });
-    }
-
-    
-    function setToMidnight(date) {
-      date.setHours(0, 0, 0, 0);
-      return date;
-    }
-
+    const setToMidnight = d => (d.setHours(0, 0, 0, 0), d);
     let newStartDate = setToMidnight(new Date());
-    let newStatus = "active";
+    let newStatus    = "active";
 
     const latestSub = await SubscriptionVoucherUser.findOne({
       userId,
-      status: { $in: ["active", "upcoming"] },
+      status: { $in: ["active", "upcoming"] }
     }).sort({ endDate: -1 });
 
     if (latestSub) {
       newStartDate = setToMidnight(new Date(latestSub.endDate));
-      newStatus = "upcoming";
+      newStatus    = "upcoming";
     }
 
     const newEndDate = new Date(newStartDate);
@@ -157,12 +123,12 @@ exports.initiatePayment = async (req, res) => {
 
     const newSubscription = new SubscriptionVoucherUser({
       userId,
-      type: subscriptionType.type,
+      type:               subscriptionType.type,
       subscriptionPlanId,
-      startDate: newStartDate,
-      endDate: newEndDate,
-      status: newStatus,
-      kmRadius: subscriptionPlan.kmRadius,
+      startDate:          newStartDate,
+      endDate:            newEndDate,
+      status:             newStatus,
+      kmRadius:           subscriptionPlan.kmRadius
     });
 
     await newSubscription.save();
@@ -170,12 +136,169 @@ exports.initiatePayment = async (req, res) => {
     if (newStatus === "active") {
       await Provider.findByIdAndUpdate(userId, {
         subscriptionStatus: 1,
-        isGuestMode: false,
-        subscriptionType: subscriptionType.type,
+        isGuestMode:        false,
+        subscriptionType:   subscriptionType.type,
         subscriptionPlanId,
-        "address.radius": subscriptionPlan.kmRadius * 1000,
+        "address.radius":   subscriptionPlan.kmRadius * 1000
       });
     }
+
+    if (!ewayResponse.TransactionStatus) {
+      return res.status(400).json({
+        status:  400,
+        success: false,
+        message: "Payment failed",
+        data:    null
+      });
+    }
+
+    const gst      = +(amountCharged * 0.10).toFixed(2);
+    const subTotal = +(amountCharged * 0.90).toFixed(2);
+    const nowDate  = new Date().toLocaleDateString();
+
+    const doc = new PDFDocument({ margin: 50 });
+const buffers = [];
+doc.on('data', buffers.push.bind(buffers));
+
+const { pdfGenerated, emailSent } = await new Promise(resolve => {
+  doc.on('end', async () => {
+    const pdfBuffer = Buffer.concat(buffers);
+
+    let emailSuccess = false;
+    try {
+      await sendEmail(
+        Customer.Email,
+        `Your Invoice #${txId}`,
+        `<p>Hi ${Customer.FirstName},</p>
+         <p>Thank you for your payment of $${amountCharged.toFixed(2)}. Please find your invoice attached.</p>
+         <p>Regards,<br/>Trade Hunters Team</p>`,
+        [{
+          filename: `invoice_${txId}.pdf`,
+          content:  pdfBuffer,
+          contentType: 'application/pdf'
+        }]
+      );
+      emailSuccess = true;
+    } catch (err) {
+      console.error("Invoice email failed:", err);
+    }
+
+    resolve({ pdfGenerated: pdfBuffer.length > 0, emailSent: emailSuccess });
+  });
+
+  // 🌟 STYLED PDF LAYOUT
+  const logoPath = path.join(__dirname, '../utils/tredhunter.jpg');
+
+  const leftX = 50;
+  const rightX = 330;
+  const pageWidth = doc.page.width - 2 * leftX;
+  const lineHeight = 20;
+  let y = 50;
+
+  if (fs.existsSync(logoPath)) {
+    doc.image(logoPath, leftX, y, { width: 50 });
+  }
+
+  // Header Company Name and ABN
+  doc
+    .fontSize(18)
+    .fillColor('#003366')
+    .font('Helvetica-Bold')
+    .text('Trade Hunters PVT LTD', rightX, y, { align: 'right' })
+    .fontSize(10)
+    .fillColor('black')
+    .font('Helvetica')
+    .text('ABN: 24 682 578 892', rightX, y + lineHeight, { align: 'right' });
+
+  y += lineHeight * 3;
+
+  doc
+    .moveTo(leftX, y)
+    .lineTo(leftX + pageWidth, y)
+    .strokeColor('#666')
+    .lineWidth(1)
+    .stroke();
+
+  y += 15;
+
+  doc.fontSize(11).fillColor('#000');
+  doc.text('Business Name:', leftX, y).font('Helvetica-Bold').text(provider.businessName, leftX + 110, y).font('Helvetica');
+
+  y += lineHeight;
+  doc.text('Business Address:', leftX, y);
+  const addrHeight = doc.heightOfString(provider.address.addressLine, { width: 220 });
+  doc.font('Helvetica-Bold').text(provider.address.addressLine, leftX + 100, y, { width: 180 }).font('Helvetica');
+
+  y -= lineHeight;
+  doc.text('Invoice No.:', rightX + 50, y).font('Helvetica-Bold').text(txId.toString(), rightX + 120, y).font('Helvetica');
+
+  y += lineHeight;
+  doc.text('Invoice Date:', rightX + 50, y + addrHeight - lineHeight).font('Helvetica-Bold').text(nowDate, rightX + 120, y + addrHeight - lineHeight).font('Helvetica');
+
+  y += addrHeight + 50;
+
+  // Draw line
+  doc
+    .moveTo(leftX, y)
+    .lineTo(leftX + pageWidth, y)
+    .strokeColor('#666')
+    .lineWidth(1)
+    .stroke();
+
+  y += lineHeight;
+
+  // Section: Description
+  doc
+    .fontSize(12)
+    .fillColor('#003366')
+    .font('Helvetica-Bold')
+    .text('Description:', leftX, y);
+  y += lineHeight * 0.8;
+  doc
+    .font('Helvetica')
+    .fillColor('black')
+    .text(subscriptionPlan.description, leftX, y, { width: pageWidth });
+  y = doc.y + lineHeight * 1.2;
+
+  // Section: Plan Details
+  doc
+    .fillColor('#003366')
+    .font('Helvetica-Bold')
+    .text('Plan:', leftX, y);
+  y += lineHeight * 0.8;
+  doc
+    .fillColor('black')
+    .font('Helvetica')
+    .text(`${subscriptionType.type} – ${subscriptionPlan.name}`, leftX, y);
+
+  y += lineHeight * 2;
+
+  // Section: Pricing Table
+  doc
+    .rect(rightX + 120, y - 10, 150, lineHeight * 3.5)
+    .fillOpacity(0.05)
+    .fill('#003366')
+    .fillOpacity(1);
+
+  doc
+    .fillColor('black')
+    .font('Helvetica')
+    .text(`Subtotal: $${subTotal.toFixed(2)}`, rightX + 130, y)
+    .text(`GST (10%): $${gst.toFixed(2)}`, rightX + 130, y + lineHeight)
+    .font('Helvetica-Bold')
+    .text(`Total: $${amountCharged.toFixed(2)}`, rightX + 130, y + lineHeight * 2);
+
+  // Footer
+  const footerY = doc.page.height - 80;
+  doc
+    .fontSize(11)
+    .fillColor('black')
+    .text('Regards,', leftX, footerY)
+    .text('Trade Hunters Team', leftX, footerY + lineHeight - 5);
+
+  doc.end();
+});
+
 
     return res.status(200).json({
       message: "Payment processed successfully",
@@ -187,26 +310,24 @@ exports.initiatePayment = async (req, res) => {
       responseCode: ewayResponse.ResponseCode,
       amountCharged: `${amountCharged}$`,
       gatewayResponse: ewayResponse,
+      pdfGenerated,
+      emailSent
     });
+
   } catch (error) {
     console.error("Payment Processing Error:", error);
-
-    if (error.response?.data) {
-      return res.status(500).json({
-        message: "Payment initiation failed",
-        error: error.message,
-        details: error.response.data,
-        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
-      });
-    }
-
+    const details = error.response?.data;
     return res.status(500).json({
       message: "Payment initiation failed",
       error: error.message,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+      details,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
     });
   }
 };
+
+
+
 
 
 exports.getAllTransactions = async (req, res) => {
