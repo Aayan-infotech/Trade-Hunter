@@ -770,8 +770,9 @@ exports.getProvidersByBusinessType = async (req, res) => {
       {
         $match: {
           businessType: { $in: businessTypesArray },
-          subscriptionType: "Advertising" || "Subscription",
-        },
+          subscriptionType: { $in: ["Advertising", "Subscription"] }
+        }
+        
       },
       {
         $project: {
