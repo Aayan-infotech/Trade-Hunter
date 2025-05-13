@@ -134,7 +134,6 @@ const getJobStatusCounts = async (req, res) => {
     const statusMap = {
       Pending: 0,
       Assigned: 0,
-      InProgress: 0,
       Completed: 0,
     };
 
@@ -205,14 +204,13 @@ const getJobPostsByStatus = async (req, res) => {
   const allowedStatuses = [
     "Pending",
     "Assigned",
-    "InProgress",
     "Completed",
     "Deleted",
   ];
   if (!allowedStatuses.includes(status)) {
     return res.status(400).json({
       error:
-        "Invalid job status. Allowed values: Pending, Assigned, InProgress, Completed, Deleted.",
+        "Invalid job status. Allowed values: Pending, Assigned, Completed, Deleted.",
     });
   }
 

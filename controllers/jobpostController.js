@@ -237,10 +237,10 @@ const changeJobStatus = async (req, res) => {
       await jobPost.save();
     } else {
       if (jobStatus) {
-        const allowedStatuses = ["Pending", "Assigned", "InProgress", "Completed"];
+        const allowedStatuses = ["Pending", "Assigned", "Completed"];
         if (!allowedStatuses.includes(jobStatus)) {
           return res.status(400).json({
-            error: "Invalid job status. Allowed values: Pending, Assigned, InProgress, Completed",
+            error: "Invalid job status. Allowed values: Pending, Assigned, Completed",
           });
         }
         jobPost.jobStatus = jobStatus;
