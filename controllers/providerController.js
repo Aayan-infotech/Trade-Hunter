@@ -970,31 +970,65 @@ exports.getAllProviders = async (req, res) => {
 
 exports.getVoucherUsers = async (req, res) => {
   try {
-    const voucherUsers = await SubscriptionVoucherUser
-      .find({ type: "Voucher" })
-      .populate('userId', 'contactName email')  // ← populate only these two fields
-      .exec();
+    const page = Math.max(1, parseInt(req.query.page) || 1)
+    const limit = Math.max(1, parseInt(req.query.limit) || 10)
+    const search = (req.query.search || '').trim()
+
+    let userFilter = {}
+    if (search) {
+      userFilter.businessName = { $regex: new RegExp(search, 'i') }
+    }
+    const matchingUsers = search
+      ? await User.find(userFilter).select('_id')
+      : []
+    const matchingUserIds = matchingUsers.map((u) => u._id)
+
+    const voucherFilter = { type: 'Voucher' }
+    if (search) {
+      voucherFilter.userId = { $in: matchingUserIds }
+    }
+    const totalCount = await SubscriptionVoucherUser.countDocuments(voucherFilter)
+    const voucherUsers = await SubscriptionVoucherUser.find(voucherFilter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate('userId', 'contactName email businessName') 
 
     if (!voucherUsers.length) {
       return res.status(404).json({
         status: 404,
-        message: "No voucher users found.",
-      });
+        message: 'No voucher users found.',
+        data: [],
+        meta: {
+          page,
+          limit,
+          totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      })
     }
 
+    // 7. Return
     return res.status(200).json({
       status: 200,
-      message: "Voucher users fetched successfully",
-      data: voucherUsers,    // now each item’s userId is an object with contactName & email
-    });
+      message: 'Voucher users fetched successfully',
+      data: voucherUsers,
+      meta: {
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    })
   } catch (error) {
-    console.error("Error fetching voucher users:", error);
+    console.error('Error fetching voucher users:', error)
     return res.status(500).json({
       status: 500,
-      message: "Error fetching voucher users",
+      message: 'Error fetching voucher users',
       error: error.message,
-    });
+    })
   }
-};
+}
+
 
 
