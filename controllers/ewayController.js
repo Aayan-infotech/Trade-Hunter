@@ -332,23 +332,35 @@ const { pdfGenerated, emailSent } = await new Promise(resolve => {
 
 exports.getAllTransactions = async (req, res) => {
   try {
-    const transactions = await Transaction.find()
-      .sort({ "transaction.transactionDate": -1 })
-      .populate("userId", "contactName email ")
-      .populate("subscriptionPlanId", "planName kmRadius ");
+    const { search } = req.query
+
+    let filter = {}
+    if (search && search.trim()) {
+      const matchingUsers = await User
+        .find({ businessName: { $regex: new RegExp(search.trim(), 'i') } })
+        .select('_id')
+      const userIds = matchingUsers.map((u) => u._id)
+      filter.userId = { $in: userIds }
+    }
+
+    const transactions = await Transaction
+      .find(filter)
+      .sort({ 'transaction.transactionDate': -1 })
+      .populate('userId', 'contactName email businessName')
+      .populate('subscriptionPlanId', 'planName kmRadius')
 
     return res.status(200).json({
       count: transactions.length,
       transactions,
-    });
+    })
   } catch (error) {
-    console.error("Error fetching transactions:", error);
+    console.error('Error fetching transactions:', error)
     return res.status(500).json({
-      message: "Failed to fetch transactions",
+      message: 'Failed to fetch transactions',
       error: error.message,
-    });
+    })
   }
-};
+}
 
 exports.getTotalSubscriptionRevenue = async (req, res) => {
   try {
