@@ -332,25 +332,33 @@ const { pdfGenerated, emailSent } = await new Promise(resolve => {
 
 exports.getAllTransactions = async (req, res) => {
   try {
+    const page  = Math.max(1, parseInt(req.query.page, 10)  || 1)
+    const limit = Math.max(1, parseInt(req.query.limit, 10) || 10)
     const { search } = req.query
-
     let filter = {}
     if (search && search.trim()) {
       const matchingUsers = await User
         .find({ businessName: { $regex: new RegExp(search.trim(), 'i') } })
         .select('_id')
-      const userIds = matchingUsers.map((u) => u._id)
+      const userIds = matchingUsers.map(u => u._id)
       filter.userId = { $in: userIds }
     }
 
+    const totalCount = await Transaction.countDocuments(filter)
+
     const transactions = await Transaction
       .find(filter)
-      .sort({ 'transaction.transactionDate': -1 })
+      .sort({ 'transaction.transactionDate': -1 })   
+      .skip((page - 1) * limit)
+      .limit(limit)
       .populate('userId', 'contactName email businessName')
       .populate('subscriptionPlanId', 'planName kmRadius')
 
     return res.status(200).json({
       count: transactions.length,
+      totalCount,
+      page,
+      totalPages: Math.ceil(totalCount / limit),
       transactions,
     })
   } catch (error) {
