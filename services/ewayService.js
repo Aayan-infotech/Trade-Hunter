@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 const API_KEY = 'C3AB9C5bfS+DBG9Rx9lZ2gZlXbX+ut8Xvni9NPznSIzTs6S7GUx4b+g2YPBTDnFjxRHzM8';
-const API_PASSWORD = 'KNA0WFOi';
+const API_PASSWORD = '2Cs50OyG';
 const API_URL = 'https://api.sandbox.ewaypayments.com/Transaction';
 
 const getAuthHeader = () => {
