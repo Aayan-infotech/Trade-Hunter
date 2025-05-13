@@ -167,17 +167,35 @@ exports.createSubscriptionUser = async (req, res) => {
 
 exports.getAllSubscriptionUsers = async (req, res) => {
   try {
+    const { page = 1, limit = 10, search } = req.query;
+
+    const userMatch = search
+      ? { businessName: { $regex: search, $options: "i" } }
+      : {};
+
     const users = await SubscriptionUser.find()
-      .populate("userId")
+      .populate({
+        path: "userId",
+        match: userMatch, 
+      })
       .populate({
         path: "subscriptionPlanId",
         populate: { path: "type", model: "SubscriptionType" },
-      });
+      })
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
+
+    const filteredUsers = users.filter((user) => user.userId !== null);
+    const totalFiltered = filteredUsers.length;
+
     res.status(200).json({
       status: 200,
       success: true,
       message: "Subscription users retrieved successfully",
-      data: users,
+      currentPage: Number(page),
+      pageSize: Number(limit),
+      totalCount: totalFiltered,
+      data: filteredUsers,
     });
   } catch (error) {
     res.status(500).json({
@@ -188,6 +206,7 @@ exports.getAllSubscriptionUsers = async (req, res) => {
     });
   }
 };
+
 
 
 exports.getSubscriptionUserById = async (req, res) => {
