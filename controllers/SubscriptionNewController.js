@@ -221,6 +221,7 @@ exports.getSubscriptionUserById = async (req, res) => {
   }
 };
 
+
 exports.updateSubscriptionUser = async (req, res) => {
   try {
     const updatedUser = await SubscriptionUser.findByIdAndUpdate(req.params.id, req.body, { new: true });
