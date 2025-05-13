@@ -419,57 +419,72 @@ exports.getSubscriptionByUserId = async (req, res) => {
   try {
     const { userId } = req.user;
 
+    // 1) Fetch all transactions & vouchers
     const transactions = await Transaction.find({ userId })
       .populate("subscriptionPlanId", "planName kmRadius")
       .lean();
-
     const subscriptions = await SubscriptionVoucherUser.find({ userId })
       .select("subscriptionPlanId startDate endDate status")
       .lean();
 
-    const combinedData = transactions.map((txn) => {
-      const planIdFromTxn = txn.subscriptionPlanId
-        ? txn.subscriptionPlanId._id?.toString() ||
-          txn.subscriptionPlanId.toString()
-        : null;
+    // 2) Group both lists by planId
+    const txByPlan = {};
+    for (const t of transactions) {
+      const planId = t.subscriptionPlanId?._id.toString() || "none";
+      txByPlan[planId] = txByPlan[planId] || [];
+      txByPlan[planId].push(t);
+    }
 
-      const txnDate = new Date(txn.transaction.transactionDate);
+    const vchByPlan = {};
+    for (const v of subscriptions) {
+      const planId = v.subscriptionPlanId.toString();
+      vchByPlan[planId] = vchByPlan[planId] || [];
+      vchByPlan[planId].push(v);
+    }
 
-      const matchingVouchers = subscriptions.filter(
-        (sub) => sub.subscriptionPlanId.toString() === planIdFromTxn
+    // 3) For each plan, sort txns & vouchers by date ascending
+    for (const planId of Object.keys(txByPlan)) {
+      txByPlan[planId].sort((a, b) =>
+        new Date(a.transaction.transactionDate) - new Date(b.transaction.transactionDate)
       );
+      vchByPlan[planId]?.sort((a, b) =>
+        new Date(a.startDate) - new Date(b.startDate)
+      );
+    }
 
-      let matchedVoucher = matchingVouchers
-        .filter((sub) => new Date(sub.startDate) >= txnDate)
-        .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))[0];
-
-      if (!matchedVoucher) {
-        matchedVoucher = matchingVouchers
-          .filter((sub) => new Date(sub.startDate) <= txnDate)
-          .sort((a, b) => new Date(b.startDate) - new Date(a.startDate))[0];
+    // 4) Now zip: i-th transaction → i-th voucher (or last voucher if fewer)
+    const combined = [];
+    for (const planId of Object.keys(txByPlan)) {
+      const txns = txByPlan[planId];
+      const vchs = vchByPlan[planId] || [];
+      for (let i = 0; i < txns.length; i++) {
+        const txn = txns[i];
+        const v = vchs[i] || vchs[vchs.length - 1] || null;
+        combined.push({
+          ...txn,
+          subscriptionStartDate: v?.startDate ?? null,
+          subscriptionEndDate:   v?.endDate   ?? null,
+          subscriptionStatus:    v?.status    ?? null,
+        });
       }
-
-      return {
-        ...txn,
-        subscriptionStartDate: matchedVoucher?.startDate || null,
-        subscriptionEndDate: matchedVoucher?.endDate || null,
-        subscriptionStatus: matchedVoucher?.status || null,
-      };
-    });
+    }
 
     return res.status(200).json({
       status: 200,
       success: true,
       message: "Data fetched successfully",
-      data: combinedData,
+      data: combined,
     });
-  } catch (error) {
-    console.error("Error in getSubscriptionByUserId:", error);
+  } catch (err) {
+    console.error("Error in getSubscriptionByUserId:", err);
     return res.status(500).json({
       status: 500,
       success: false,
       message: "Server error",
-      error: error.message,
+      error: err.message,
     });
   }
 };
+
+
+
