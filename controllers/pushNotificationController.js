@@ -337,7 +337,9 @@ exports.AllReadNotifications = async (req, res) => {
 
 exports.sendPushNotification2 = async (req, res) => {
   try {
-    const { title, body, receiverId, notificationType, jobId  } = req.body;
+    const io = req.app.get("io"); // Step 1: get Socket.IO instance
+
+    const { title, body, receiverId, notificationType, jobId } = req.body;
     const userId = req.user.userId;
 
     const newNotification = new Notification({
@@ -352,6 +354,19 @@ exports.sendPushNotification2 = async (req, res) => {
 
     await newNotification.save();
 
+    // Step 2: Emit a socket event to the receiver
+    io.emit("newNotification", {
+      _id: newNotification._id,
+      userId,
+      receiverId,
+      title,
+      body,
+      notificationType,
+      jobId,
+      createdAt: newNotification.createdAt,
+      isRead: false
+    });
+
     return res.status(201).json({
       status: 201,
       success: true,
@@ -363,6 +378,7 @@ exports.sendPushNotification2 = async (req, res) => {
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 
 exports.sendAdminNotification = async (req, res) => {
