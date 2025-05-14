@@ -970,47 +970,43 @@ exports.getAllProviders = async (req, res) => {
 
 exports.getVoucherUsers = async (req, res) => {
   try {
-    const page = Math.max(1, parseInt(req.query.page) || 1)
-    const limit = Math.max(1, parseInt(req.query.limit) || 10)
+    const page   = Math.max(1, parseInt(req.query.page, 10) || 1)
+    const limit  = Math.max(1, parseInt(req.query.limit, 10) || 10)
     const search = (req.query.search || '').trim()
 
-    let userFilter = {}
+    let matchingUserIds = []
     if (search) {
-      userFilter.businessName = { $regex: new RegExp(search, 'i') }
+      const users = await providerModel.find({
+        businessName: { $regex: search, $options: 'i' }
+      }).select('_id')
+      matchingUserIds = users.map(u => u._id)
     }
-    const matchingUsers = search
-      ? await providerModel.find(userFilter).select('_id')
-      : []
-    const matchingUserIds = matchingUsers.map((u) => u._id)
 
     const voucherFilter = { type: 'Voucher' }
     if (search) {
-      voucherFilter.userId = { $in: matchingUserIds }
+      voucherFilter.userId = matchingUserIds.length
+        ? { $in: matchingUserIds }
+        : { $in: [] } 
     }
-    const totalCount = await SubscriptionVoucherUser.countDocuments(voucherFilter)
-    const voucherUsers = await SubscriptionVoucherUser.find(voucherFilter)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .populate('userId', 'contactName email businessName') 
 
-    if (!voucherUsers.length) {
-      return res.status(404).json({
-        status: 404,
-        message: 'No voucher users found.',
-        data: [],
-        meta: {
-          page,
-          limit,
-          totalCount,
-          totalPages: Math.ceil(totalCount / limit),
-        },
-      })
+    let totalCount = 0
+    let voucherUsers = []
+
+    if (!search || matchingUserIds.length > 0) {
+      totalCount = await SubscriptionVoucherUser.countDocuments(voucherFilter)
+      voucherUsers = await SubscriptionVoucherUser.find(voucherFilter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate('userId', 'contactName email businessName')
+        .lean()
     }
 
     return res.status(200).json({
       status: 200,
-      message: 'Voucher users fetched successfully',
+      message: voucherUsers.length
+        ? 'Voucher users fetched successfully'
+        : 'No voucher users found',
       data: voucherUsers,
       meta: {
         page,
@@ -1028,6 +1024,7 @@ exports.getVoucherUsers = async (req, res) => {
     })
   }
 }
+
 
 
 
