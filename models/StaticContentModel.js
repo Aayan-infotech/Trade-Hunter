@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const StaticContentSchema = new mongoose.Schema({
   section: {
     type: String,
-    enum: ['About Us', 'Terms & Conditions', 'Privacy Policy'],
+    enum: ['About Us', 'Terms & Conditions', 'Privacy Policy' ,'Guide'],
     required: true,
     unique: true
   },
