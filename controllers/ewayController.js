@@ -11,13 +11,14 @@ const Provider = require("../models/providerModel")
 
 exports.initiatePayment = async (req, res) => {
   try {
+    // 1) Validate request payload
     const requiredCustomerFields = ["FirstName","LastName","Email","CardDetails"]
     const requiredCardFields     = ["Name","Number","ExpiryMonth","ExpiryYear","CVN"]
     const requiredPaymentFields  = ["TotalAmount","CurrencyCode"]
     const { Customer, Payment, userId, subscriptionPlanId } = req.body
 
     if (!Customer || !Payment) {
-      return res.status(400).json({ message:"Missing Customer or Payment object" })
+      return res.status(400).json({ message: "Missing Customer or Payment object" })
     }
 
     const missingCustomer = requiredCustomerFields.filter(f => !Customer[f])
@@ -25,21 +26,23 @@ exports.initiatePayment = async (req, res) => {
     const missingPayment  = requiredPaymentFields.filter(f => !Payment[f])
     if (missingCustomer.length || missingCard.length || missingPayment.length) {
       return res.status(400).json({
-        message:"Missing required fields",
-        missingFields:{ Customer: missingCustomer, CardDetails: missingCard, Payment: missingPayment }
+        message: "Missing required fields",
+        missingFields: { Customer: missingCustomer, CardDetails: missingCard, Payment: missingPayment }
       })
     }
 
+    // 2) Load provider, subscription plan & type
     const provider         = await Provider.findById(userId).lean()
     const subscriptionPlan = await SubscriptionPlan.findById(subscriptionPlanId).lean()
     const subscriptionType = subscriptionPlan
       ? await SubscriptionType.findById(subscriptionPlan.type).lean()
       : null
 
-    if (!provider)         return res.status(404).json({ message:"Provider not found" })
-    if (!subscriptionPlan) return res.status(404).json({ message:"Subscription Plan not found" })
-    if (!subscriptionType) return res.status(404).json({ message:"Subscription Type not found" })
+    if (!provider)         return res.status(404).json({ message: "Provider not found" })
+    if (!subscriptionPlan) return res.status(404).json({ message: "Subscription Plan not found" })
+    if (!subscriptionType) return res.status(404).json({ message: "Subscription Type not found" })
 
+    // 3) Build and send transaction to eWay
     const paymentData = {
       Customer: {
         FirstName: Customer.FirstName,
@@ -47,9 +50,9 @@ exports.initiatePayment = async (req, res) => {
         Email:     Customer.Email,
         CardDetails: {
           Name:        Customer.CardDetails.Name,
-          Number:      Customer.CardDetails.Number.replace(/\s/g,""),
-          ExpiryMonth: Customer.CardDetails.ExpiryMonth.padStart(2,"0"),
-          ExpiryYear:  Customer.CardDetails.ExpiryYear.length===2
+          Number:      Customer.CardDetails.Number.replace(/\s/g, ""),
+          ExpiryMonth: Customer.CardDetails.ExpiryMonth.padStart(2, "0"),
+          ExpiryYear:  Customer.CardDetails.ExpiryYear.length === 2
                         ? `20${Customer.CardDetails.ExpiryYear}`
                         : Customer.CardDetails.ExpiryYear,
           CVN:         Customer.CardDetails.CVN
@@ -60,7 +63,7 @@ exports.initiatePayment = async (req, res) => {
         CurrencyCode: Payment.CurrencyCode
       },
       TransactionType: "MOTO",
-      Capture: true
+      Capture:         true
     }
     const ewayResponse = await ewayService.createTransaction(paymentData)
     const txId = ewayResponse.TransactionID
@@ -72,7 +75,8 @@ exports.initiatePayment = async (req, res) => {
       })
     }
 
-    const amountCharged = (Payment.TotalAmount||0)/100
+    // 4) Persist the Transaction
+    const amountCharged = (Payment.TotalAmount || 0) / 100
     const txn = new Transaction({
       userId,
       subscriptionPlanId,
@@ -93,24 +97,26 @@ exports.initiatePayment = async (req, res) => {
         countryCode:   Payment.CurrencyCode
       },
       payer: {
-        payerId:    ewayResponse.Customer.TokenCustomerID||"",
+        payerId:    ewayResponse.Customer.TokenCustomerID || "",
         payerName:  ewayResponse.Customer.CardDetails.Name,
         payerEmail: ewayResponse.Customer.Email
       }
     })
     await txn.save()
 
+    // 5) New subscription-voucher logic
     const setToMidnight = d => { d.setHours(0,0,0,0); return d }
     const todayMidnight  = setToMidnight(new Date())
 
+    // a) find any existing active voucher
     const existingActive = await SubscriptionVoucherUser.findOne({
-      userId,
-      status: "active"
-    }).sort({ startDate:-1 })
+      userId, status: "active"
+    }).sort({ startDate: -1 })
 
     let newStartDate, newStatus
 
-    if (existingActive && subscriptionType.type !== "Subscription") {
+    // b) if existingActive exists AND its type is NOT "Subscription", expire it and activate new immediately
+    if (existingActive && existingActive.type !== "Subscription") {
       existingActive.status  = "expired"
       existingActive.endDate = todayMidnight
       await existingActive.save()
@@ -118,10 +124,11 @@ exports.initiatePayment = async (req, res) => {
       newStartDate = todayMidnight
       newStatus    = "active"
     } else {
+      // c) otherwise chain behind latest active/upcoming
       const latestSub = await SubscriptionVoucherUser.findOne({
         userId,
-        status: { $in:["active","upcoming"] }
-      }).sort({ endDate:-1 })
+        status: { $in: ["active", "upcoming"] }
+      }).sort({ endDate: -1 })
 
       if (latestSub) {
         newStartDate = setToMidnight(new Date(latestSub.endDate))
@@ -132,6 +139,7 @@ exports.initiatePayment = async (req, res) => {
       }
     }
 
+    // 6) Compute endDate & save new voucher
     const newEndDate = new Date(newStartDate)
     newEndDate.setDate(newEndDate.getDate() + subscriptionPlan.validity)
 
@@ -146,20 +154,22 @@ exports.initiatePayment = async (req, res) => {
     })
     await newSubscription.save()
 
+    // 7) If newly active, update Provider
     if (newStatus === "active") {
       await Provider.findByIdAndUpdate(userId, {
         subscriptionStatus: 1,
-        isGuestMode:       false,
-        subscriptionType:  subscriptionType.type,
+        isGuestMode:        false,
+        subscriptionType:   subscriptionType.type,
         subscriptionPlanId,
-        "address.radius":  subscriptionPlan.kmRadius * 1000
+        "address.radius":   subscriptionPlan.kmRadius * 1000
       })
     }
 
+    // 8) Generate invoice PDF & send email
     const gst      = +(amountCharged * 0.10).toFixed(2)
     const subTotal = +(amountCharged * 0.90).toFixed(2)
     const nowDate  = new Date().toLocaleDateString()
-    const doc      = new PDFDocument({ margin:50 })
+    const doc      = new PDFDocument({ margin: 50 })
     const buffers  = []
     doc.on('data', buffers.push.bind(buffers))
 
@@ -172,17 +182,23 @@ exports.initiatePayment = async (req, res) => {
             Customer.Email,
             `Your Invoice #${txId}`,
             `<p>Hi ${Customer.FirstName},</p>
-             <p>Thank you for your payment of $${amountCharged.toFixed(2)}. Please find your invoice attached.</p>
+             <p>Thank you for your payment of $${amountCharged.toFixed(2)}.
+             Please find your invoice attached.</p>
              <p>Regards,<br/>Trade Hunters Team</p>`,
-            [{ filename:`invoice_${txId}.pdf`, content:pdfBuffer, contentType:'application/pdf' }]
+            [{
+              filename:     `invoice_${txId}.pdf`,
+              content:      pdfBuffer,
+              contentType:  'application/pdf'
+            }]
           )
           emailSuccess = true
-        } catch(err) {
+        } catch (err) {
           console.error("Invoice email failed:", err)
         }
-        resolve({ pdfGenerated: pdfBuffer.length>0, emailSent: emailSuccess })
+        resolve({ pdfGenerated: pdfBuffer.length > 0, emailSent: emailSuccess })
       })
 
+      // --- PDF Layout Start ---
       const logoPath = path.join(__dirname, '../utils/tredhunter.jpg')
       const leftX    = 50
       const rightX   = 330
@@ -191,9 +207,10 @@ exports.initiatePayment = async (req, res) => {
       let y = 50
 
       if (fs.existsSync(logoPath)) {
-        doc.image(logoPath, leftX, y, { width:50 })
+        doc.image(logoPath, leftX, y, { width: 50 })
       }
 
+      // Header: Company Name & ABN
       doc
         .fontSize(18)
         .fillColor('#003366')
@@ -206,6 +223,7 @@ exports.initiatePayment = async (req, res) => {
 
       y += lineHeight * 3
 
+      // Separator
       doc
         .moveTo(leftX, y)
         .lineTo(leftX + pageWidth, y)
@@ -215,7 +233,8 @@ exports.initiatePayment = async (req, res) => {
 
       y += 15
 
-      doc.fontSize(11).fillColor('#000')
+      // Provider details
+      doc.fontSize(11).fillColor('black')
       doc
         .text('Business Name:', leftX, y)
         .font('Helvetica-Bold')
@@ -224,12 +243,13 @@ exports.initiatePayment = async (req, res) => {
 
       y += lineHeight
       doc.text('Business Address:', leftX, y)
-      const addrHeight = doc.heightOfString(provider.address.addressLine, { width:220 })
+      const addrHeight = doc.heightOfString(provider.address.addressLine, { width: 220 })
       doc
         .font('Helvetica-Bold')
-        .text(provider.address.addressLine, leftX + 100, y, { width:180 })
+        .text(provider.address.addressLine, leftX + 100, y, { width: 180 })
         .font('Helvetica')
 
+      // Invoice No & Date
       y -= lineHeight
       doc
         .text('Invoice No.:', rightX + 50, y)
@@ -246,6 +266,7 @@ exports.initiatePayment = async (req, res) => {
 
       y += addrHeight + 50
 
+      // Separator
       doc
         .moveTo(leftX, y)
         .lineTo(leftX + pageWidth, y)
@@ -255,6 +276,7 @@ exports.initiatePayment = async (req, res) => {
 
       y += lineHeight
 
+      // Description
       doc
         .fontSize(12)
         .fillColor('#003366')
@@ -264,9 +286,10 @@ exports.initiatePayment = async (req, res) => {
       doc
         .font('Helvetica')
         .fillColor('black')
-        .text(subscriptionPlan.description, leftX, y, { width:pageWidth })
+        .text(subscriptionPlan.description, leftX, y, { width: pageWidth })
       y = doc.y + lineHeight * 1.2
 
+      // Plan Details
       doc
         .fillColor('#003366')
         .font('Helvetica-Bold')
@@ -279,6 +302,7 @@ exports.initiatePayment = async (req, res) => {
 
       y += lineHeight * 2
 
+      // Pricing Box
       doc
         .rect(rightX + 120, y - 10, 150, lineHeight * 3.5)
         .fillOpacity(0.05)
@@ -291,8 +315,9 @@ exports.initiatePayment = async (req, res) => {
         .text(`Subtotal: $${subTotal.toFixed(2)}`, rightX + 130, y)
         .text(`GST (10%): $${gst.toFixed(2)}`, rightX + 130, y + lineHeight)
         .font('Helvetica-Bold')
-        .text(`Total: $${amountCharged.toFixed(2)}`, rightX + 130, y + lineHeight*2)
+        .text(`Total: $${amountCharged.toFixed(2)}`, rightX + 130, y + lineHeight * 2)
 
+      // Footer
       const footerY = doc.page.height - 80
       doc
         .fontSize(11)
@@ -300,9 +325,11 @@ exports.initiatePayment = async (req, res) => {
         .text('Regards,', leftX, footerY)
         .text('Trade Hunters Team', leftX, footerY + lineHeight - 5)
 
+      // --- PDF Layout End ---
       doc.end()
     })
 
+    // 9) Final API response
     return res.status(200).json({
       message:         "Payment processed successfully",
       userId,
@@ -324,7 +351,7 @@ exports.initiatePayment = async (req, res) => {
       message: "Payment initiation failed",
       error:   error.message,
       details,
-      stack: process.env.NODE_ENV==="development"? error.stack : undefined
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
     })
   }
 }
