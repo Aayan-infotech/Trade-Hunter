@@ -979,7 +979,7 @@ exports.getVoucherUsers = async (req, res) => {
       userFilter.businessName = { $regex: new RegExp(search, 'i') }
     }
     const matchingUsers = search
-      ? await User.find(userFilter).select('_id')
+      ? await providerModel.find(userFilter).select('_id')
       : []
     const matchingUserIds = matchingUsers.map((u) => u._id)
 
@@ -1008,7 +1008,6 @@ exports.getVoucherUsers = async (req, res) => {
       })
     }
 
-    // 7. Return
     return res.status(200).json({
       status: 200,
       message: 'Voucher users fetched successfully',
