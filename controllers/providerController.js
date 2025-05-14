@@ -287,24 +287,26 @@ exports.getNearbyJobs = async (req, res) => {
       latitude,
       longitude,
       radius,
-      page = 1,
-      limit = 10,
-      filter = [],
+      page     = 1,
+      limit    = 10,
+      businessType = [], 
     } = req.body;
 
-    if (!latitude || !longitude || !radius) {
+    if (
+      latitude == null ||
+      longitude == null ||
+      radius == null
+    ) {
       return res.status(400).json({
-        status: 400,
-        message: "Missing required fields",
+        status:  400,
+        message: "Missing required fields: latitude, longitude, and radius are all required",
       });
     }
 
     let filterCondition = {};
-    if (Array.isArray(filter) && filter.length > 0) {
-      filterCondition = {
-        businessType: {
-          $in: filter.map((f) => new RegExp(`^${f}$`, "i")),
-        },
+    if (Array.isArray(businessType) && businessType.length > 0) {
+      filterCondition.businessType = {
+        $in: businessType.map((type) => new RegExp(`^${type}$`, "i"))
       };
     }
 
@@ -313,15 +315,15 @@ exports.getNearbyJobs = async (req, res) => {
         $geoNear: {
           near: { type: "Point", coordinates: [longitude, latitude] },
           distanceField: "distance",
-          maxDistance: radius,
-          spherical: true,
-          key: "jobLocation.location",
+          maxDistance:    radius,
+          spherical:      true,
+          key:            "jobLocation.location",
         },
       },
       {
         $match: {
-          ...filterCondition,
           jobStatus: "Pending",
+          ...filterCondition,         
         },
       },
       { $sort: { createdAt: -1 } },
@@ -330,10 +332,9 @@ exports.getNearbyJobs = async (req, res) => {
     ]);
 
     const radiusInRadians = radius / 6378100;
-
     const totalJobs = await jobpostModel.countDocuments({
-      ...filterCondition,
       jobStatus: "Pending",
+      ...filterCondition,
       "jobLocation.location": {
         $geoWithin: {
           $centerSphere: [[longitude, latitude], radiusInRadians],
@@ -356,10 +357,11 @@ exports.getNearbyJobs = async (req, res) => {
     return res.status(500).json({
       status: 500,
       message: "Error fetching jobs",
-      error,
+      error:   error.message || error,
     });
   }
 };
+
 
 
 exports.getNearbyJobsForGuest = async (req, res) => {
@@ -883,7 +885,7 @@ exports.getProvidersListing = async (req, res) => {
 
     const latitude = parseFloat(lat);
     const longitude = parseFloat(lng);
-    radius = parseFloat(radius) || 20000;
+    radius = parseFloat(radius) || 80000;
     const businessTypesArray = Array.isArray(businessType)
       ? businessType
       : [businessType];
