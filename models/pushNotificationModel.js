@@ -34,6 +34,7 @@ const pushNotificationSchema = new Schema(
         },
         jobId: {
             type: mongoose.Schema.Types.ObjectId,
+            ref: 'JobPost',
             required: false,
         }
     },

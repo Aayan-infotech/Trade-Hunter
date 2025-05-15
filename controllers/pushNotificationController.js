@@ -5,6 +5,8 @@ const DeviceToken = require("../models/devicetokenModel");
 const Hunter = require("../models/hunterModel");
 const Provider = require("../models/providerModel");
 const SubscriptionVoucherUser = require("../models/SubscriptionVoucherUserModel");
+const Job = require('../models/jobpostModel');  // Import the Job model
+
 
 exports.sendPushNotification = async (req, res) => {
   try {
@@ -162,55 +164,52 @@ exports.getNotificationsByUserId = async (req, res) => {
     const receiverId = req.user.userId;
     const userType = req.params.userType;
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
     const skip = (page - 1) * limit;
 
-    const userNotifications = await Notification.find({ receiverId });
+    // Fetch individual notifications with populated jobStatus
+    const userNotifications = await Notification
+      .find({ receiverId })
+      .populate({ path: 'jobId', select: 'jobStatus' });
 
-    const filteredUserNotificationsPromises = userNotifications.map(
-      async (notification) => {
-        const user =
-          (await Provider.findById(notification.userId)) ||
-          (await Hunter.findById(notification.userId));
+    // Enrich each notification with userName and jobStatus
+    const enrichedUserNotifications = await Promise.all(
+      userNotifications.map(async (notification) => {
+        let user = await Provider.findById(notification.userId);
+        if (!user) user = await Hunter.findById(notification.userId);
+        if (!user) return null;
 
-        if (user) {
-          return {
-            ...notification._doc,
-            userName: user.name,
-            isRead: notification.isRead,
-            jobId: notification.jobId || null,
-          };
-        } else {
-          return null;
-        }
-      }
+        return {
+          ...notification._doc,
+          userName: user.name,
+          isRead: notification.isRead,
+          jobStatus: notification.jobId ? notification.jobId.jobStatus : null,
+        };
+      })
     );
+    const validUserNotifications = enrichedUserNotifications.filter(n => n);
 
-    const resolvedNotifications = await Promise.all(
-      filteredUserNotificationsPromises
-    );
-    const validUserNotifications = resolvedNotifications.filter(
-      (notification) => notification !== null
-    );
+    // Fetch mass notifications
+    const massNotifications = await massNotification
+      .find({ userType })
+      .populate({ path: 'jobId', select: 'jobStatus' });
 
-    const massNotifications = await massNotification.find({ userType });
-
+    // Enrich mass notifications
     const formattedMassNotifications = massNotifications.map((notif) => ({
       ...notif._doc,
       isRead: notif.readBy.includes(receiverId),
+      jobStatus: notif.jobId ? notif.jobId.jobStatus : null,
     }));
 
-    const allNotifications = [
-      ...validUserNotifications,
-      ...formattedMassNotifications,
-    ];
-    allNotifications.sort((a, b) => b.createdAt - a.createdAt);
+    // Combine and sort
+    const allNotifications = [...validUserNotifications, ...formattedMassNotifications]
+      .sort((a, b) => b.createdAt - a.createdAt);
 
-    const unreadCount = allNotifications.filter((n) => !n.isRead).length;
-
-    const paginatedNotifications = allNotifications.slice(skip, skip + limit);
+    // Pagination and counts
     const total = allNotifications.length;
+    const paginatedNotifications = allNotifications.slice(skip, skip + limit);
+    const unreadCount = allNotifications.filter(n => !n.isRead).length;
 
     res.status(200).json({
       status: 200,
@@ -218,18 +217,18 @@ exports.getNotificationsByUserId = async (req, res) => {
       data: paginatedNotifications,
       unreadCount,
       pagination: {
-        total: total,
+        total,
         currentPage: page,
         totalPages: Math.ceil(total / limit),
       },
-      message: "Fetched all valid notifications with pagination!",
+      message: 'Fetched all valid notifications with jobStatus and pagination!',
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({
       status: 500,
-      message: error.message,
       success: false,
+      message: error.message,
     });
   }
 };

@@ -140,7 +140,7 @@ exports.initiatePayment = async (req, res) => {
 
     let newStartDate, newStatus;
 
-    if (existingActive && existingActive.type !== "Subscription") {
+    if (existingActive && existingActive.type !== "Subscription" ) {
       existingActive.status = "expired";
       existingActive.endDate = todayMidnight;
       await existingActive.save();
