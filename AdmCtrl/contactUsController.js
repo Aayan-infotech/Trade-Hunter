@@ -45,7 +45,7 @@ exports.createContact = async (req, res) => {
       .json({ message: "Internal server error", error: error.message });
   }
 };
-
+   
 
 exports.getAllContacts = async (req, res) => {
   try {
