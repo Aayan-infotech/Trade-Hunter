@@ -501,7 +501,7 @@ exports.getSubscriptionByUserId = async (req, res) => {
     const { userId } = req.user;
 
     const transactions = await Transaction.find({ userId })
-      .populate("subscriptionPlanId", "planName kmRadius")
+      .populate("subscriptionPlanId", "planName kmRadius validity")
       .lean();
 
     const subscriptions = await SubscriptionVoucherUser.find({ userId })
