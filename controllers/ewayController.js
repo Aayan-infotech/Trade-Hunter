@@ -500,49 +500,55 @@ exports.getSubscriptionByUserId = async (req, res) => {
   try {
     const { userId } = req.user;
 
-    // 1) Fetch all transactions & vouchers
     const transactions = await Transaction.find({ userId })
       .populate("subscriptionPlanId", "planName kmRadius")
       .lean();
+
     const subscriptions = await SubscriptionVoucherUser.find({ userId })
       .select("subscriptionPlanId startDate endDate status")
       .lean();
 
-    // 2) Group both lists by planId
     const txByPlan = {};
     for (const t of transactions) {
-      const planId = t.subscriptionPlanId?._id.toString() || "none";
+      const planId =
+        t.subscriptionPlanId && t.subscriptionPlanId._id
+          ? t.subscriptionPlanId._id.toString()
+          : "none";
+
       txByPlan[planId] = txByPlan[planId] || [];
       txByPlan[planId].push(t);
     }
 
     const vchByPlan = {};
     for (const v of subscriptions) {
-      const planId = v.subscriptionPlanId.toString();
+      const planId = v.subscriptionPlanId
+        ? v.subscriptionPlanId.toString()
+        : "none";
+
       vchByPlan[planId] = vchByPlan[planId] || [];
       vchByPlan[planId].push(v);
     }
 
-    // 3) For each plan, sort txns & vouchers by date ascending
     for (const planId of Object.keys(txByPlan)) {
       txByPlan[planId].sort(
         (a, b) =>
-          new Date(a.transaction.transactionDate) -
-          new Date(b.transaction.transactionDate)
+          new Date(a.transaction?.transactionDate || 0) -
+          new Date(b.transaction?.transactionDate || 0)
       );
       vchByPlan[planId]?.sort(
         (a, b) => new Date(a.startDate) - new Date(b.startDate)
       );
     }
 
-    // 4) Now zip: i-th transaction → i-th voucher (or last voucher if fewer)
     const combined = [];
     for (const planId of Object.keys(txByPlan)) {
       const txns = txByPlan[planId];
       const vchs = vchByPlan[planId] || [];
+
       for (let i = 0; i < txns.length; i++) {
         const txn = txns[i];
         const v = vchs[i] || vchs[vchs.length - 1] || null;
+
         combined.push({
           ...txn,
           subscriptionStartDate: v?.startDate ?? null,
@@ -568,3 +574,4 @@ exports.getSubscriptionByUserId = async (req, res) => {
     });
   }
 };
+
