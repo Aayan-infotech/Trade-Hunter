@@ -233,41 +233,44 @@ exports.updateVoucher = async (req, res) => {
 };
 
 exports.getVoucherSubscriptionByUserId = async (req, res) => {
-    try {
-      const { userId } = req.params;
-  
-      if (!userId) {
-        return res.status(400).json({
-          status: 400,
-          success: false,
-          message: "User ID is required",
-          data: null
-        });
-      }
-  
-      const userSubscriptions = await SubscriptionVoucherUser.find({ userId });
-  
-      if (!userSubscriptions || userSubscriptions.length === 0) {
-        return res.status(404).json({
-          status: 404,
-          success: false,
-          message: "No voucher subscriptions found for this user",
-          data: []
-        });
-      }
-  
-      return res.status(200).json({
-        status: 200,
-        success: true,
-        message: "Voucher subscriptions retrieved successfully",
-        data: userSubscriptions
-      });
-    } catch (error) {
-      return res.status(500).json({
-        status: 500,
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({
+        status: 400,
         success: false,
-        message: "Server error",
-        data: error.message
+        message: "User ID is required",
+        data: null
       });
     }
-  };
+
+    const userVoucherSubscriptions = await SubscriptionVoucherUser.find({
+      userId,
+      type: 'Voucher'        
+    });
+
+    if (!userVoucherSubscriptions || userVoucherSubscriptions.length === 0) {
+      return res.status(404).json({
+        status: 404,
+        success: false,
+        message: "No voucher subscriptions found for this user",
+        data: []
+      });
+    }
+
+    return res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Voucher subscriptions retrieved successfully",
+      data: userVoucherSubscriptions
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Server error",
+      data: error.message
+    });
+  }
+};
