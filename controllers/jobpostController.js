@@ -594,18 +594,20 @@ const getJobCountByBusinessType = async (req, res) => {
         },
       },
     ]);
+
     const allBusinessTypes = await BusinessType.find({}, { _id: 0, name: 1 }).lean();
 
     const jobCountMap = {};
     for (const jc of jobCounts) {
       jobCountMap[jc.name] = jc.count;
     }
+
     const result = allBusinessTypes.map((bt) => ({
       name: bt.name,
       count: jobCountMap[bt.name] || 0,
     }));
 
-    result.sort((a, b) => b.count - a.count);
+    result.sort((a, b) => a.name.localeCompare(b.name));
 
     return res.status(200).json({
       status: 200,
@@ -616,6 +618,7 @@ const getJobCountByBusinessType = async (req, res) => {
     return res.status(500).json({ status: 500, error: error.message });
   }
 };
+
 
 const jobsByBusinessType = async (req, res) => {
   try {
