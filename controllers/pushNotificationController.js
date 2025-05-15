@@ -1,12 +1,10 @@
-const admin = require('../config/firebaseConfig');
+const admin = require("../config/firebaseConfig");
 const Notification = require("../models/pushNotificationModel");
-const massNotification = require('../models/massNotification');
+const massNotification = require("../models/massNotification");
 const DeviceToken = require("../models/devicetokenModel");
 const Hunter = require("../models/hunterModel");
 const Provider = require("../models/providerModel");
-const SubscriptionVoucherUser = require('../models/SubscriptionVoucherUserModel');
-
-
+const SubscriptionVoucherUser = require("../models/SubscriptionVoucherUserModel");
 
 exports.sendPushNotification = async (req, res) => {
   try {
@@ -18,17 +16,23 @@ exports.sendPushNotification = async (req, res) => {
         status: 400,
         success: false,
         message: "Title and body are required.",
-        data: []
+        data: [],
       });
     }
 
-    const validTypes = ['job_alert', 'voucher_update', 'job_accept', 'job_complete'];
+    const validTypes = [
+      "job_alert",
+      "voucher_update",
+      "job_accept",
+      "job_complete",
+    ];
     if (!validTypes.includes(notificationType)) {
       return res.status(400).json({
         status: 400,
         success: false,
-        message: "Invalid notificationType. Allowed types: " + validTypes.join(", "),
-        data: []
+        message:
+          "Invalid notificationType. Allowed types: " + validTypes.join(", "),
+        data: [],
       });
     }
 
@@ -39,7 +43,7 @@ exports.sendPushNotification = async (req, res) => {
         status: 404,
         success: false,
         message: "Device token not found for the user.",
-        data: []
+        data: [],
       });
     }
 
@@ -73,7 +77,7 @@ exports.sendPushNotification = async (req, res) => {
       title,
       body,
       receiverId,
-      notificationType
+      notificationType,
     });
 
     return res.status(200).json({
@@ -84,7 +88,6 @@ exports.sendPushNotification = async (req, res) => {
         : "Notification saved but not sent (notifications disabled).",
       data: [notificationData],
     });
-
   } catch (error) {
     console.error("Error sending notification:", error);
     return res.status(500).json({
@@ -101,21 +104,18 @@ exports.sendPushNotificationAdmin = async (req, res) => {
   try {
     const { title, body, receiverId } = req.body;
 
-    if (!title || !body || !receiverId ) {
+    if (!title || !body || !receiverId) {
       return res.status(400).json({
         status: 400,
         success: false,
         message: "Title, body, and receiverId are required.",
-        data: []
+        data: [],
       });
     }
- 
+
     const device = await DeviceToken.findOne({ userId: receiverId });
 
-    
     let shouldSend = false;
-
-  
 
     let notificationData = null;
 
@@ -124,7 +124,7 @@ exports.sendPushNotificationAdmin = async (req, res) => {
         notification: { title, body },
         token: deviceToken,
       };
- 
+
       await admin.messaging().send(message);
     }
 
@@ -134,18 +134,17 @@ exports.sendPushNotificationAdmin = async (req, res) => {
       receiverId,
       notificationType: "admin_message",
     });
- 
+
     return res.status(200).json({
       status: 200,
       success: true,
       message: shouldSend
         ? "Notification sent and saved successfully."
         : device
-          ? "Notification saved but not sent (notifications disabled)."
-          : "Notification saved but not sent (device token not found).",
+        ? "Notification saved but not sent (notifications disabled)."
+        : "Notification saved but not sent (device token not found).",
       data: [notificationData],
     });
- 
   } catch (error) {
     console.error("Error sending notification:", error);
     return res.status(500).json({
@@ -157,7 +156,6 @@ exports.sendPushNotificationAdmin = async (req, res) => {
     });
   }
 };
- 
 
 exports.getNotificationsByUserId = async (req, res) => {
   try {
@@ -170,23 +168,31 @@ exports.getNotificationsByUserId = async (req, res) => {
 
     const userNotifications = await Notification.find({ receiverId });
 
-    const filteredUserNotificationsPromises = userNotifications.map(async (notification) => {
-      const user = await Provider.findById(notification.userId) || await Hunter.findById(notification.userId);
-      
-      if (user) {
-        return {
-          ...notification._doc,
-          userName: user.name,
-          isRead: notification.isRead,
-          jobId: notification.jobId || null
-        };
-      } else {
-        return null; 
-      }
-    });
+    const filteredUserNotificationsPromises = userNotifications.map(
+      async (notification) => {
+        const user =
+          (await Provider.findById(notification.userId)) ||
+          (await Hunter.findById(notification.userId));
 
-    const resolvedNotifications = await Promise.all(filteredUserNotificationsPromises);
-    const validUserNotifications = resolvedNotifications.filter(notification => notification !== null);
+        if (user) {
+          return {
+            ...notification._doc,
+            userName: user.name,
+            isRead: notification.isRead,
+            jobId: notification.jobId || null,
+          };
+        } else {
+          return null;
+        }
+      }
+    );
+
+    const resolvedNotifications = await Promise.all(
+      filteredUserNotificationsPromises
+    );
+    const validUserNotifications = resolvedNotifications.filter(
+      (notification) => notification !== null
+    );
 
     const massNotifications = await massNotification.find({ userType });
 
@@ -195,10 +201,13 @@ exports.getNotificationsByUserId = async (req, res) => {
       isRead: notif.readBy.includes(receiverId),
     }));
 
-    const allNotifications = [...validUserNotifications, ...formattedMassNotifications];
+    const allNotifications = [
+      ...validUserNotifications,
+      ...formattedMassNotifications,
+    ];
     allNotifications.sort((a, b) => b.createdAt - a.createdAt);
 
-    const unreadCount = allNotifications.filter(n => !n.isRead).length;
+    const unreadCount = allNotifications.filter((n) => !n.isRead).length;
 
     const paginatedNotifications = allNotifications.slice(skip, skip + limit);
     const total = allNotifications.length;
@@ -207,24 +216,23 @@ exports.getNotificationsByUserId = async (req, res) => {
       status: 200,
       success: true,
       data: paginatedNotifications,
-      total,
-      page,
-      limit,
-      unreadCount, 
-      message: "Fetched all valid notifications with pagination!"
+      unreadCount,
+      pagination: {
+        total: total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+      },
+      message: "Fetched all valid notifications with pagination!",
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({
       status: 500,
       message: error.message,
-      success: false
+      success: false,
     });
   }
 };
-
-
 
 exports.ReadNotification = async (req, res) => {
   try {
@@ -241,7 +249,10 @@ exports.ReadNotification = async (req, res) => {
     }
 
     if (type === "push") {
-      const notification = await Notification.findOne({ _id: notificationId, receiverId: receiverId });
+      const notification = await Notification.findOne({
+        _id: notificationId,
+        receiverId: receiverId,
+      });
 
       if (!notification) {
         return res.status(404).json({
@@ -254,7 +265,9 @@ exports.ReadNotification = async (req, res) => {
       notification.isRead = true;
       await notification.save();
     } else if (type === "mass") {
-      const notification = await massNotification.findOne({ _id: notificationId });
+      const notification = await massNotification.findOne({
+        _id: notificationId,
+      });
 
       if (!notification) {
         return res.status(404).json({
@@ -349,7 +362,7 @@ exports.sendPushNotification2 = async (req, res) => {
       body,
       notificationType,
       jobId,
-      createdAt: new Date()
+      createdAt: new Date(),
     });
 
     await newNotification.save();
@@ -364,39 +377,44 @@ exports.sendPushNotification2 = async (req, res) => {
       notificationType,
       jobId,
       createdAt: newNotification.createdAt,
-      isRead: false
+      isRead: false,
     });
 
     return res.status(201).json({
       status: 201,
       success: true,
       message: "Notification sent successfully",
-      data: newNotification
+      data: newNotification,
     });
   } catch (error) {
     console.error("Error sending notification:", error);
-    return res.status(500).json({ message: "Server error", error: error.message });
+    return res
+      .status(500)
+      .json({ message: "Server error", error: error.message });
   }
 };
-
-
 
 exports.sendAdminNotification = async (req, res) => {
   try {
     const { title, body } = req.body;
     const { receiverId } = req.params;
 
-    const notificationType = 'admin_message';
+    const notificationType = "admin_message";
 
     if (!title || !body || !receiverId) {
       return res.status(400).json({
         status: 400,
         success: false,
         message: "Title, body, and receiverId are required.",
-        data: []
+        data: [],
       });
     }
-    const notificationData = await Notification.create({ title, body, receiverId, notificationType });
+    const notificationData = await Notification.create({
+      title,
+      body,
+      receiverId,
+      notificationType,
+    });
 
     const device = await DeviceToken.findOne({ userId: receiverId });
 
@@ -405,7 +423,7 @@ exports.sendAdminNotification = async (req, res) => {
         status: 200,
         success: true,
         message: "Notification saved but not sent (device token not found).",
-        data: [notificationData]
+        data: [notificationData],
       });
     }
 
@@ -420,9 +438,8 @@ exports.sendAdminNotification = async (req, res) => {
       status: 200,
       success: true,
       message: "Notification sent successfully.",
-      data: [notificationData]
+      data: [notificationData],
     });
-
   } catch (error) {
     console.error("Error sending notification:", error);
     res.status(500).json({
@@ -430,7 +447,7 @@ exports.sendAdminNotification = async (req, res) => {
       success: false,
       message: "Failed to send notification.",
       data: [],
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -450,7 +467,7 @@ exports.getAdminNotification = async (req, res) => {
 
     const notifications = await Notification.find({
       receiverId,
-      notificationType: 'admin_message'
+      notificationType: "admin_message",
     }).sort({ createdAt: -1 });
 
     if (!notifications || notifications.length === 0) {
@@ -493,7 +510,9 @@ exports.deleteNotificationById = async (req, res) => {
       });
     }
 
-    const deletedNotification = await Notification.findByIdAndDelete(notificationId);
+    const deletedNotification = await Notification.findByIdAndDelete(
+      notificationId
+    );
 
     if (!deletedNotification) {
       return res.status(404).json({
@@ -527,7 +546,7 @@ exports.updateNotificationStatus = async (req, res) => {
     const { id, type } = req.params;
     const { isNotificationEnable } = req.body;
 
-    if (typeof isNotificationEnable !== 'boolean') {
+    if (typeof isNotificationEnable !== "boolean") {
       return res.status(400).json({
         status: 400,
         success: false,
@@ -536,13 +555,13 @@ exports.updateNotificationStatus = async (req, res) => {
       });
     }
     let updatedUser;
-    if (type === 'hunter') {
+    if (type === "hunter") {
       updatedUser = await Hunter.findByIdAndUpdate(
         id,
         { isNotificationEnable },
         { new: true }
       );
-    } else if (type === 'provider') {
+    } else if (type === "provider") {
       updatedUser = await Provider.findByIdAndUpdate(
         id,
         { isNotificationEnable },
@@ -580,31 +599,30 @@ exports.updateNotificationStatus = async (req, res) => {
   }
 };
 
-
 exports.getExpiringSoonVouchers = async (req, res) => {
   try {
-    const userId = req.user.userId; 
+    const userId = req.user.userId;
     const now = new Date();
     const next24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
     const expiringVouchers = await SubscriptionVoucherUser.find({
       userId: userId,
       endDate: { $gte: now, $lte: next24Hours },
-      status: 'active'
+      status: "active",
     });
 
     if (expiringVouchers.length > 0) {
       return res.status(200).json({
-        message: 'You have vouchers expiring within 24 hours.',
-        data: expiringVouchers
+        message: "You have vouchers expiring within 24 hours.",
+        data: expiringVouchers,
       });
     } else {
       return res.status(200).json({
-        message: 'No vouchers expiring within 24 hours.'
+        message: "No vouchers expiring within 24 hours.",
       });
     }
   } catch (error) {
-    console.error('Error fetching expiring vouchers:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    console.error("Error fetching expiring vouchers:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };

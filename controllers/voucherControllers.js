@@ -61,9 +61,14 @@ exports.applyVoucher = async (req, res) => {
     }
     await voucher.save();
 
-    const startDate = new Date();
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + 30);
+    let startDate = new Date();
+    let endDate;
+    if (code === 'SIGNUPBONUS') {
+      endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 30);
+    } else {
+      endDate = voucher.endDate;
+    }
 
     const newVoucherUsage = new SubscriptionVoucherUser({
       userId,
@@ -86,8 +91,8 @@ exports.applyVoucher = async (req, res) => {
         },
       },
       {
-        new: true,         
-        runValidators: true, 
+        new: true,
+        runValidators: true,
       }
     );
 
@@ -121,6 +126,7 @@ exports.applyVoucher = async (req, res) => {
   }
 };
 
+
   
 
 exports.createVoucher = async (req, res) => {
@@ -141,12 +147,22 @@ exports.createVoucher = async (req, res) => {
 };
 
 exports.getVouchers = async (req, res) => {
-    try {
-        const vouchers = await Voucher.find();
-        return res.status(200).json({ status: 200, success: true, message: "Vouchers retrieved successfully", data: vouchers });
-    } catch (error) {
-        return res.status(500).json({ status: 500, success: false, message: "Server error", data: error.message });
-    }
+  try {
+    const vouchers = await Voucher.find({ code: { $ne: 'SIGNUPBONUS' } });
+    return res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Vouchers retrieved successfully",
+      data: vouchers,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Server error",
+      data: error.message,
+    });
+  }
 };
 
 exports.deleteVoucher = async (req, res) => {

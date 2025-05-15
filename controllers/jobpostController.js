@@ -216,14 +216,11 @@ const changeJobStatus = async (req, res) => {
           .json({ error: "A valid Provider ID is required when job status is Pending" });
       }
 
-      const provider = await Provider.findOne({ _id: providerId, isDeleted: false });
-      if (!provider) {
-        return res.status(404).json({
-          success: false,
-          status: 404,
-          message: "Provider not found!",
-        });
+      const provider = await Provider.findById(providerId);
+      if(!provider){
+        return res.status(404).json({error: "Provider Not Found"})
       }
+    
       jobPost.jobStatus = "Assigned";
       jobPost.provider = provider._id;
       await jobPost.save();
