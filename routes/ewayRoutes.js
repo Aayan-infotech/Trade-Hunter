@@ -27,40 +27,29 @@ const express = require('express');
 const router = express.Router();
 const ewayController = require('../controllers/ewayController');
 const { verifyUser } = require("../middlewares/auth");
-const { getSecrets } = require('../utils/awsSecrets'); 
+const { getSecrets } = require('../utils/awsSecrets');
 
+// Load secrets on startup
 let API_KEY, API_PASSWORD, API_URL;
 
-// Load secrets from AWS Secrets Manager on server start
-(async () => {
-  try {
-    const secrets = await getSecrets(); // loads from 'trade-secrets'
-    API_KEY = secrets.EWAY_API_KEY;
-    API_PASSWORD = secrets.EWAY_PASSWORD;
-    API_URL = secrets.EWAY_URL;
+getSecrets().then((secrets) => {
+  API_KEY = secrets.EWAY_API_KEY;
+  API_PASSWORD = secrets.EWAY_PASSWORD;
+  API_URL = secrets.EWAY_URL;
+}).catch(err => {
+  console.error("Failed to load AWS secrets:", err);
+});
 
-    console.log('AWS secrets loaded successfully');
-  } catch (error) {
-    console.error('Error loading AWS secrets:', error);
-  }
-})();
-
-// Generate Basic Auth header for EWAY requests
+// Generate auth header
 const getAuthHeader = () => {
-  if (!API_KEY || !API_PASSWORD) {
-    console.error('EWAY credentials are not loaded yet');
-    return '';
-  }
-
   const authString = `${API_KEY}:${API_PASSWORD}`;
   const base64Auth = Buffer.from(authString).toString('base64');
   return `Basic ${base64Auth}`;
 };
 
-// Routes
 router.post('/pay', (req, res) => {
-  if (!API_URL) {
-    return res.status(500).json({ error: 'API credentials not ready' });
+  if (!API_KEY || !API_PASSWORD || !API_URL) {
+    return res.status(500).json({ error: "Secrets not loaded" });
   }
   ewayController.initiatePayment(req, res, getAuthHeader(), API_URL);
 });
