@@ -1,3 +1,4 @@
 /node_modules
 /AdminCtrl/
 /AdminRts/
+.env
