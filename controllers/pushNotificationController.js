@@ -171,7 +171,7 @@ exports.getNotificationsByUserId = async (req, res) => {
     // Fetch individual notifications with populated jobStatus
     const userNotifications = await Notification
       .find({ receiverId })
-      .populate({ path: 'jobId', select: 'jobStatus' });
+      .populate({ path: 'jobId', select: 'jobStatus title'  });
 
     // Enrich each notification with userName and jobStatus
     const enrichedUserNotifications = await Promise.all(
