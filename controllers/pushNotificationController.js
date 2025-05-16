@@ -159,79 +159,101 @@ exports.sendPushNotificationAdmin = async (req, res) => {
   }
 };
 
+// NotificationController.js
 exports.getNotificationsByUserId = async (req, res) => {
   try {
-    const receiverId = req.user.userId;
-    const userType = req.params.userType;
+    const receiverId = req.user.userId
+    const userType = req.params.userType
 
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
-    const skip = (page - 1) * limit;
+    const page  = parseInt(req.query.page,  10) || 1
+    const limit = parseInt(req.query.limit, 10) || 10
+    const skip  = (page - 1) * limit
 
-    // Fetch individual notifications with populated jobStatus
+    // 1️⃣ Fetch user-specific notifications and populate jobId
     const userNotifications = await Notification
       .find({ receiverId })
-      .populate({ path: 'jobId', select: 'jobStatus title'  });
+      .populate({ path: 'jobId', select: 'title jobStatus' })
 
-    // Enrich each notification with userName and jobStatus
+    // 2️⃣ Enrich with userName, rename jobId → job, remove outer jobStatus
     const enrichedUserNotifications = await Promise.all(
-      userNotifications.map(async (notification) => {
-        let user = await Provider.findById(notification.userId);
-        if (!user) user = await Hunter.findById(notification.userId);
-        if (!user) return null;
+      userNotifications.map(async (notif) => {
+        // resolve userName (could be Provider or Hunter)
+        let user = await Provider.findById(notif.userId)
+        if (!user) user = await Hunter.findById(notif.userId)
+
+        if (!user) return null
+        const { jobId, isRead, ...rest } = notif._doc
+
+        const job = jobId
+          ? {
+              _id:        jobId._id,
+              title:      jobId.title,
+              jobStatus:  jobId.jobStatus,
+            }
+          : null
 
         return {
-          ...notification._doc,
+          ...rest,            // everything except jobId
           userName: user.name,
-          isRead: notification.isRead,
-          jobStatus: notification.jobId ? notification.jobId.jobStatus : null,
-        };
+          isRead,
+          job,                // new renamed object
+        }
       })
-    );
-    const validUserNotifications = enrichedUserNotifications.filter(n => n);
+    )
+    const validUserNotifications = enrichedUserNotifications.filter(n => n)
 
-    // Fetch mass notifications
+    // 3️⃣ Fetch and format mass notifications the same way
     const massNotifications = await massNotification
       .find({ userType })
-      .populate({ path: 'jobId', select: 'jobStatus' });
+      .populate({ path: 'jobId', select: 'title jobStatus' })
 
-    // Enrich mass notifications
-    const formattedMassNotifications = massNotifications.map((notif) => ({
-      ...notif._doc,
-      isRead: notif.readBy.includes(receiverId),
-      jobStatus: notif.jobId ? notif.jobId.jobStatus : null,
-    }));
+    const formattedMassNotifications = massNotifications.map((notif) => {
+      const { jobId, readBy, ...rest } = notif._doc
+      const job = jobId
+        ? {
+            _id:        jobId._id,
+            title:      jobId.title,
+            jobStatus:  jobId.jobStatus,
+          }
+        : null
 
-    // Combine and sort
+      return {
+        ...rest,
+        isRead: readBy.includes(receiverId),
+        job,
+      }
+    })
+
+    // 4️⃣ Combine, sort, paginate, count unread
     const allNotifications = [...validUserNotifications, ...formattedMassNotifications]
-      .sort((a, b) => b.createdAt - a.createdAt);
+      .sort((a, b) => b.createdAt - a.createdAt)
 
-    // Pagination and counts
-    const total = allNotifications.length;
-    const paginatedNotifications = allNotifications.slice(skip, skip + limit);
-    const unreadCount = allNotifications.filter(n => !n.isRead).length;
+    const total          = allNotifications.length
+    const paginatedData  = allNotifications.slice(skip, skip + limit)
+    const unreadCount    = allNotifications.filter(n => !n.isRead).length
 
-    res.status(200).json({
-      status: 200,
-      success: true,
-      data: paginatedNotifications,
+    return res.status(200).json({
+      status:      200,
+      success:     true,
+      data:        paginatedData,
       unreadCount,
       pagination: {
         total,
         currentPage: page,
-        totalPages: Math.ceil(total / limit),
+        totalPages:  Math.ceil(total / limit),
       },
-      message: 'Fetched all valid notifications with jobStatus and pagination!',
-    });
+      message: 'Fetched notifications with `job` object and pagination!',
+    })
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      status: 500,
+    console.error(error)
+    return res.status(500).json({
+      status:  500,
       success: false,
       message: error.message,
-    });
+    })
   }
-};
+}
+
 
 exports.ReadNotification = async (req, res) => {
   try {
