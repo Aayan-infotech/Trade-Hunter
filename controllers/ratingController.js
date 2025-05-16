@@ -182,132 +182,136 @@ exports.getAvgRating = async (req, res) => {
   
 
   exports.getProvidersWithAvgRatings = async (req, res) => {
-    try {
-      const { search } = req.query;
-  
-      const pipeline = [
-        {
-          $group: {
-            _id: "$providerId",
-            avgRating: { $avg: "$rating" },
-            totalRatings: { $sum: 1 },
-            ratings: { $push: "$$ROOT" }
-          }
-        },
-        {
-          $lookup: {
-            from: "providers",
-            localField: "_id",
-            foreignField: "_id",
-            as: "providerInfo"
-          }
-        },
-        { $unwind: "$providerInfo" },
-      ];
-  
-      // 🟡 Add search filter if provided
-      if (search) {
-        pipeline.push({
-          $match: {
-            $or: [
-              { "providerInfo.email": { $regex: search, $options: "i" } },
-              { "providerInfo.businessName": { $regex: search, $options: "i" } }
-            ]
-          }
-        });
-      }
-  
-      pipeline.push(
-        { $unwind: "$ratings" },
-  
-        // Get user info
-        {
-          $lookup: {
-            from: "hunters",
-            localField: "ratings.userId",
-            foreignField: "_id",
-            as: "userInfo"
-          }
-        },
-        {
-          $addFields: {
-            "ratings.user": { $arrayElemAt: ["$userInfo", 0] }
-          }
-        },
-  
-        // Get job info
-        {
-          $lookup: {
-            from: "jobposts",
-            localField: "ratings.jobId",
-            foreignField: "_id",
-            as: "jobInfo"
-          }
-        },
-        {
-          $addFields: {
-            "ratings.job": { $arrayElemAt: ["$jobInfo", 0] }
-          }
-        },
-  
-        {
-          $group: {
-            _id: "$_id",
-            avgRating: { $first: "$avgRating" },
-            totalRatings: { $first: "$totalRatings" },
-            ratings: { $push: "$ratings" },
-            providerInfo: { $first: "$providerInfo" }
-          }
-        },
-  
-        {
-          $project: {
-            providerId: "$_id",
-            businessName: "$providerInfo.businessName",
-            contactName: "$providerInfo.contactName",
-            email: "$providerInfo.email",
-            avgRating: { $round: ["$avgRating", 1] },
-            totalRatings: 1,
-            ratings: {
-              $map: {
-                input: "$ratings",
-                as: "rating",
-                in: {
-                  rating: "$$rating.rating",
-                  review: "$$rating.review",
-                  createdAt: "$$rating.createdAt",
-                  job: {
-                    _id: "$$rating.job._id",
-                    title: "$$rating.job.title",
-                  },
-                  user: {
-                    _id: "$$rating.user._id",
-                    name: "$$rating.user.name",
-                    email: "$$rating.user.email"
-                  }
+  try {
+    const { search, minAvgRating } = req.query;
+
+    const pipeline = [
+      {
+        $group: {
+          _id: "$providerId",
+          avgRating: { $avg: "$rating" },
+          totalRatings: { $sum: 1 },
+          ratings: { $push: "$$ROOT" }
+        }
+      },
+
+      {
+        $match: {
+          ...(minAvgRating ? { avgRating: { $gte: parseFloat(minAvgRating) } } : {})
+        }
+      },
+
+      {
+        $lookup: {
+          from: "providers",
+          localField: "_id",
+          foreignField: "_id",
+          as: "providerInfo"
+        }
+      },
+      { $unwind: "$providerInfo" },
+    ];
+
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { "providerInfo.email": { $regex: search, $options: "i" } },
+            { "providerInfo.businessName": { $regex: search, $options: "i" } }
+          ]
+        }
+      });
+    }
+
+    pipeline.push(
+      { $unwind: "$ratings" },
+
+      {
+        $lookup: {
+          from: "hunters",
+          localField: "ratings.userId",
+          foreignField: "_id",
+          as: "userInfo"
+        }
+      },
+      {
+        $addFields: {
+          "ratings.user": { $arrayElemAt: ["$userInfo", 0] }
+        }
+      },
+
+      {
+        $lookup: {
+          from: "jobposts",
+          localField: "ratings.jobId",
+          foreignField: "_id",
+          as: "jobInfo"
+        }
+      },
+      {
+        $addFields: {
+          "ratings.job": { $arrayElemAt: ["$jobInfo", 0] }
+        }
+      },
+
+      {
+        $group: {
+          _id: "$_id",
+          avgRating: { $first: "$avgRating" },
+          totalRatings: { $first: "$totalRatings" },
+          ratings: { $push: "$ratings" },
+          providerInfo: { $first: "$providerInfo" }
+        }
+      },
+
+      {
+        $project: {
+          providerId: "$_id",
+          businessName: "$providerInfo.businessName",
+          contactName: "$providerInfo.contactName",
+          email: "$providerInfo.email",
+          avgRating: { $round: ["$avgRating", 1] },
+          totalRatings: 1,
+          ratings: {
+            $map: {
+              input: "$ratings",
+              as: "rating",
+              in: {
+                rating: "$$rating.rating",
+                review: "$$rating.review",
+                createdAt: "$$rating.createdAt",
+                job: {
+                  _id: "$$rating.job._id",
+                  title: "$$rating.job.title",
+                },
+                user: {
+                  _id: "$$rating.user._id",
+                  name: "$$rating.user.name",
+                  email: "$$rating.user.email"
                 }
               }
             }
           }
         }
-      );
-  
-      const data = await Rating.aggregate(pipeline);
-  
-      return res.status(200).json({
-        message: "Provider ratings and details retrieved successfully.",
-        data
-      });
-  
-    } catch (error) {
-      console.error("Error:", error);
-      return res.status(500).json({
-        message: "Server error",
-        error: error.message
-      });
-    }
-  };
-  
+      }
+    );
+
+    const data = await Rating.aggregate(pipeline);
+
+    return res.status(200).json({
+      message: "Provider ratings and details retrieved successfully.",
+      data
+    });
+
+  } catch (error) {
+    console.error("Error:", error);
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
   
   
   
