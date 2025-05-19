@@ -167,26 +167,72 @@ exports.createSubscriptionUser = async (req, res) => {
 
 exports.getAllSubscriptionUsers = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search } = req.query;
+    const { page = 1, limit = 10, search = "" } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const userMatch = search
-      ? { businessName: { $regex: search, $options: "i" } }
-      : {};
+    // Build aggregation pipeline
+    const pipeline = [
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "userDetails",
+        },
+      },
+      {
+        $unwind: "$userDetails",
+      },
+      {
+        $lookup: {
+          from: "subscriptionplans",
+          localField: "subscriptionPlanId",
+          foreignField: "_id",
+          as: "subscriptionPlan",
+        },
+      },
+      {
+        $unwind: {
+          path: "$subscriptionPlan",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: "subscriptiontypes",
+          localField: "subscriptionPlan.type",
+          foreignField: "_id",
+          as: "subscriptionPlan.typeDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$subscriptionPlan.typeDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $match: {
+          "userDetails.businessName": { $regex: search, $options: "i" },
+        },
+      },
+      {
+        $sort: {
+          createdAt: -1, // Most recent first
+        },
+      },
+      {
+        $facet: {
+          metadata: [{ $count: "total" }],
+          data: [{ $skip: skip }, { $limit: parseInt(limit) }],
+        },
+      },
+    ];
 
-    const users = await SubscriptionUser.find()
-      .populate({
-        path: "userId",
-        match: userMatch, // will still match user if search is applied
-      })
-      .populate({
-        path: "subscriptionPlanId",
-        populate: { path: "type", model: "SubscriptionType" },
-      })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+    const result = await SubscriptionUser.aggregate(pipeline);
 
-    // NO filtering here
-    const totalCount = users.length;
+    const total = result[0]?.metadata[0]?.total || 0;
+    const users = result[0]?.data || [];
 
     res.status(200).json({
       status: 200,
@@ -194,10 +240,11 @@ exports.getAllSubscriptionUsers = async (req, res) => {
       message: "Subscription users retrieved successfully",
       currentPage: Number(page),
       pageSize: Number(limit),
-      totalCount,
+      totalCount: total,
       data: users,
     });
   } catch (error) {
+    console.error("Error fetching subscription users:", error);
     res.status(500).json({
       status: 500,
       success: false,
@@ -206,6 +253,7 @@ exports.getAllSubscriptionUsers = async (req, res) => {
     });
   }
 };
+
 
 
 
