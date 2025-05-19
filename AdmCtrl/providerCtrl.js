@@ -4,6 +4,50 @@ const mongoose = require("mongoose");
 exports.getAllProviders = async (req, res) => {
   try {
     const { search = "", userStatus } = req.query;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 10;
+    const skip = (page - 1) * limit;
+
+    let query = {
+      isGuestMode: false,
+      $or: [
+        { contactName: { $regex: `.*${search}.*`, $options: "i" } },
+        {businessName: { $regex: `.*${search}.*`, $options: "i" } },
+        { email: { $regex: `.*${search}.*`, $options: "i" } },
+        { "address.addressLine": { $regex: `.*${search}.*`, $options: "i" } },
+      ],
+    };
+
+    const validStatuses = ["Active", "Suspended", "Pending"];
+    if (userStatus && validStatuses.includes(userStatus)) {
+      query.userStatus = userStatus;
+    }
+
+    const totalProviders = await Provider.countDocuments(query);
+
+    const providers = await Provider.find(query)
+      .sort({ createdAt: -1 })  
+      .skip(skip)
+      .limit(limit)
+      .populate("assignedJobs");
+
+    res.status(200).json({
+      success: true,
+      data: providers,
+      metadata: {
+        total: totalProviders,
+        currentPage: page,
+        totalPages: Math.ceil(totalProviders / limit),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error", error });
+  }
+};
+
+exports.getAllProviders2 = async (req, res) => {
+  try {
+    const { search = "", userStatus } = req.query;
 
     let query = {
       isGuestMode: false,
