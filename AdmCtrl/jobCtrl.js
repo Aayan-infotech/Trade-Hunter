@@ -174,7 +174,7 @@ const getRecentJobPosts = async (req, res) => {
       .populate({
         path: "provider",
         model: "Provider",
-        select: "contactName email",
+        select: "contactName email businessName",
       })
       .lean();
 
