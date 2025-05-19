@@ -168,25 +168,70 @@ exports.createSubscriptionUser = async (req, res) => {
 exports.getAllSubscriptionUsers = async (req, res) => {
   try {
     const { page = 1, limit = 10, search } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const userMatch = search
-      ? { businessName: { $regex: search, $options: "i" } }
-      : {};
+    const pipeline = [
+      {
+        $lookup: {
+          from: "users", 
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
 
-    const users = await SubscriptionUser.find()
-      .populate({
-        path: "userId",
-        match: userMatch, 
-      })
-      .populate({
-        path: "subscriptionPlanId",
-        populate: { path: "type", model: "SubscriptionType" },
-      })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
+      ...(search
+        ? [
+            {
+              $match: {
+                "user.businessName": { $regex: search, $options: "i" },
+              },
+            },
+          ]
+        : []),
 
-    const filteredUsers = users.filter((user) => user.userId !== null);
-    const totalFiltered = filteredUsers.length;
+      {
+        $lookup: {
+          from: "subscriptionplans",
+          localField: "subscriptionPlanId",
+          foreignField: "_id",
+          as: "subscriptionPlan",
+        },
+      },
+      { $unwind: "$subscriptionPlan" },
+
+      {
+        $lookup: {
+          from: "subscriptiontypes",
+          localField: "subscriptionPlan.type",
+          foreignField: "_id",
+          as: "subscriptionPlan.type",
+        },
+      },
+      {
+        $unwind: {
+          path: "$subscriptionPlan.type",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      { $skip: skip },
+      { $limit: parseInt(limit) },
+    ];
+
+    const countPipeline = [...pipeline];
+    countPipeline.splice(-2, 2); 
+
+    const [results, totalResults] = await Promise.all([
+      SubscriptionUser.aggregate(pipeline),
+      SubscriptionUser.aggregate([
+        ...countPipeline,
+        { $count: "totalCount" },
+      ]),
+    ]);
+
+    const totalCount = totalResults[0]?.totalCount || 0;
 
     res.status(200).json({
       status: 200,
@@ -194,8 +239,8 @@ exports.getAllSubscriptionUsers = async (req, res) => {
       message: "Subscription users retrieved successfully",
       currentPage: Number(page),
       pageSize: Number(limit),
-      totalCount: totalFiltered,
-      data: filteredUsers,
+      totalCount,
+      data: results,
     });
   } catch (error) {
     res.status(500).json({
