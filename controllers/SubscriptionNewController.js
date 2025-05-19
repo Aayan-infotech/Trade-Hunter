@@ -168,84 +168,65 @@ exports.createSubscriptionUser = async (req, res) => {
 exports.getAllSubscriptionUsers = async (req, res) => {
   try {
     const { page = 1, limit = 10, search = "" } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (Number(page) - 1) * Number(limit);
+    const term = search.trim().toLowerCase();
 
-    // Build aggregation pipeline
-    const pipeline = [
-      {
-        $lookup: {
-          from: "users",
-          localField: "userId",
-          foreignField: "_id",
-          as: "userDetails",
-        },
-      },
-      {
-        $unwind: "$userDetails",
-      },
-      {
-        $lookup: {
-          from: "subscriptionplans",
-          localField: "subscriptionPlanId",
-          foreignField: "_id",
-          as: "subscriptionPlan",
-        },
-      },
-      {
-        $unwind: {
-          path: "$subscriptionPlan",
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $lookup: {
-          from: "subscriptiontypes",
-          localField: "subscriptionPlan.type",
-          foreignField: "_id",
-          as: "subscriptionPlan.typeDetails",
-        },
-      },
-      {
-        $unwind: {
-          path: "$subscriptionPlan.typeDetails",
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $match: {
-          "userDetails.businessName": { $regex: search, $options: "i" },
-        },
-      },
-      {
-        $sort: {
-          createdAt: -1, // Most recent first
-        },
-      },
-      {
-        $facet: {
-          metadata: [{ $count: "total" }],
-          data: [{ $skip: skip }, { $limit: parseInt(limit) }],
-        },
-      },
-    ];
+    // 1️⃣ Fetch & populate everything (no skip/limit)
+    let allSubs = await SubscriptionUser.find()
+      .populate("userId")
+      .populate({
+        path: "subscriptionPlanId",
+        populate: { path: "type", model: "SubscriptionType" },
+      })
+      .exec();
 
-    const result = await SubscriptionUser.aggregate(pipeline);
+    // 2️⃣ In‑memory filter if there's a search term
+    if (term) {
+      allSubs = allSubs.filter((sub) => {
+        const user = sub.userId;
+        if (!user) return false;
 
-    const total = result[0]?.metadata[0]?.total || 0;
-    const users = result[0]?.data || [];
+        // match on businessName
+        if (
+          user.businessName &&
+          user.businessName.toLowerCase().includes(term)
+        ) {
+          return true;
+        }
 
-    res.status(200).json({
+        // match on any businessType entry
+        if (Array.isArray(user.businessType)) {
+          return user.businessType.some((bt) =>
+            bt.toLowerCase().includes(term)
+          );
+        }
+
+        return false;
+      });
+    }
+
+    // 3️⃣ Sort descending by startDate (most recent first)
+    allSubs.sort(
+      (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+    );
+
+    // 4️⃣ Paginate the filtered & sorted array
+    const totalCount = allSubs.length;
+    const paginated = allSubs.slice(skip, skip + Number(limit));
+
+    // 5️⃣ Respond
+    return res.status(200).json({
       status: 200,
       success: true,
       message: "Subscription users retrieved successfully",
       currentPage: Number(page),
       pageSize: Number(limit),
-      totalCount: total,
-      data: users,
+      totalCount,
+      data: paginated,
     });
   } catch (error) {
-    console.error("Error fetching subscription users:", error);
-    res.status(500).json({
+    console.error("Error in getAllSubscriptionUsers:", error);
+    return res.status(500).json({
       status: 500,
       success: false,
       message: "Server error",
@@ -253,6 +234,10 @@ exports.getAllSubscriptionUsers = async (req, res) => {
     });
   }
 };
+
+
+
+
 
 
 
