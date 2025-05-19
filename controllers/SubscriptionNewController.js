@@ -171,7 +171,6 @@ exports.getAllSubscriptionUsers = async (req, res) => {
     const skip = (Number(page) - 1) * Number(limit);
     const term = search.trim().toLowerCase();
 
-    // 1️⃣ Fetch & populate everything (no skip/limit)
     let allSubs = await SubscriptionUser.find()
       .populate("userId")
       .populate({
@@ -180,13 +179,11 @@ exports.getAllSubscriptionUsers = async (req, res) => {
       })
       .exec();
 
-    // 2️⃣ In‑memory filter if there's a search term
     if (term) {
       allSubs = allSubs.filter((sub) => {
         const user = sub.userId;
         if (!user) return false;
 
-        // match on businessName
         if (
           user.businessName &&
           user.businessName.toLowerCase().includes(term)
@@ -194,7 +191,6 @@ exports.getAllSubscriptionUsers = async (req, res) => {
           return true;
         }
 
-        // match on any businessType entry
         if (Array.isArray(user.businessType)) {
           return user.businessType.some((bt) =>
             bt.toLowerCase().includes(term)
@@ -205,16 +201,12 @@ exports.getAllSubscriptionUsers = async (req, res) => {
       });
     }
 
-    // 3️⃣ Sort descending by startDate (most recent first)
     allSubs.sort(
-      (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
 
-    // 4️⃣ Paginate the filtered & sorted array
     const totalCount = allSubs.length;
     const paginated = allSubs.slice(skip, skip + Number(limit));
-
-    // 5️⃣ Respond
     return res.status(200).json({
       status: 200,
       success: true,
@@ -234,12 +226,6 @@ exports.getAllSubscriptionUsers = async (req, res) => {
     });
   }
 };
-
-
-
-
-
-
 
 
 
