@@ -181,9 +181,10 @@ exports.getAvgRating = async (req, res) => {
   };
   
 
-  exports.getProvidersWithAvgRatings = async (req, res) => {
+exports.getProvidersWithAvgRatings = async (req, res) => {
   try {
-    const { search, minAvgRating } = req.query;
+    const { search, avgRating } = req.query;
+    const parsedAvg = avgRating ? parseFloat(avgRating) : null;
 
     const pipeline = [
       {
@@ -196,9 +197,9 @@ exports.getAvgRating = async (req, res) => {
       },
 
       {
-        $match: {
-          ...(minAvgRating ? { avgRating: { $gte: parseFloat(minAvgRating) } } : {})
-        }
+        $match: parsedAvg !== null
+          ? { avgRating: { $eq: parsedAvg } }
+          : {}
       },
 
       {
@@ -216,16 +217,14 @@ exports.getAvgRating = async (req, res) => {
       pipeline.push({
         $match: {
           $or: [
-            { "providerInfo.email": { $regex: search, $options: "i" } },
+            { "providerInfo.email":      { $regex: search, $options: "i" } },
             { "providerInfo.businessName": { $regex: search, $options: "i" } }
           ]
         }
       });
     }
-
     pipeline.push(
       { $unwind: "$ratings" },
-
       {
         $lookup: {
           from: "hunters",
@@ -234,12 +233,7 @@ exports.getAvgRating = async (req, res) => {
           as: "userInfo"
         }
       },
-      {
-        $addFields: {
-          "ratings.user": { $arrayElemAt: ["$userInfo", 0] }
-        }
-      },
-
+      { $addFields: { "ratings.user": { $arrayElemAt: ["$userInfo", 0] } } },
       {
         $lookup: {
           from: "jobposts",
@@ -248,46 +242,41 @@ exports.getAvgRating = async (req, res) => {
           as: "jobInfo"
         }
       },
-      {
-        $addFields: {
-          "ratings.job": { $arrayElemAt: ["$jobInfo", 0] }
-        }
-      },
+      { $addFields: { "ratings.job": { $arrayElemAt: ["$jobInfo", 0] } } },
 
       {
         $group: {
           _id: "$_id",
-          avgRating: { $first: "$avgRating" },
+          avgRating:    { $first: "$avgRating" },
           totalRatings: { $first: "$totalRatings" },
-          ratings: { $push: "$ratings" },
+          ratings:      { $push: "$ratings" },
           providerInfo: { $first: "$providerInfo" }
         }
       },
-
       {
         $project: {
-          providerId: "$_id",
+          providerId:  "$_id",
           businessName: "$providerInfo.businessName",
-          contactName: "$providerInfo.contactName",
-          email: "$providerInfo.email",
-          avgRating: { $round: ["$avgRating", 1] },
+          contactName:  "$providerInfo.contactName",
+          email:        "$providerInfo.email",
+          avgRating:    { $round: ["$avgRating", 1] },
           totalRatings: 1,
           ratings: {
             $map: {
               input: "$ratings",
-              as: "rating",
+              as: "r",
               in: {
-                rating: "$$rating.rating",
-                review: "$$rating.review",
-                createdAt: "$$rating.createdAt",
+                rating:   "$$r.rating",
+                review:   "$$r.review",
+                createdAt:"$$r.createdAt",
                 job: {
-                  _id: "$$rating.job._id",
-                  title: "$$rating.job.title",
+                  _id:   "$$r.job._id",
+                  title: "$$r.job.title"
                 },
                 user: {
-                  _id: "$$rating.user._id",
-                  name: "$$rating.user.name",
-                  email: "$$rating.user.email"
+                  _id:   "$$r.user._id",
+                  name:  "$$r.user.name",
+                  email: "$$r.user.email"
                 }
               }
             }
@@ -298,19 +287,20 @@ exports.getAvgRating = async (req, res) => {
 
     const data = await Rating.aggregate(pipeline);
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "Provider ratings and details retrieved successfully.",
       data
     });
 
   } catch (error) {
     console.error("Error:", error);
-    return res.status(500).json({
+    res.status(500).json({
       message: "Server error",
       error: error.message
     });
   }
 };
+
 
   
   

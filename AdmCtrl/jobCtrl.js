@@ -71,6 +71,7 @@ const getAllJobPosts = async (req, res) => {
           _id: "$providerDetails._id",
           contactName: "$providerDetails.contactName",
           email: "$providerDetails.email",
+          businessName: "$providerDetails.businessName",
         },
       },
     });
