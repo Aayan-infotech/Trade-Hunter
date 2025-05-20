@@ -47,29 +47,28 @@ const deleteHunterPermanently = async (req, res) => {
     const { hunterId } = req.params;
 
     const hunter = await Hunter.findByIdAndDelete(hunterId);
-
     if (!hunter) {
       return res.status(404).json({ message: "Hunter not found" });
     }
-
-    const jobDeleteResult = await JobPost.deleteMany({ 
-      hunterId: hunterId, 
-      jobStatus: "Pending" 
+    const jobDeleteResult = await JobPost.deleteMany({
+      user: hunterId,
+      jobStatus: "Pending"
     });
 
-    res.status(200).json({ 
-      message: "Hunter and pending job posts deleted successfully", 
-      hunter, 
-      deletedJobPostsCount: jobDeleteResult.deletedCount 
+    res.status(200).json({
+      message: "Hunter and their pending job posts deleted successfully",
+      hunter,
+      deletedJobPostsCount: jobDeleteResult.deletedCount
     });
 
   } catch (err) {
-    res.status(500).json({ 
-      message: "Internal Server Error", 
-      error: err.message 
+    res.status(500).json({
+      message: "Internal Server Error",
+      error: err.message
     });
   }
 };
+
 
 
 
