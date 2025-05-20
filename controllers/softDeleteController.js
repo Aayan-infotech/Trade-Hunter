@@ -1,5 +1,6 @@
 const Provider = require("../models/providerModel");
 const Hunter = require("../models/hunterModel");
+const JobPost = require("../models/jobpostModel");
 
 const softDeleteProvider = async (req, res) => {
   try {
@@ -51,11 +52,25 @@ const deleteHunterPermanently = async (req, res) => {
       return res.status(404).json({ message: "Hunter not found" });
     }
 
-    res.status(200).json({ message: "Hunter deleted permanently", hunter });
+    const jobDeleteResult = await JobPost.deleteMany({ 
+      hunterId: hunterId, 
+      jobStatus: "Pending" 
+    });
+
+    res.status(200).json({ 
+      message: "Hunter and pending job posts deleted successfully", 
+      hunter, 
+      deletedJobPostsCount: jobDeleteResult.deletedCount 
+    });
+
   } catch (err) {
-    res.status(500).json({ message: "Internal Server Error", error: err.message });
+    res.status(500).json({ 
+      message: "Internal Server Error", 
+      error: err.message 
+    });
   }
 };
+
 
 
 module.exports = { softDeleteProvider, softDeleteHunter, deleteHunterPermanently };
