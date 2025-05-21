@@ -257,40 +257,51 @@ const changeJobStatus = async (req, res) => {
 
 const myAcceptedJobs = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
 
     const user = await Provider.findById(req.user.userId)
-      .select("assignedJobs")
+      .select('assignedJobs')
       .lean();
 
     if (!user?.assignedJobs?.length) {
-      return res.status(200).json({ message: "No jobs found" });
+      return res.status(200).json({
+        status: 200,
+        message: 'Jobs fetched successfully',
+        jobs: [],
+        pagination: {
+          totalJobs: 0,
+          totalPages: 0,
+          currentPage: page,
+        },
+      });
     }
 
-    const jobIds = [...new Set(user.assignedJobs.map((s) => new mongoose.Types.ObjectId(s)))];
-    let aggregation=[];
-    aggregation.push({
-      $match: { _id: { $in: jobIds } },
-    });
-    
-    aggregation.push({
-      $facet: {
-        totalCount: [{ $count: "count" }],
-        paginatedResults: [
-          { $skip: (page - 1) * limit },
-          { $limit: limit },
-        ],
+    const jobIds = [...new Set(
+      user.assignedJobs.map((id) => new mongoose.Types.ObjectId(id))
+    )];
+
+    const aggregation = [
+      { $match: { _id: { $in: jobIds } } },
+      {
+        $facet: {
+          totalCount: [{ $count: 'count' }],
+          paginatedResults: [
+            { $skip: (page - 1) * limit },
+            { $limit: limit },
+          ],
+        },
       },
-    })
+    ];
+
+    // Execute aggregation
     const jobsAgg = await JobPost.aggregate(aggregation);
-    const totalJobs = jobsAgg[0]?.totalCount[0]?.count || 0;  
+    const totalJobs = jobsAgg[0]?.totalCount[0]?.count || 0;
     const jobs = jobsAgg[0]?.paginatedResults || [];
-   
 
     return res.status(200).json({
       status: 200,
-      message: "Jobs fetched successfully",
+      message: 'Jobs fetched successfully',
       jobs,
       pagination: {
         totalJobs,
@@ -299,8 +310,8 @@ const myAcceptedJobs = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching jobs:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error('Error fetching jobs:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
