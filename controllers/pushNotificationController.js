@@ -189,6 +189,7 @@ exports.getNotificationsByUserId = async (req, res) => {
               _id:        jobId._id,
               title:      jobId.title,
               jobStatus:  jobId.jobStatus,
+              completionNotified: jobId.completionNotified,
             }
           : null
 
