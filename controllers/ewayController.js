@@ -283,7 +283,7 @@ exports.initiatePayment = async (req, res) => {
         .font("Helvetica")
         .text(nowDate, rightX + 130, y);
 
-      y += 40;
+      y += 60;
       doc
         .fillColor("#f0f0f0")
         .rect(leftX, y - 10, pageWidth, 30)
