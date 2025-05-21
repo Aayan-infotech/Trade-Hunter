@@ -21,17 +21,6 @@ const getAllJobPosts = async (req, res) => {
 
     pipeline.push({ $unwind: "$userDetails" });
 
-    if (search.trim()) {
-      pipeline.push({
-        $match: {
-          $or: [
-            { "userDetails.name": { $regex: search, $options: "i" } },
-            { "jobLocation.jobAddressLine": { $regex: search, $options: "i" } },
-          ],
-        },
-      });
-    }
-
     pipeline.push({
       $lookup: {
         from: "providers",
@@ -44,6 +33,18 @@ const getAllJobPosts = async (req, res) => {
     pipeline.push({
       $unwind: { path: "$providerDetails", preserveNullAndEmptyArrays: true },
     });
+
+    if (search.trim()) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { "userDetails.name": { $regex: search, $options: "i" } },
+            { "jobLocation.jobAddressLine": { $regex: search, $options: "i" } },
+            { "providerDetails.businessName": { $regex: search, $options: "i" } },
+          ],
+        },
+      });
+    }
 
     pipeline.push({ $sort: { createdAt: -1 } });
 
@@ -84,6 +85,7 @@ const getAllJobPosts = async (req, res) => {
 
     const jobPosts = await JobPost.aggregate(pipeline);
 
+    // Send response
     return apiResponse.success(res, "Job posts retrieved successfully.", {
       pagination: {
         totalJobs,
@@ -99,6 +101,7 @@ const getAllJobPosts = async (req, res) => {
     });
   }
 };
+
 
 
 
