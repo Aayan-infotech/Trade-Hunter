@@ -18,11 +18,16 @@ const getAllJobPosts = async (req, res) => {
         as: "userDetails",
       },
     });
+
     pipeline.push({ $unwind: "$userDetails" });
+
     if (search.trim()) {
       pipeline.push({
         $match: {
-          "userDetails.name": { $regex: search, $options: "i" },
+          $or: [
+            { "userDetails.name": { $regex: search, $options: "i" } },
+            { "jobLocation.jobAddressLine": { $regex: search, $options: "i" } },
+          ],
         },
       });
     }
@@ -35,6 +40,7 @@ const getAllJobPosts = async (req, res) => {
         as: "providerDetails",
       },
     });
+
     pipeline.push({
       $unwind: { path: "$providerDetails", preserveNullAndEmptyArrays: true },
     });
@@ -93,6 +99,7 @@ const getAllJobPosts = async (req, res) => {
     });
   }
 };
+
 
 
 

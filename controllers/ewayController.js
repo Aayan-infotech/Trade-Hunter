@@ -9,6 +9,7 @@ const SubscriptionPlan = require("../models/SubscriptionPlanModel");
 const SubscriptionType = require("../models/SubscriptionTypeModel");
 const Provider = require("../models/providerModel");
 
+
 exports.initiatePayment = async (req, res) => {
   try {
     const requiredCustomerFields = [
@@ -27,6 +28,7 @@ exports.initiatePayment = async (req, res) => {
     const requiredPaymentFields = ["TotalAmount", "CurrencyCode"];
     const { Customer, Payment, userId, subscriptionPlanId } = req.body;
 
+    // 1. Validate presence
     if (!Customer || !Payment) {
       return res
         .status(400)
@@ -64,6 +66,7 @@ exports.initiatePayment = async (req, res) => {
     if (!subscriptionType)
       return res.status(404).json({ message: "Subscription Type not found" });
 
+    // 3. Build eWAY payment request
     const paymentData = {
       Customer: {
         FirstName: Customer.FirstName,
@@ -81,13 +84,14 @@ exports.initiatePayment = async (req, res) => {
         },
       },
       Payment: {
-        TotalAmount: Payment.TotalAmount,
+        TotalAmount: Payment.TotalAmount,   
         CurrencyCode: Payment.CurrencyCode,
       },
       TransactionType: "MOTO",
       Capture: true,
     };
     const ewayResponse = await ewayService.createTransaction(paymentData);
+
     const txId = ewayResponse.TransactionID;
     if (!txId) {
       return res.status(400).json({
@@ -97,7 +101,10 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
-    const amountCharged = (Payment.TotalAmount || 0) / 100;
+    const amountCharged = (Payment.TotalAmount || 0) / 100; 
+    const subTotal = +(amountCharged / 1.1).toFixed(2);
+    const gst = +(amountCharged - subTotal).toFixed(2);
+
     const txn = new Transaction({
       userId,
       subscriptionPlanId,
@@ -132,19 +139,16 @@ exports.initiatePayment = async (req, res) => {
       return d;
     };
     const todayMidnight = setToMidnight(new Date());
-
     const existingActive = await SubscriptionVoucherUser.findOne({
       userId,
       status: "active",
     }).sort({ startDate: -1 });
 
     let newStartDate, newStatus;
-
-    if (existingActive && existingActive.type !== "Subscription" ) {
+    if (existingActive && existingActive.type !== "Subscription") {
       existingActive.status = "expired";
       existingActive.endDate = todayMidnight;
       await existingActive.save();
-
       newStartDate = todayMidnight;
       newStatus = "active";
     } else {
@@ -152,7 +156,6 @@ exports.initiatePayment = async (req, res) => {
         userId,
         status: { $in: ["active", "upcoming"] },
       }).sort({ endDate: -1 });
-
       if (latestSub) {
         newStartDate = setToMidnight(new Date(latestSub.endDate));
         newStatus = "upcoming";
@@ -186,8 +189,6 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
-    const gst = +(amountCharged * 0.1).toFixed(2);
-    const subTotal = +(amountCharged * 0.9).toFixed(2);
     const nowDate = new Date().toLocaleDateString();
     const doc = new PDFDocument({ margin: 50 });
     const buffers = [];
@@ -202,9 +203,9 @@ exports.initiatePayment = async (req, res) => {
             Customer.Email,
             `Your Invoice #${txId}`,
             `<p>Hi ${Customer.FirstName},</p>
-         <p>Thank you for your payment of $${amountCharged.toFixed(2)}.
-         Please find your invoice attached.</p>
-         <p>Regards,<br/>Trade Hunters Team</p>`,
+             <p>Thank you for your payment of $${amountCharged.toFixed(2)}.
+             Please find your invoice attached.</p>
+             <p>Regards,<br/>Trade Hunters Team</p>`,
             [
               {
                 filename: `invoice_${txId}.pdf`,
@@ -231,30 +232,26 @@ exports.initiatePayment = async (req, res) => {
       let y = 50;
 
       doc.rect(0, 0, doc.page.width, 100).fill("#fff").fillOpacity(1);
-
       if (fs.existsSync(logoPath)) {
         doc.image(logoPath, leftX, y - 10, { width: 50 });
       }
-
       doc
         .fillColor("#000")
         .fontSize(18)
         .font("Helvetica-Bold")
-        .text("Trade Hunters PYT LTD", rightX, y - 10, { align: "right" })
+        .text("Trade Hunters PTY LTD", rightX, y - 10, { align: "right" })
         .fontSize(10)
         .text("ABN: 24 682 578 892", rightX, y + 10, { align: "right" });
-
       y += 80;
-
       doc
         .moveTo(leftX, y)
         .lineTo(leftX + pageWidth, y)
         .strokeColor("#999")
         .lineWidth(1)
         .stroke();
-
       y += 15;
 
+      // Customer & Invoice info
       doc
         .fontSize(11)
         .fillColor("#003366")
@@ -263,22 +260,14 @@ exports.initiatePayment = async (req, res) => {
         .font("Helvetica")
         .fillColor("black")
         .text(provider.businessName, leftX + 110, y);
-
       y += lineHeight;
-
       doc
         .fillColor("#003366")
         .font("Helvetica-Bold")
         .text("Business Address:", leftX, y)
         .fillColor("black")
         .font("Helvetica");
-
-      const addrHeight = doc.heightOfString(provider.address.addressLine, {
-        width: 220,
-      });
-
       doc.text(provider.address.addressLine, leftX + 110, y, { width: 220 });
-
       doc
         .fillColor("#003366")
         .font("Helvetica-Bold")
@@ -286,7 +275,6 @@ exports.initiatePayment = async (req, res) => {
         .font("Helvetica")
         .fillColor("black")
         .text(txId.toString(), rightX + 130, y - 20);
-
       doc
         .fillColor("#003366")
         .font("Helvetica-Bold")
@@ -296,7 +284,6 @@ exports.initiatePayment = async (req, res) => {
         .text(nowDate, rightX + 130, y);
 
       y += 40;
-
       doc
         .fillColor("#f0f0f0")
         .rect(leftX, y - 10, pageWidth, 30)
@@ -304,8 +291,7 @@ exports.initiatePayment = async (req, res) => {
         .fillColor("#003366")
         .font("Helvetica-Bold")
         .fontSize(12)
-        .text("Subscription Details:-", leftX , y - 5);
-
+        .text("Subscription Details:-", leftX, y - 5);
       y += 30;
 
       doc
@@ -314,13 +300,11 @@ exports.initiatePayment = async (req, res) => {
         .font("Helvetica-Bold")
         .text("Description:", leftX, y);
       y += lineHeight;
-
       doc
         .font("Helvetica")
         .fillColor("black")
         .text(subscriptionPlan.planName, leftX, y, { width: pageWidth });
       y = doc.y + lineHeight;
-
       doc
         .fillColor("#003366")
         .font("Helvetica-Bold")
@@ -328,7 +312,6 @@ exports.initiatePayment = async (req, res) => {
         .fillColor("black")
         .font("Helvetica")
         .text(` ${subscriptionType.type}`, leftX + 60, y);
-
       doc
         .fillColor("#003366")
         .font("Helvetica-Bold")
@@ -338,13 +321,7 @@ exports.initiatePayment = async (req, res) => {
         .text(` $${subscriptionPlan.amount}`, rightX + 150, y);
 
       y += lineHeight * 2;
-
-      // doc
-      //   .rect(rightX + 100, y, 180, lineHeight * 3.5)
-      //   .fillOpacity(0.2)
-      //   .fill("#00BFFF")
-      //   .fillOpacity(1);
-
+      // Totals table
       doc
         .fillColor("black")
         .font("Helvetica")
@@ -357,12 +334,13 @@ exports.initiatePayment = async (req, res) => {
           y + lineHeight * 2 + 5
         );
 
+      // Footer
       const footerY = doc.page.height - 80;
       doc
         .fontSize(11)
         .fillColor("#003366")
         .font("Helvetica-Bold")
-        .text("Thanks!! Trade Hunters Team", leftX, footerY );
+        .text("Thanks!! Trade Hunters Team", leftX, footerY);
 
       doc.end();
     });
@@ -376,9 +354,11 @@ exports.initiatePayment = async (req, res) => {
       status: ewayResponse.TransactionStatus,
       responseCode: ewayResponse.ResponseCode,
       amountCharged: `${amountCharged}$`,
-      gatewayResponse: ewayResponse,
+      subTotal: `${subTotal}$`,
+      gst: `${gst}$`,
       pdfGenerated,
       emailSent,
+      gatewayResponse: ewayResponse,
     });
   } catch (error) {
     console.error("Payment Processing Error:", error);
@@ -391,6 +371,7 @@ exports.initiatePayment = async (req, res) => {
     });
   }
 };
+
 
 exports.getAllTransactions = async (req, res) => {
   try {
