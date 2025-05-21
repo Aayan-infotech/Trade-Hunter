@@ -5,7 +5,7 @@ const DeviceToken = require("../models/devicetokenModel");
 const Hunter = require("../models/hunterModel");
 const Provider = require("../models/providerModel");
 const SubscriptionVoucherUser = require("../models/SubscriptionVoucherUserModel");
-const Job = require('../models/jobpostModel');  // Import the Job model
+const JobPost = require('../models/jobpostModel');  // Import the Job model
 
 
 exports.sendPushNotification = async (req, res) => {
