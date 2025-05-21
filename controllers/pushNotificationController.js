@@ -218,14 +218,16 @@ exports.getNotificationsByUserId = async (req, res) => {
     const total = allNotifications.length;
 
     res.status(200).json({
-      status: 200,
-      success: true,
-      data: paginatedNotifications,
-      total,
-      page,
-      limit,
-      unreadCount,
-      message: "Fetched all valid notifications with pagination!"
+     status: 200,
+  success: true,
+  data: paginatedNotifications,
+  pagination: {
+    total,
+    currentPage: page,
+    totalPages: Math.ceil(total / limit)
+  },
+  unreadCount,
+  message: "Fetched all valid notifications with pagination!"
     });
 
   } catch (error) {
