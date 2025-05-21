@@ -171,7 +171,7 @@ exports.getAllSubscriptionUsers = async (req, res) => {
     const skip = (Number(page) - 1) * Number(limit);
     const term = search.trim().toLowerCase();
 
-    let allSubs = await SubscriptionUser.find()
+    let allSubs = await SubscriptionUser.find({ type: { $ne: "Voucher" } }) 
       .populate("userId")
       .populate({
         path: "subscriptionPlanId",
@@ -202,11 +202,13 @@ exports.getAllSubscriptionUsers = async (req, res) => {
     }
 
     allSubs.sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
 
     const totalCount = allSubs.length;
     const paginated = allSubs.slice(skip, skip + Number(limit));
+
     return res.status(200).json({
       status: 200,
       success: true,
