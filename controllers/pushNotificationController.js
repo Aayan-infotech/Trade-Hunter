@@ -106,37 +106,36 @@ exports.sendPushNotification = async (req, res) => {
 
 exports.sendPushNotificationAdmin = async (req, res) => {
   try {
-    const { title, body, receiverId } = req.body;
+    const { title, body, receiverId, receiverModel } = req.body;
 
-    if (!title || !body || !receiverId) {
+    if (!title || !body || !receiverId || !receiverModel) {
       return res.status(400).json({
         status: 400,
         success: false,
-        message: "Title, body, and receiverId are required.",
+        message: "Title, body, receiverId, and receiverModel are required.",
         data: [],
       });
     }
 
     const device = await DeviceToken.findOne({ userId: receiverId });
-    let shouldSend = false;
 
-    // If device token is found, allow sending
+    let shouldSend = false;
     let deviceToken = null;
+
     if (device && device.deviceToken) {
       deviceToken = device.deviceToken;
       shouldSend = true;
     }
 
-    // Store receiverId as ObjectId for compatibility with notification retrieval
     const notificationData = await Notification.create({
       title,
       body,
       receiverId: new mongoose.Types.ObjectId(receiverId),
+      receiverModel, 
       notificationType: "admin_message",
-      isRead: false, // optional: mark as unread by default
+      isRead: false,
     });
 
-    // Send push notification if applicable
     if (shouldSend) {
       const message = {
         notification: { title, body },
@@ -167,6 +166,7 @@ exports.sendPushNotificationAdmin = async (req, res) => {
     });
   }
 };
+
 
 // NotificationController.js
 exports.getNotificationsByUserId = async (req, res) => {
