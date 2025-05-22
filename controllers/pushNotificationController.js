@@ -13,15 +13,17 @@ exports.sendPushNotification = async (req, res) => {
     const { title, body, receiverId, notificationType } = req.body;
     const userId = req.user.userId;
 
+    // Validate inputs
     if (!title || !body || !receiverId || !notificationType) {
       return res.status(400).json({
         status: 400,
         success: false,
-        message: "Title and body are required.",
+        message: "Title, body, receiverId and notificationType are required.",
         data: [],
       });
     }
 
+    // Validate notification type
     const validTypes = [
       "job_alert",
       "voucher_update",
@@ -38,43 +40,41 @@ exports.sendPushNotification = async (req, res) => {
       });
     }
 
+    // Try finding device token
     const device = await DeviceToken.findOne({ userId: receiverId });
-
-    if (!device) {
-      return res.status(404).json({
-        status: 404,
-        success: false,
-        message: "Device token not found for the user.",
-        data: [],
-      });
-    }
-
     let shouldSend = false;
+    let messageSent = false;
 
-    if (device.userType === "provider") {
-      const provider = await Provider.findById(receiverId);
-      if (provider && provider.isNotificationEnable === true) {
-        shouldSend = true;
+    if (device) {
+      // Check userType and notification setting
+      if (device.userType === "provider") {
+        const provider = await Provider.findById(receiverId);
+        if (provider?.isNotificationEnable) shouldSend = true;
+      } else if (device.userType === "hunter") {
+        const hunter = await Hunter.findById(receiverId);
+        if (hunter?.isNotificationEnable) shouldSend = true;
       }
-    } else if (device.userType === "hunter") {
-      const hunter = await Hunter.findById(receiverId);
-      if (hunter && hunter.isNotificationEnable === true) {
-        shouldSend = true;
+
+      // Send push if allowed and token is present
+      if (shouldSend && device.deviceToken) {
+        try {
+          const message = {
+            notification: { title, body },
+            token: device.deviceToken,
+          };
+
+          await admin.messaging().send(message);
+          messageSent = true;
+        } catch (fcmError) {
+          console.warn("FCM send error:", fcmError.message);
+        }
       }
+    } else {
+      console.warn(`No device token found for user ${receiverId}`);
     }
 
-    let notificationData = null;
-
-    if (shouldSend) {
-      const message = {
-        notification: { title, body },
-        token: device.deviceToken,
-      };
-
-      await admin.messaging().send(message);
-    }
-
-    notificationData = await Notification.create({
+    // Always save the notification
+    const notificationData = await Notification.create({
       userId,
       title,
       body,
@@ -85,9 +85,9 @@ exports.sendPushNotification = async (req, res) => {
     return res.status(200).json({
       status: 200,
       success: true,
-      message: shouldSend
-        ? "Notification sent successfully."
-        : "Notification saved but not sent (notifications disabled).",
+      message: messageSent
+        ? "Notification sent and saved."
+        : "Notification saved. Not sent due to missing token or disabled settings.",
       data: [notificationData],
     });
   } catch (error) {
@@ -95,12 +95,13 @@ exports.sendPushNotification = async (req, res) => {
     return res.status(500).json({
       status: 500,
       success: false,
-      message: "Failed to send notification.",
+      message: "Failed to process notification request.",
       data: [],
       error: error.message,
     });
   }
 };
+
 
 exports.sendPushNotificationAdmin = async (req, res) => {
   try {
