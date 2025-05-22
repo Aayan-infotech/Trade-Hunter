@@ -259,7 +259,7 @@ exports.sendJobNotificationEmail = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required: name, receverEmail' });
     }
 
-    const subject = '📩 New Job Message Notification';
+    const subject = '📩 New  Message Notification';
 
     const jobTitleSection = jobTitle
       ? `regarding the job titled <strong style="color: #27ae60;">${jobTitle}</strong>`
