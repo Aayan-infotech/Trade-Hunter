@@ -117,22 +117,28 @@ exports.sendPushNotificationAdmin = async (req, res) => {
       });
     }
 
+    // Try to find the device token (can be null)
     const device = await DeviceToken.findOne({ userId: receiverId });
 
     let shouldSend = false;
 
-    let notificationData = null;
-
-    if (shouldSend) {
+    if (device && device.deviceToken) {
       const message = {
         notification: { title, body },
-        token: deviceToken,
+        token: device.deviceToken,
       };
 
-      await admin.messaging().send(message);
+      try {
+        await admin.messaging().send(message);
+        shouldSend = true;
+      } catch (fcmError) {
+        console.error("FCM send error:", fcmError.message);
+        // Do not stop the flow — just log it
+      }
     }
 
-    notificationData = await Notification.create({
+    // Save to DB regardless of device token
+    const notificationData = await Notification.create({
       title,
       body,
       receiverId,
@@ -145,10 +151,11 @@ exports.sendPushNotificationAdmin = async (req, res) => {
       message: shouldSend
         ? "Notification sent and saved successfully."
         : device
-        ? "Notification saved but not sent (notifications disabled)."
-        : "Notification saved but not sent (device token not found).",
+        ? "Notification saved but not sent (error sending push)."
+        : "Notification saved (no device token found).",
       data: [notificationData],
     });
+
   } catch (error) {
     console.error("Error sending notification:", error);
     return res.status(500).json({
@@ -160,6 +167,7 @@ exports.sendPushNotificationAdmin = async (req, res) => {
     });
   }
 };
+
 
 // NotificationController.js
 exports.getNotificationsByUserId = async (req, res) => {
@@ -184,7 +192,7 @@ exports.getNotificationsByUserId = async (req, res) => {
         if (job) {
           jobDetails = {
             _id: job._id,
-            title: job.title,
+            title: job.title, 
             jobStatus: job.jobStatus,
             completionNotified: job.completionNotified,
           };
