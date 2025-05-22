@@ -1,44 +1,38 @@
 // services/sendMail.js
 const nodemailer = require('nodemailer');
-require('dotenv').config();
-
-// Create transporter once using environment variables
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: { rejectUnauthorized: false },
-});
 
 /**
- * @param {string} recipient    
- * @param {string} subject     
- * @param {string} htmlMessage 
- * @param {Array<Object>} attachments 
+ * @param {string} recipient    – the “to” address
+ * @param {string} subject      – the e-mail subject line
+ * @param {string} htmlMessage  – the HTML body
+ * @param {Array<Object>} attachments – optional array of attachments
  */
 const sendEmail = async (recipient, subject, htmlMessage, attachments = []) => {
   try {
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: 'development.aayaninfotech@gmail.com',
+        pass: 'defe qhhm kgmu ztkf',
+      },
+      tls: { rejectUnauthorized: false },
+    });
+
     const mailOptions = {
-      from:    `"Trade Hunter" <${process.env.EMAIL_USER}>`,
+      from:    '"Trade Hunter" <development.aayaninfotech@gmail.com>',
       to:      recipient,
-      subject,
+      subject: subject,
       html:    htmlMessage,
-      attachments,
+      attachments,          // ← include attachments here
     };
 
-    // Verify transporter configuration
-    await transporter.verify();
     const info = await transporter.sendMail(mailOptions);
     console.log('Email sent:', info.response);
-    return info;
   } catch (error) {
     console.error('Error sending email:', error);
-    // Propagate original error for better debugging
-    throw error;
+    throw new Error('Email sending failed');
   }
 };
 
