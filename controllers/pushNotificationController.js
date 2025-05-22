@@ -178,9 +178,10 @@ exports.getNotificationsByUserId = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const userNotifications = await Notification.find({ 
-  receiverId: new mongoose.Types.ObjectId(receiverId) 
-});
+    // 1. Get individual push notifications for the user
+    const userNotifications = await Notification.find({
+      receiverId: new mongoose.Types.ObjectId(receiverId),
+    });
 
     const filteredUserNotificationsPromises = userNotifications.map(async (notification) => {
       const user = await Provider.findById(notification.userId) || await Hunter.findById(notification.userId);
@@ -191,7 +192,7 @@ exports.getNotificationsByUserId = async (req, res) => {
         if (job) {
           jobDetails = {
             _id: job._id,
-            title: job.title, 
+            title: job.title,
             jobStatus: job.jobStatus,
             completionNotified: job.completionNotified,
           };
@@ -203,7 +204,7 @@ exports.getNotificationsByUserId = async (req, res) => {
           ...notification._doc,
           userName: user.name,
           isRead: notification.isRead,
-          jobDetails, // Include populated job fields here
+          jobDetails,
         };
       } else {
         return null;
@@ -213,32 +214,44 @@ exports.getNotificationsByUserId = async (req, res) => {
     const resolvedNotifications = await Promise.all(filteredUserNotificationsPromises);
     const validUserNotifications = resolvedNotifications.filter(notification => notification !== null);
 
-    const massNotifications = await massNotification.find({ userType });
+    // 2. Get current user to check insDate
+    let currentUser = null;
+    if (userType === "provider") {
+      currentUser = await Provider.findById(receiverId).select("insDate");
+    } else if (userType === "hunter") {
+      currentUser = await Hunter.findById(receiverId).select("insDate");
+    }
+
+    // 3. Get mass notifications created AFTER user's insDate
+    const massNotifications = await massNotification.find({
+      userType,
+      createdAt: { $gte: currentUser?.insDate || new Date(0) },
+    });
 
     const formattedMassNotifications = massNotifications.map((notif) => ({
       ...notif._doc,
       isRead: notif.readBy.includes(receiverId),
     }));
 
+    // 4. Combine and paginate
     const allNotifications = [...validUserNotifications, ...formattedMassNotifications];
-    allNotifications.sort((a, b) => b.createdAt - a.createdAt); 
+    allNotifications.sort((a, b) => b.createdAt - a.createdAt);
 
     const unreadCount = allNotifications.filter(n => !n.isRead).length;
-
     const paginatedNotifications = allNotifications.slice(skip, skip + limit);
     const total = allNotifications.length;
 
     res.status(200).json({
-     status: 200,
-  success: true,
-  data: paginatedNotifications,
-  pagination: {
-    total,
-    currentPage: page,
-    totalPages: Math.ceil(total / limit)
-  },
-  unreadCount,
-  message: "Fetched all valid notifications with pagination!"
+      status: 200,
+      success: true,
+      data: paginatedNotifications,
+      pagination: {
+        total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+      },
+      unreadCount,
+      message: "Fetched all valid notifications with pagination!",
     });
 
   } catch (error) {
@@ -246,7 +259,7 @@ exports.getNotificationsByUserId = async (req, res) => {
     res.status(500).json({
       status: 500,
       message: error.message,
-      success: false
+      success: false,
     });
   }
 };
