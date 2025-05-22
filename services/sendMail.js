@@ -14,7 +14,7 @@ const sendEmail = async (recipient, subject, htmlMessage, attachments = []) => {
       port: 587,
       secure: false,
       auth: {
-        user: 'verification@tradehunters.com.au',
+        user: 'admin@tradehunters.com.au',
         pass: 'tsnx gttz krsr zkyi',
       },
       tls: { rejectUnauthorized: false },
