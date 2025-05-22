@@ -620,7 +620,7 @@ async function expireSubscription(provider) {
   provider.subscriptionPlanId = null;
   provider.subscriptionType = null;
   provider.leadCompleteCount = null;
-  provider.address.radius = 16000;
+  provider.address.radius = 160000;
 }
 
 exports.jobCompleteCount = async (req, res) => {

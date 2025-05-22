@@ -25,7 +25,7 @@ const updateLeadBasedSubscriptionStatus = async () => {
         provider.subscriptionPlanId = null;
         provider.leadCompleteCount = null;
         provider.subscriptionType = null;
-        provider.address.radius = 10000;
+        provider.address.radius = 160000;
         console.log(` Lead limit reached for provider: ${provider._id}`);
       } else {
         provider.isGuestMode = false;
