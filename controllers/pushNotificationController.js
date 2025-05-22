@@ -106,65 +106,66 @@ exports.sendPushNotification = async (req, res) => {
 
 exports.sendPushNotificationAdmin = async (req, res) => {
   try {
-    const { title, body, receiverId } = req.body;
+    const { title, body, receiverId } = req.body
 
+    // 1. Validate required fields
     if (!title || !body || !receiverId) {
       return res.status(400).json({
         status: 400,
         success: false,
         message: "Title, body, and receiverId are required.",
         data: [],
-      });
+      })
     }
 
-    const device = await DeviceToken.findOne({ userId: receiverId });
-    let shouldSend = false;
+    // 2. Look up the device token
+    const device = await DeviceToken.findOne({ userId: receiverId })
+    const deviceToken = device?.deviceToken || null
 
-    // If device token is found, allow sending
-    let deviceToken = null;
-    if (device && device.deviceToken) {
-      deviceToken = device.deviceToken;
-      shouldSend = true;
-    }
-
-    // Store receiverId as ObjectId for compatibility with notification retrieval
+    // 3. Save the notification record (always)
     const notificationData = await Notification.create({
       title,
       body,
       receiverId: new mongoose.Types.ObjectId(receiverId),
       notificationType: "admin_message",
-      isRead: false, // optional: mark as unread by default
-    });
+      isRead: false,
+    })
 
-    // Send push notification if applicable
-    if (shouldSend) {
-      const message = {
-        notification: { title, body },
-        token: deviceToken,
-      };
-
-      await admin.messaging().send(message);
+    // 4. Attempt to send push via FCM if we have a token
+    let fcmSent = false
+    if (deviceToken) {
+      try {
+        await admin.messaging().send({
+          notification: { title, body },
+          token: deviceToken,
+        })
+        fcmSent = true
+      } catch (fcmError) {
+        // Log and continue — do not throw
+        console.warn("FCM send error (ignored):", fcmError.message)
+      }
     }
 
+    // 5. Respond success no matter what
     return res.status(200).json({
       status: 200,
       success: true,
-      message: shouldSend
+      message: fcmSent
         ? "Notification sent and saved successfully."
-        : device
-        ? "Notification saved but not sent (notifications disabled)."
-        : "Notification saved but not sent (device token not found).",
+        : deviceToken
+        ? "Notification saved but push failed or disabled."
+        : "Notification saved but not sent (no device token).",
       data: [notificationData],
-    });
+    })
   } catch (error) {
-    console.error("Error sending notification:", error);
+    console.error("Error in sendPushNotificationAdmin:", error)
     return res.status(500).json({
       status: 500,
       success: false,
       message: "Failed to send notification.",
       data: [],
       error: error.message,
-    });
+    })
   }
 }
 
