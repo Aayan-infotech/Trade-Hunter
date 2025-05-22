@@ -174,21 +174,20 @@ exports.sendPushNotificationAdmin = async (req, res) => {
 exports.getNotificationsByUserId = async (req, res) => {
   try {
     const receiverId = req.user.userId;
-    const userType = req.params.userType;
+    const userType   = req.params.userType;
 
-    const page = parseInt(req.query.page, 10) || 1;
+    const page  = parseInt(req.query.page, 10)  || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
-    const skip = (page - 1) * limit;
+    const skip  = (page - 1) * limit;
 
-    // 1. Fetch all personal notifications for this user
+    // 1) Fetch personal notifications for this user
     const userNotifications = await Notification.find({
       receiverId: new mongoose.Types.ObjectId(receiverId),
     });
 
-    // 2. Enrich each notification with userName and jobDetails
+    // 2) Enrich each notification with sender name and job details
     const enrichedNotifications = await Promise.all(
       userNotifications.map(async (notif) => {
-        // Determine sender name
         let userName = null;
         if (notif.notificationType === "admin_message") {
           userName = "Admin";
@@ -199,7 +198,6 @@ exports.getNotificationsByUserId = async (req, res) => {
           userName = sender?.name || null;
         }
 
-        // Pull job details if present
         let jobDetails = null;
         if (notif.jobId) {
           const job = await JobPost.findById(notif.jobId).select(
@@ -224,36 +222,33 @@ exports.getNotificationsByUserId = async (req, res) => {
       })
     );
 
-    // 3. Determine the user’s join date
-    let joinDate = new Date(0);
+    // 3) Determine the exact join timestamp of the user
+    let joinRecord;
     if (userType === "provider") {
-      const prov = await Provider.findById(receiverId).select("insDate");
-      if (prov?.insDate) joinDate = prov.insDate;
+      joinRecord = await Provider.findById(receiverId).select("createdAt");
     } else {
-      const hunt = await Hunter.findById(receiverId).select("insDate createdAt");
-      // use insDate if present, otherwise fallback to createdAt
-      joinDate = hunt?.insDate || hunt?.createdAt || joinDate;
+      joinRecord = await Hunter.findById(receiverId).select("createdAt");
     }
+    const joinDate = joinRecord?.createdAt || new Date(0);
 
-    // 4. Fetch mass notifications created on or after joinDate
+    // 4) Fetch mass notifications created at or after joinDate
     const massNotifs = await massNotification.find({
       userType,
       createdAt: { $gte: joinDate },
     });
-
     const formattedMass = massNotifs.map((mn) => ({
       ...mn._doc,
       isRead: mn.readBy.includes(receiverId),
     }));
 
-    // 5. Combine, sort, compute unread count, and paginate
+    // 5) Combine all, sort by descending timestamp, compute unread count, paginate
     const all = [...enrichedNotifications, ...formattedMass].sort(
       (a, b) => b.createdAt - a.createdAt
     );
 
     const unreadCount = all.filter((n) => !n.isRead).length;
-    const paginated = all.slice(skip, skip + limit);
-    const total = all.length;
+    const paginated   = all.slice(skip, skip + limit);
+    const total       = all.length;
 
     return res.status(200).json({
       status: 200,
