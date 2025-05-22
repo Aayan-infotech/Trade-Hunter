@@ -177,20 +177,25 @@ const signUp = async (req, res) => {
 
     const verificationOTP = await generateverificationOTP(newUser);
 
-    await sendEmail(
-      email,
-      "Account Verification OTP - Trade Hunters",
-      `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-        <h2>Hello ${name},</h2>
-        <p>Welcome aboard! To complete your registration, please use the OTP below:</p>
-        <h3 style="color: #2c3e50;">Your OTP: <span style="color: #e74c3c;">${verificationOTP}</span></h3>
-        <p>This OTP is valid for 10 minutes. Do not share it with anyone.</p>
-        <br />
-        <p>Cheers,<br /><strong>Trade Hunters</strong></p>
-      </div>
-      `
-    );
+    // Attempt sending verification email
+    try {
+      await sendEmail(
+        email,
+        "Account Verification OTP - Trade Hunters",
+        `
+        <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+          <h2>Hello ${name},</h2>
+          <p>Welcome aboard! To complete your registration, please use the OTP below:</p>
+          <h3 style="color: #2c3e50;">Your OTP: <span style="color: #e74c3c;">${verificationOTP}</span></h3>
+          <p>This OTP is valid for 10 minutes. Do not share it with anyone.</p>
+          <br />
+          <p>Cheers,<br /><strong>Trade Hunters</strong></p>
+        </div>
+        `
+      );
+    } catch (emailErr) {
+      console.error("Verification email failed:", emailErr.message);
+    }
 
     const savedUser = await newUser.save();
 
@@ -205,21 +210,26 @@ const signUp = async (req, res) => {
       }).save();
     }
 
-    await sendEmail(
-      "rishabh.sharma@aayaninfotech.com",
-      `New ${userType} Signup - ${name}`,
-      `
-      <div style="font-family: Arial, sans-serif;">
-        <h2>New User Signup Notification</h2>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Phone:</strong> ${phoneNo}</p>
-        <p><strong>Signed up as:</strong> ${userType}</p>
-        <br />
-        <p>Regards,<br />Trade Hunters</p>
-      </div>
-      `
-    );
+    // Attempt sending notification to admin
+    try {
+      await sendEmail(
+        process.env.ADMIN_NOTIFY_EMAIL || "rishabh.sharma@aayaninfotech.com",
+        `New ${userType} Signup - ${name}`,
+        `
+        <div style="font-family: Arial, sans-serif;">
+          <h2>New User Signup Notification</h2>
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          <p><strong>Phone:</strong> ${phoneNo}</p>
+          <p><strong>Signed up as:</strong> ${userType}</p>
+          <br />
+          <p>Regards,<br />Trade Hunters</p>
+        </div>
+        `
+      );
+    } catch (notifyErr) {
+      console.error("Admin notification email failed:", notifyErr.message);
+    }
 
     return res.status(200).json({
       status: 200,
@@ -228,7 +238,7 @@ const signUp = async (req, res) => {
       user: savedUser,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Signup error:", error);
     return res.status(500).json({
       status: 500,
       success: false,
@@ -236,6 +246,7 @@ const signUp = async (req, res) => {
     });
   }
 };
+
 
 const login = async (req, res) => {
   const { email, password, userType } = req.body;
