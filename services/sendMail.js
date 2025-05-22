@@ -14,14 +14,14 @@ const sendEmail = async (recipient, subject, htmlMessage, attachments = []) => {
       port: 587,
       secure: false,
       auth: {
-        user: 'development.aayaninfotech@gmail.com',
-        pass: 'defe qhhm kgmu ztkf',
+        user: 'admin@tradehunters.com.au',
+        pass: 'tsnx gttz krsr zkyi',
       },
       tls: { rejectUnauthorized: false },
     });
 
     const mailOptions = {
-      from:    '"Trade Hunter" <development.aayaninfotech@gmail.com>',
+      from:    '"Trade Hunter" <admin@tradehunters.com.au>',
       to:      recipient,
       subject: subject,
       html:    htmlMessage,
