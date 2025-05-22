@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const providerModel = require("../models/providerModel");
 const Hunter = require("../models/hunterModel");
 const Address = require("../models/addressModel");
-const sendEmail = require('../services/sendMail');
+const sendEmail = require('../services/sendInvoiceMail');
 
 exports.getNearbyServiceProviders = async (req, res) => {
   try {

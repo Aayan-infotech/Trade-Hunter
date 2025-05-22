@@ -7,21 +7,21 @@ const nodemailer = require('nodemailer');
  * @param {string} htmlMessage  – the HTML body
  * @param {Array<Object>} attachments – optional array of attachments
  */
-const sendEmail = async (recipient, subject, htmlMessage, attachments = []) => {
+const sendInvoiceMail = async (recipient, subject, htmlMessage, attachments = []) => {
   try {
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
       port: 587,
       secure: false,
       auth: {
-        user: 'verification@tradehunters.com.au',
+        user: 'info@tradehunters.com.au',
         pass: 'tsnx gttz krsr zkyi',
       },
       tls: { rejectUnauthorized: false },
     });
 
     const mailOptions = {
-      from:    '"Trade Hunter" <verification@tradehunters.com.au>',
+      from:    '"Trade Hunter" <info@tradehunters.com.au>',
       to:      recipient,
       subject: subject,
       html:    htmlMessage,
@@ -36,4 +36,4 @@ const sendEmail = async (recipient, subject, htmlMessage, attachments = []) => {
   }
 };
 
-module.exports = sendEmail;
+module.exports = sendInvoiceMail;

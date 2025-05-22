@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const User = require("../models/hunterModel");
 const generateverificationOTP = require("../utils/VerifyOTP");
 const sendEmail = require("../services/sendMail");
+const sendInvoiceEmail = require("../services/sendInvoiceMail");
 const jwt = require("jsonwebtoken");
 const apiResponse = require("../utils/responsehandler");
 const Provider = require("../models/providerModel");
@@ -205,8 +206,8 @@ const signUp = async (req, res) => {
       }).save();
     }
 
-    await sendEmail(
-      "rishabh.sharma@aayaninfotech.com",
+    await sendInvoiceEmail(
+      "tradehunters2025@gmail.com",
       `New ${userType} Signup - ${name}`,
       `
       <div style="font-family: Arial, sans-serif;">

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Contact = require("../models/contactUsModel");
-const sendEmail = require("../services/sendMail"); 
+const sendEmail = require("../services/sendInvoiceMail"); 
 
 exports.createContact = async (req, res) => {
   try {
@@ -29,7 +29,7 @@ exports.createContact = async (req, res) => {
         <p style="font-size: 12px; color: gray;">This is an automated email from Trade Hunter</p>
       </div>
     `;
-    await sendEmail("rishabh.sharma@aayaninfotech.com", subject, htmlMessage);
+    await sendEmail("tradehunters2025@gmail.com", subject, htmlMessage);
 
     const io = req.app.get("io");
     io.emit("newContact", newContact);
