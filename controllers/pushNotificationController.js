@@ -5,7 +5,8 @@ const DeviceToken = require("../models/devicetokenModel");
 const Hunter = require("../models/hunterModel");
 const Provider = require("../models/providerModel");
 const SubscriptionVoucherUser = require("../models/SubscriptionVoucherUserModel");
-const JobPost = require('../models/jobpostModel');  // Import the Job model
+const JobPost = require('../models/jobpostModel');  // Import the Job 
+const mongoose = require("mongoose");
 
 
 exports.sendPushNotification = async (req, res) => {
@@ -170,7 +171,9 @@ exports.getNotificationsByUserId = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const userNotifications = await Notification.find({ receiverId });
+    const userNotifications = await Notification.find({ 
+  receiverId: new mongoose.Types.ObjectId(receiverId) 
+});
 
     const filteredUserNotificationsPromises = userNotifications.map(async (notification) => {
       const user = await Provider.findById(notification.userId) || await Hunter.findById(notification.userId);
@@ -211,7 +214,7 @@ exports.getNotificationsByUserId = async (req, res) => {
     }));
 
     const allNotifications = [...validUserNotifications, ...formattedMassNotifications];
-    allNotifications.sort((a, b) => b.createdAt - a.createdAt);
+    allNotifications.sort((a, b) => b.createdAt - a.createdAt); 
 
     const unreadCount = allNotifications.filter(n => !n.isRead).length;
 
