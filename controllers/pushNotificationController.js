@@ -176,8 +176,8 @@ exports.getNotificationsByUserId = async (req, res) => {
     const receiverId = req.user.userId;
     const userType = req.params.userType;
 
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
     const skip = (page - 1) * limit;
 
     // 1. Fetch all personal notifications for this user
@@ -185,7 +185,7 @@ exports.getNotificationsByUserId = async (req, res) => {
       receiverId: new mongoose.Types.ObjectId(receiverId),
     });
 
-    // 2. Enrich each notification
+    // 2. Enrich each notification with userName and jobDetails
     const enrichedNotifications = await Promise.all(
       userNotifications.map(async (notif) => {
         // Determine sender name
@@ -224,17 +224,21 @@ exports.getNotificationsByUserId = async (req, res) => {
       })
     );
 
-    // 3. Fetch mass (broadcast) notifications created since the user's join date
-    let currentUser = null;
+    // 3. Determine the user’s join date
+    let joinDate = new Date(0);
     if (userType === "provider") {
-      currentUser = await Provider.findById(receiverId).select("insDate");
+      const prov = await Provider.findById(receiverId).select("insDate");
+      if (prov?.insDate) joinDate = prov.insDate;
     } else {
-      currentUser = await Hunter.findById(receiverId).select("insDate");
+      const hunt = await Hunter.findById(receiverId).select("insDate createdAt");
+      // use insDate if present, otherwise fallback to createdAt
+      joinDate = hunt?.insDate || hunt?.createdAt || joinDate;
     }
 
+    // 4. Fetch mass notifications created on or after joinDate
     const massNotifs = await massNotification.find({
       userType,
-      createdAt: { $gte: currentUser?.insDate || new Date(0) },
+      createdAt: { $gte: joinDate },
     });
 
     const formattedMass = massNotifs.map((mn) => ({
@@ -242,7 +246,7 @@ exports.getNotificationsByUserId = async (req, res) => {
       isRead: mn.readBy.includes(receiverId),
     }));
 
-    // 4. Combine, sort by date desc, compute unread count, and paginate
+    // 5. Combine, sort, compute unread count, and paginate
     const all = [...enrichedNotifications, ...formattedMass].sort(
       (a, b) => b.createdAt - a.createdAt
     );
