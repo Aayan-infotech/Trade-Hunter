@@ -266,9 +266,9 @@ const changeJobStatus = async (req, res) => {
 
 const myAcceptedJobs = async (req, res) => {
   try {
-    const page      = parseInt(req.query.page,  10) || 1;
+    const page      = parseInt(req.query.page, 10) || 1;
     const limit     = parseInt(req.query.limit, 10) || 10;
-    const { jobStatus } = req.query;                  
+    const { jobStatus, search } = req.query; 
 
     const user = await Provider.findById(req.user.userId)
       .select('assignedJobs')
@@ -287,18 +287,20 @@ const myAcceptedJobs = async (req, res) => {
       });
     }
 
-    // 2. Dedupe and convert to ObjectIds
     const jobIds = [...new Set(
       user.assignedJobs.map(id => new mongoose.Types.ObjectId(id))
     )];
 
-    // 3. Build the match criteria
     const matchCriteria = { _id: { $in: jobIds } };
+
     if (jobStatus && jobStatus.trim()) {
-      matchCriteria.jobStatus = jobStatus.trim();      // ← add status filter
+      matchCriteria.jobStatus = jobStatus.trim();
     }
 
-    // 4. Aggregation pipeline
+    if (search && search.trim()) {
+      matchCriteria.title = { $regex: search.trim(), $options: 'i' };
+    }
+
     const aggregation = [
       { $match: matchCriteria },
       {
@@ -312,12 +314,10 @@ const myAcceptedJobs = async (req, res) => {
       },
     ];
 
-    // 5. Execute and unpack
     const jobsAgg = await JobPost.aggregate(aggregation);
     const totalJobs = jobsAgg[0]?.totalCount[0]?.count || 0;
-    const jobs      = jobsAgg[0]?.paginatedResults  || [];
+    const jobs      = jobsAgg[0]?.paginatedResults || [];
 
-    // 6. Return response
     return res.status(200).json({
       status: 200,
       message: 'Jobs fetched successfully',
@@ -328,11 +328,13 @@ const myAcceptedJobs = async (req, res) => {
         currentPage: page,
       },
     });
+
   } catch (error) {
     console.error('Error fetching jobs:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 
 const businessTypes = async (req, res) => {
