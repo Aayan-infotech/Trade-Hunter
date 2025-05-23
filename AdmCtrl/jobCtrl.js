@@ -67,6 +67,7 @@ const getAllJobPosts = async (req, res) => {
         requirements: 1,
         jobStatus: 1,
         jobAssigned: 1,
+        completionDate: 1,
         createdAt: 1,
         updatedAt: 1,
         user: {
