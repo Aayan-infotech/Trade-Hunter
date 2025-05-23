@@ -381,12 +381,11 @@ exports.getAllTransactions = async (req, res) => {
     let filter = {};
 
     if (search && search.trim()) {
-      // search against the Provider collection
       const matchingProviders = await Provider.find({
-        businessName: { $regex: new RegExp(search.trim(), "i") },
+        businessName: { $regex: new RegExp(search.trim(), "i") }
       }).select("_id");
       const providerIds = matchingProviders.map(p => p._id);
-      filter.providerId = { $in: providerIds };                  // ← filter on providerId
+      filter.userId = { $in: providerIds };         
     }
 
     const totalCount = await Transaction.countDocuments(filter);
@@ -395,7 +394,7 @@ exports.getAllTransactions = async (req, res) => {
       .sort({ "transaction.transactionDate": -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .populate("providerId", "contactName email businessName")  // ← populate providerId
+      .populate("userId", "contactName email businessName")    
       .populate("subscriptionPlanId", "planName kmRadius");
 
     return res.status(200).json({
