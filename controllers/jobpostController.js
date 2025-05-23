@@ -209,6 +209,7 @@ const changeJobStatus = async (req, res) => {
       return res.status(404).json({ error: "Job post not found" });
     }
 
+    // Transition from Pending → Assigned
     if (jobPost.jobStatus === "Pending") {
       if (!providerId || !mongoose.Types.ObjectId.isValid(providerId)) {
         return res
@@ -217,30 +218,37 @@ const changeJobStatus = async (req, res) => {
       }
 
       const provider = await Provider.findById(providerId);
-      if(!provider){
-        return res.status(404).json({error: "Provider Not Found"})
+      if (!provider) {
+        return res.status(404).json({ error: "Provider Not Found" });
       }
-    
+
       jobPost.jobStatus = "Assigned";
       jobPost.provider = provider._id;
+      jobPost.completionDate = null;      // clear any old completionDate
       await jobPost.save();
 
       if (!provider.assignedJobs.includes(jobId)) {
         provider.assignedJobs.push(jobId);
         await provider.save();
       }
+
+    // Transition from Assigned → Completed
     } else if (jobPost.jobStatus === "Assigned") {
       jobPost.jobStatus = "Completed";
+      jobPost.completionDate = new Date(); // set completionDate to now
       await jobPost.save();
+
+    // Any other manual override
     } else {
-      if (jobStatus) {
-        const allowedStatuses = ["Pending", "Assigned", "Completed"];
-        if (!allowedStatuses.includes(jobStatus)) {
-          return res.status(400).json({
-            error: "Invalid job status. Allowed values: Pending, Assigned, Completed",
-          });
-        }
+      const allowedStatuses = ["Pending", "Assigned", "Completed"];
+      if (jobStatus && allowedStatuses.includes(jobStatus)) {
         jobPost.jobStatus = jobStatus;
+        // If manually resetting back to Pending or Assigned, clear completionDate
+        jobPost.completionDate = jobStatus === "Completed" ? new Date() : null;
+      } else if (jobStatus) {
+        return res.status(400).json({
+          error: "Invalid job status. Allowed values: Pending, Assigned, Completed",
+        });
       }
       await jobPost.save();
     }
@@ -254,6 +262,7 @@ const changeJobStatus = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
 
 const myAcceptedJobs = async (req, res) => {
   try {

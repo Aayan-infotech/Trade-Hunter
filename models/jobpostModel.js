@@ -72,6 +72,10 @@ const JobPostSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  completionDate: {
+    type: Date,
+    default: null,
+  },
   
 
   deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "hunter", default: null },
