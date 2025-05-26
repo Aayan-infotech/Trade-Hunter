@@ -88,6 +88,8 @@ const createJobPost = async (req, res) => {
     });
 
     await jobPost.save();
+    const io = req.app.get("io");
+    io.emit("new Job", jobPost);
 
     return res.status(201).json({
       message: "Job post created successfully.",  

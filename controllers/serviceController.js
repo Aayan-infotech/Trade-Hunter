@@ -30,7 +30,7 @@ const createService = async (req, res) => {
 
 const getAllServices = async (req, res) => {
   try {
-    const services = await Service.find({}); 
+    const services = await Service.find({}).sort({ name: 1 }); // Sort alphabetically by 'name'
 
     res.status(200).json({
       status: 200,
@@ -45,6 +45,7 @@ const getAllServices = async (req, res) => {
     });
   }
 };
+
 
 const updateService = async (req, res) => {
   try {
