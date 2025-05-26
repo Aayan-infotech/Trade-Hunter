@@ -31,7 +31,10 @@ const getAllJobPosts = async (req, res) => {
     });
 
     pipeline.push({
-      $unwind: { path: "$providerDetails", preserveNullAndEmptyArrays: true },
+      $unwind: {
+        path: "$providerDetails",
+        preserveNullAndEmptyArrays: true,
+      },
     });
 
     if (search.trim()) {
@@ -46,12 +49,12 @@ const getAllJobPosts = async (req, res) => {
       });
     }
 
-    pipeline.push({ $sort: { createdAt: -1 } });
-
+    // Copy pipeline for count
     const countPipeline = [...pipeline, { $count: "totalJobs" }];
     const countResult = await JobPost.aggregate(countPipeline);
     const totalJobs = countResult[0] ? countResult[0].totalJobs : 0;
 
+    pipeline.push({ $sort: { createdAt: -1 } });
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limit });
 
@@ -86,7 +89,6 @@ const getAllJobPosts = async (req, res) => {
 
     const jobPosts = await JobPost.aggregate(pipeline);
 
-    // Send response
     return apiResponse.success(res, "Job posts retrieved successfully.", {
       pagination: {
         totalJobs,
@@ -102,6 +104,7 @@ const getAllJobPosts = async (req, res) => {
     });
   }
 };
+
 
 
 
