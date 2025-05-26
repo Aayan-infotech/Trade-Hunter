@@ -6,10 +6,12 @@ const getAllJobPosts = async (req, res) => {
   let limit = parseInt(req.query.limit) || 10;
   let skip = (page - 1) * limit;
   let search = req.query.search || "";
-  let status = req.query.status || ""; 
+  let status = req.query.status || "";
 
   try {
     let pipeline = [];
+
+    // Lookup user details from "hunters"
     pipeline.push({
       $lookup: {
         from: "hunters",
@@ -19,8 +21,15 @@ const getAllJobPosts = async (req, res) => {
       },
     });
 
-    pipeline.push({ $unwind: "$userDetails" });
+    // Unwind userDetails with preserveNullAndEmptyArrays: true to keep jobs without users
+    pipeline.push({
+      $unwind: {
+        path: "$userDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    });
 
+    // Lookup provider details from "providers"
     pipeline.push({
       $lookup: {
         from: "providers",
@@ -30,6 +39,7 @@ const getAllJobPosts = async (req, res) => {
       },
     });
 
+    // Unwind providerDetails with preserveNullAndEmptyArrays: true to keep jobs without providers
     pipeline.push({
       $unwind: {
         path: "$providerDetails",
@@ -37,6 +47,7 @@ const getAllJobPosts = async (req, res) => {
       },
     });
 
+    // Apply search filter if any
     if (search.trim()) {
       pipeline.push({
         $match: {
@@ -49,22 +60,26 @@ const getAllJobPosts = async (req, res) => {
       });
     }
 
+    // Apply status filter if any
     if (status.trim()) {
       pipeline.push({
         $match: {
-          jobStatus: status, 
+          jobStatus: status,
         },
       });
     }
 
+    // Clone pipeline for counting total jobs after filters
     const countPipeline = [...pipeline, { $count: "totalJobs" }];
     const countResult = await JobPost.aggregate(countPipeline);
     const totalJobs = countResult[0] ? countResult[0].totalJobs : 0;
 
+    // Pagination and sorting
     pipeline.push({ $sort: { createdAt: -1 } });
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limit });
 
+    // Project only required fields and embed user and provider info
     pipeline.push({
       $project: {
         title: 1,
@@ -111,6 +126,7 @@ const getAllJobPosts = async (req, res) => {
     });
   }
 };
+
 
 
 
