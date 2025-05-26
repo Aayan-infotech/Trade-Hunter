@@ -6,10 +6,10 @@ const getAllJobPosts = async (req, res) => {
   let limit = parseInt(req.query.limit) || 10;
   let skip = (page - 1) * limit;
   let search = req.query.search || "";
+  let status = req.query.status || ""; 
 
   try {
     let pipeline = [];
-
     pipeline.push({
       $lookup: {
         from: "hunters",
@@ -49,7 +49,14 @@ const getAllJobPosts = async (req, res) => {
       });
     }
 
-    // Copy pipeline for count
+    if (status.trim()) {
+      pipeline.push({
+        $match: {
+          jobStatus: status, 
+        },
+      });
+    }
+
     const countPipeline = [...pipeline, { $count: "totalJobs" }];
     const countResult = await JobPost.aggregate(countPipeline);
     const totalJobs = countResult[0] ? countResult[0].totalJobs : 0;
@@ -104,6 +111,7 @@ const getAllJobPosts = async (req, res) => {
     });
   }
 };
+
 
 
 
