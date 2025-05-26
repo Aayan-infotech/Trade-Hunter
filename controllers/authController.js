@@ -189,6 +189,7 @@ const signUp = async (req, res) => {
         <p>This OTP is valid for 10 minutes. Do not share it with anyone.</p>
         <br />
         <p>Cheers,<br /><strong>Trade Hunters</strong></p>
+        <p style="font-size: 12px; color: gray;">THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL</p>
       </div>
       `
     );
@@ -216,8 +217,10 @@ const signUp = async (req, res) => {
         <p><strong>Email:</strong> ${email}</p>
         <p><strong>Phone:</strong> ${phoneNo}</p>
         <p><strong>Signed up as:</strong> ${userType}</p>
+        <p style="font-size: 12px; color: gray;">THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL</p>
         <br />
         <p>Regards,<br />Trade Hunters</p>
+
       </div>
       `
     );
@@ -446,6 +449,7 @@ const forgotPassword = async (req, res) => {
         <p>This OTP is valid for 10 minutes. Do not share it with anyone.</p>
         <br />
         <p>Cheers,<br /><strong>Trade Hunters</strong></p>
+        <p style="font-size: 12px; color: gray;">THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL</p>
       </div>
       `
     );
@@ -700,6 +704,7 @@ const resendOTP = async (req, res) => {
         <p>This OTP is valid for 10 minutes.</p>
         <br />
         <p>Cheers,<br /><strong>Trade Hunters</strong></p>
+        <p style="font-size: 12px; color: gray;">THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL</p>
       </div>
       `
     );

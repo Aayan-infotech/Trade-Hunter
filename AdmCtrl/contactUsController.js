@@ -27,7 +27,8 @@ exports.createContact = async (req, res) => {
           <li><strong>User Type:</strong> ${userType}</li>
         </ul>
         <p><strong>Message:</strong> ${message}</p>
-        <p style="font-size: 12px; color: gray;">This is an automated email from Trade Hunter</p>
+        <p style="font-size: 12px; color: gray;">THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL
+</p>
       </div>
     `;
     await sendEmail("tradehunters2025@gmail.com", subject, htmlMessage);

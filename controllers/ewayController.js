@@ -205,7 +205,9 @@ exports.initiatePayment = async (req, res) => {
             `<p>Hi ${Customer.FirstName},</p>
              <p>Thank you for your payment of $${amountCharged.toFixed(2)}.
              Please find your invoice attached.</p>
-             <p>Regards,<br/>Trade Hunters Team</p>`,
+             <p>Regards,<br/>Trade Hunters Team</p>
+             <p style="font-size: 12px; color: gray;">THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL</p>`,
+             
             [
               {
                 filename: `invoice_${txId}.pdf`,
