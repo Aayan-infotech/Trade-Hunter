@@ -5,15 +5,15 @@ const sendEmail = require("../services/sendInvoiceMail");
 
 exports.createContact = async (req, res) => {
   try {
-    const { name, email, message } = req.body;
+    const { name, email, message,userType } = req.body;
 
-    if (!name || !email || !message) {
+    if (!name || !email || !message || !userType) {
       return res
         .status(400)
-        .json({ message: "Name, email, and message are required." });
+        .json({ message: "Name, email,userType and message are required." });
     }
 
-    const newContact = new Contact({ name, email, message, isRead: false });
+    const newContact = new Contact({ name, email, message,userType, isRead: false });
     await newContact.save();
 
     const subject = "📨 New Contact Request Received";
@@ -24,6 +24,7 @@ exports.createContact = async (req, res) => {
         <ul>
           <li><strong>Name:</strong> ${name}</li>
           <li><strong>Email:</strong> ${email}</li>
+          <li><strong>User Type:</strong> ${userType}</li>
         </ul>
         <p><strong>Message:</strong> ${message}</p>
         <p style="font-size: 12px; color: gray;">This is an automated email from Trade Hunter</p>

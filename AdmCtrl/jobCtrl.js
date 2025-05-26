@@ -28,7 +28,6 @@ const getAllJobPosts = async (req, res) => {
       },
     });
 
-    // Convert provider string to ObjectId
     pipeline.push({
       $addFields: {
         providerObjectId: { $toObjectId: "$provider" },

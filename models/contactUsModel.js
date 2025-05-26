@@ -6,6 +6,11 @@ const ContactUsSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  userType: {
+    type: String,
+    enum: ["provider", "hunter"],
+    required: true,
+  },
     email: {
         type: String,
         required    : true,

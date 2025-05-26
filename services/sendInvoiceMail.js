@@ -21,7 +21,7 @@ const sendInvoiceMail = async (recipient, subject, htmlMessage, attachments = []
     });
 
     const mailOptions = {
-      from:    '"Trade Hunter" <info@tradehunters.com.au>',
+      from:    '"Trade Hunters" <info@tradehunters.com.au>',
       to:      recipient,
       subject: subject,
       html:    htmlMessage,

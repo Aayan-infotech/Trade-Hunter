@@ -21,7 +21,7 @@ const sendEmail = async (recipient, subject, htmlMessage, attachments = []) => {
     });
 
     const mailOptions = {
-      from:    '"Trade Hunter" <verification@tradehunters.com.au>',
+      from:    '"Trade Hunters" <verification@tradehunters.com.au>',
       to:      recipient,
       subject: subject,
       html:    htmlMessage,
