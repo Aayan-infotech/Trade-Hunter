@@ -1,5 +1,6 @@
 const JobPost = require("../models/jobpostModel");
 const apiResponse = require("../utils/responsehandler");
+const mongoose = require("mongoose");
 
 const getAllJobPosts = async (req, res) => {
   let page = parseInt(req.query.page) || 1;
@@ -11,7 +12,6 @@ const getAllJobPosts = async (req, res) => {
   try {
     let pipeline = [];
 
-    // Lookup user details from "hunters"
     pipeline.push({
       $lookup: {
         from: "hunters",
@@ -21,7 +21,6 @@ const getAllJobPosts = async (req, res) => {
       },
     });
 
-    // Unwind userDetails with preserveNullAndEmptyArrays: true to keep jobs without users
     pipeline.push({
       $unwind: {
         path: "$userDetails",
@@ -29,17 +28,22 @@ const getAllJobPosts = async (req, res) => {
       },
     });
 
-    // Lookup provider details from "providers"
+    // Convert provider string to ObjectId
+    pipeline.push({
+      $addFields: {
+        providerObjectId: { $toObjectId: "$provider" },
+      },
+    });
+
     pipeline.push({
       $lookup: {
         from: "providers",
-        localField: "provider",
+        localField: "providerObjectId",
         foreignField: "_id",
         as: "providerDetails",
       },
     });
 
-    // Unwind providerDetails with preserveNullAndEmptyArrays: true to keep jobs without providers
     pipeline.push({
       $unwind: {
         path: "$providerDetails",
@@ -47,7 +51,6 @@ const getAllJobPosts = async (req, res) => {
       },
     });
 
-    // Apply search filter if any
     if (search.trim()) {
       pipeline.push({
         $match: {
@@ -60,7 +63,6 @@ const getAllJobPosts = async (req, res) => {
       });
     }
 
-    // Apply status filter if any
     if (status.trim()) {
       pipeline.push({
         $match: {
@@ -69,17 +71,14 @@ const getAllJobPosts = async (req, res) => {
       });
     }
 
-    // Clone pipeline for counting total jobs after filters
     const countPipeline = [...pipeline, { $count: "totalJobs" }];
     const countResult = await JobPost.aggregate(countPipeline);
     const totalJobs = countResult[0] ? countResult[0].totalJobs : 0;
 
-    // Pagination and sorting
     pipeline.push({ $sort: { createdAt: -1 } });
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limit });
 
-    // Project only required fields and embed user and provider info
     pipeline.push({
       $project: {
         title: 1,
