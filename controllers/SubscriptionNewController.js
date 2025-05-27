@@ -167,20 +167,60 @@ exports.createSubscriptionUser = async (req, res) => {
 
 exports.getAllSubscriptionUsers = async (req, res) => {
   try {
-    const users = await SubscriptionUser.find()
+    const { page = 1, limit = 10, search = "" } = req.query;
+    const skip = (Number(page) - 1) * Number(limit);
+    const term = search.trim().toLowerCase();
+
+    let allSubs = await SubscriptionUser.find({ type: { $ne: "Voucher" } }) 
       .populate("userId")
       .populate({
         path: "subscriptionPlanId",
         populate: { path: "type", model: "SubscriptionType" },
+      })
+      .exec();
+
+    if (term) {
+      allSubs = allSubs.filter((sub) => {
+        const user = sub.userId;
+        if (!user) return false;
+
+        if (
+          user.businessName &&
+          user.businessName.toLowerCase().includes(term)
+        ) {
+          return true;
+        }
+
+        if (Array.isArray(user.businessType)) {
+          return user.businessType.some((bt) =>
+            bt.toLowerCase().includes(term)
+          );
+        }
+
+        return false;
       });
-    res.status(200).json({
+    }
+
+    allSubs.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    const totalCount = allSubs.length;
+    const paginated = allSubs.slice(skip, skip + Number(limit));
+
+    return res.status(200).json({
       status: 200,
       success: true,
       message: "Subscription users retrieved successfully",
-      data: users,
+      currentPage: Number(page),
+      pageSize: Number(limit),
+      totalCount,
+      data: paginated,
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("Error in getAllSubscriptionUsers:", error);
+    return res.status(500).json({
       status: 500,
       success: false,
       message: "Server error",
@@ -188,6 +228,7 @@ exports.getAllSubscriptionUsers = async (req, res) => {
     });
   }
 };
+
 
 
 exports.getSubscriptionUserById = async (req, res) => {
@@ -201,6 +242,7 @@ exports.getSubscriptionUserById = async (req, res) => {
     res.status(500).json({ status: 500, success: false, message: "Server error", error: error.message });
   }
 };
+
 
 exports.updateSubscriptionUser = async (req, res) => {
   try {

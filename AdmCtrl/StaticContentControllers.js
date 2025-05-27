@@ -35,7 +35,8 @@ exports.getStaticContent = async (req, res) => {
     const sectionMap = {
       "About": "about",
       "Conditions": "terms",
-      "Policy": "privacy"
+      "Policy": "privacy",
+      "Guide": "guide"
     };
 
     const fullSectionName = sectionMap[section];

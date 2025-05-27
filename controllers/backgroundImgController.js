@@ -1,43 +1,5 @@
 const BackgroundImg = require("../models/backgroundImgModel");
 
-// exports.uploadBackgroundImg = async (req, res) => {
-//     try {
-//         const { userType, userId } = req.body;
-//         if (!userType || !userId) {
-//             return res.status(400).json({ message: "userType and userId are required" });
-//         }
-
-//         if (!req.fileLocations || req.fileLocations.length === 0) {
-//             return res.status(400).json({ message: "No image uploaded" });
-//         }
-
-//         const newBackgroundImg = new BackgroundImg({
-//             backgroundImg: req.fileLocations[0],
-//             userType,
-//             userId
-//         });
-
-//         await newBackgroundImg.save();
-//         return res.status(201).json({ message: "Background image uploaded successfully", data: newBackgroundImg });
-//     } catch (error) {
-//         return res.status(500).json({ message: error.message });
-//     }
-// };
-
-// exports.getBackgroundImg = async (req, res) => {
-//     try {
-//         const { userId } = req.params;
-//         const backgroundImg = await BackgroundImg.findOne({ userId });
-
-//         if (!backgroundImg) {
-//             return res.status(404).json({ message: "No background image found for this user" });
-//         }
-
-//         return res.status(200).json({ data: backgroundImg });
-//     } catch (error) {
-//         return res.status(500).json({ message: error.message });
-//     }
-// };
 
 
 exports.uploadBackgroundImg = async (req, res) => {

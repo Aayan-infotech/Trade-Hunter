@@ -1,11 +1,13 @@
 const JobPost = require("../models/jobpostModel");
 const apiResponse = require("../utils/responsehandler");
+const mongoose = require("mongoose");
 
 const getAllJobPosts = async (req, res) => {
   let page = parseInt(req.query.page) || 1;
   let limit = parseInt(req.query.limit) || 10;
   let skip = (page - 1) * limit;
   let search = req.query.search || "";
+  let status = req.query.status || "";
 
   try {
     let pipeline = [];
@@ -18,33 +20,61 @@ const getAllJobPosts = async (req, res) => {
         as: "userDetails",
       },
     });
-    pipeline.push({ $unwind: "$userDetails" });
-    if (search.trim()) {
-      pipeline.push({
-        $match: {
-          "userDetails.name": { $regex: search, $options: "i" },
-        },
-      });
-    }
+
+    pipeline.push({
+      $unwind: {
+        path: "$userDetails",
+        preserveNullAndEmptyArrays: true,
+      },
+    });
+
+    pipeline.push({
+      $addFields: {
+        providerObjectId: { $toObjectId: "$provider" },
+      },
+    });
 
     pipeline.push({
       $lookup: {
         from: "providers",
-        localField: "provider",
+        localField: "providerObjectId",
         foreignField: "_id",
         as: "providerDetails",
       },
     });
+
     pipeline.push({
-      $unwind: { path: "$providerDetails", preserveNullAndEmptyArrays: true },
+      $unwind: {
+        path: "$providerDetails",
+        preserveNullAndEmptyArrays: true,
+      },
     });
 
-    pipeline.push({ $sort: { createdAt: -1 } });
+    if (search.trim()) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { "userDetails.name": { $regex: search, $options: "i" } },
+            { "jobLocation.jobAddressLine": { $regex: search, $options: "i" } },
+            { "providerDetails.businessName": { $regex: search, $options: "i" } },
+          ],
+        },
+      });
+    }
+
+    if (status.trim()) {
+      pipeline.push({
+        $match: {
+          jobStatus: status,
+        },
+      });
+    }
 
     const countPipeline = [...pipeline, { $count: "totalJobs" }];
     const countResult = await JobPost.aggregate(countPipeline);
     const totalJobs = countResult[0] ? countResult[0].totalJobs : 0;
 
+    pipeline.push({ $sort: { createdAt: -1 } });
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limit });
 
@@ -60,6 +90,7 @@ const getAllJobPosts = async (req, res) => {
         requirements: 1,
         jobStatus: 1,
         jobAssigned: 1,
+        completionDate: 1,
         createdAt: 1,
         updatedAt: 1,
         user: {
@@ -71,6 +102,7 @@ const getAllJobPosts = async (req, res) => {
           _id: "$providerDetails._id",
           contactName: "$providerDetails.contactName",
           email: "$providerDetails.email",
+          businessName: "$providerDetails.businessName",
         },
       },
     });
@@ -92,6 +124,11 @@ const getAllJobPosts = async (req, res) => {
     });
   }
 };
+
+
+
+
+
 
 
 
@@ -134,7 +171,6 @@ const getJobStatusCounts = async (req, res) => {
     const statusMap = {
       Pending: 0,
       Assigned: 0,
-      InProgress: 0,
       Completed: 0,
     };
 
@@ -174,7 +210,7 @@ const getRecentJobPosts = async (req, res) => {
       .populate({
         path: "provider",
         model: "Provider",
-        select: "contactName email",
+        select: "contactName email businessName",
       })
       .lean();
 
@@ -205,14 +241,13 @@ const getJobPostsByStatus = async (req, res) => {
   const allowedStatuses = [
     "Pending",
     "Assigned",
-    "InProgress",
     "Completed",
     "Deleted",
   ];
   if (!allowedStatuses.includes(status)) {
     return res.status(400).json({
       error:
-        "Invalid job status. Allowed values: Pending, Assigned, InProgress, Completed, Deleted.",
+        "Invalid job status. Allowed values: Pending, Assigned, Completed, Deleted.",
     });
   }
 

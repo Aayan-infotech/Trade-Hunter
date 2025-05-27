@@ -21,6 +21,8 @@ const multer = require("multer");
 const upload = multer();
 const { uploadToS3files } = require("../common/multerconfig2");
 const { verifyUser } = require("../middlewares/auth");
+// const { checkSubscriptionOrVoucher } = require("../middlewares/checkSubscriptionOrVoucher");
+
 const router = express.Router();
 
 router.post(
@@ -43,6 +45,7 @@ router.get("/topLocation", getTopDemandedCities);
 router.post("/acceptJob/:jobId", verifyUser, jobProviderAccept);
 router.get("/businessTypes", businessTypes);
 router.get("/jobsByBusinessType", jobsByBusinessType);
+// router.put("/job/accept/:jobId", verifyUser,checkSubscriptionOrVoucher,incrementJobAcceptCount);
 router.put("/job/accept/:jobId", incrementJobAcceptCount);
 router.put("/:id",verifyUser,upload.array("documents"),uploadToS3files, updateJobPost);
 router.put("/notifyCompletion/:jobId",verifyUser, completionNotified);

@@ -88,6 +88,8 @@ const createJobPost = async (req, res) => {
     });
 
     await jobPost.save();
+    const io = req.app.get("io");
+    io.emit("new Job", jobPost);
 
     return res.status(201).json({
       message: "Job post created successfully.",  
@@ -198,7 +200,7 @@ const getJobPostByUserId = async (req, res) => {
 const changeJobStatus = async (req, res) => {
   try {
     const jobId = req.params.jobId;
-    const { providerId, jobStatus } = req.body; 
+    const { providerId, jobStatus } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(jobId)) {
       return res.status(400).json({ error: "Invalid Job ID format" });
@@ -209,47 +211,57 @@ const changeJobStatus = async (req, res) => {
       return res.status(404).json({ error: "Job post not found" });
     }
 
-    if (jobPost.jobStatus === "Pending") {
-      if (!providerId || !mongoose.Types.ObjectId.isValid(providerId)) {
-        return res
-          .status(400)
-          .json({ error: "A valid Provider ID is required when job status is Pending" });
-      }
+    const currentStatus = jobPost.jobStatus;
+    const allowedStatuses = ['Pending', 'Quoted', 'Assigned', 'Completed', 'Deleted'];
 
-      const provider = await Provider.findOne({ _id: providerId, isDeleted: false });
-      if (!provider) {
-        return res.status(404).json({
-          success: false,
-          status: 404,
-          message: "Provider not found!",
-        });
-      }
-      jobPost.jobStatus = "Assigned";
-      jobPost.provider = provider._id;
-      await jobPost.save();
-
-      if (!provider.assignedJobs.includes(jobId)) {
-        provider.assignedJobs.push(jobId);
-        await provider.save();
-      }
-    } else if (jobPost.jobStatus === "Assigned") {
-      jobPost.jobStatus = "Completed";
-      await jobPost.save();
-    } else {
-      if (jobStatus) {
-        const allowedStatuses = ["Pending", "Assigned", "InProgress", "Completed"];
-        if (!allowedStatuses.includes(jobStatus)) {
-          return res.status(400).json({
-            error: "Invalid job status. Allowed values: Pending, Assigned, InProgress, Completed",
-          });
-        }
-        jobPost.jobStatus = jobStatus;
-      }
-      await jobPost.save();
+    if (!jobStatus || !allowedStatuses.includes(jobStatus)) {
+      return res.status(400).json({
+        error: "Invalid or missing jobStatus. Allowed values: Pending, Quoted, Assigned, Completed, Deleted",
+      });
     }
 
+    const validTransitions = {
+      Pending: ['Quoted'],
+      Quoted: ['Assigned'],
+      Assigned: ['Completed'],
+      Completed: [], 
+      Deleted: [],   
+    };
+
+    if (!validTransitions[currentStatus].includes(jobStatus)) {
+      return res.status(400).json({
+        error: `Invalid status transition from '${currentStatus}' to '${jobStatus}'`,
+      });
+    }
+
+    if (currentStatus === 'Quoted' && jobStatus === 'Assigned') {
+      if (!providerId || !mongoose.Types.ObjectId.isValid(providerId)) {
+        return res.status(400).json({ error: "A valid providerId is required for assignment" });
+      }
+
+      const provider = await Provider.findById(providerId);
+      if (!provider) {
+        return res.status(404).json({ error: "Provider not found" });
+      }
+
+      jobPost.provider = provider._id;
+      if (!provider.assignedJobs.includes(jobPost._id.toString())) {
+        provider.assignedJobs.push(jobPost._id);
+        await provider.save();
+      }
+    }
+
+    if (jobStatus === 'Completed') {
+      jobPost.completionDate = new Date();
+    } else {
+      jobPost.completionDate = null;
+    }
+
+    jobPost.jobStatus = jobStatus;
+    await jobPost.save();
+
     return res.status(200).json({
-      message: "Job status changed successfully",
+      message: `Job status changed to '${jobStatus}' successfully.`,
       status: 200,
       jobPost,
     });
@@ -258,42 +270,65 @@ const changeJobStatus = async (req, res) => {
   }
 };
 
+
+
 const myAcceptedJobs = async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page      = parseInt(req.query.page, 10) || 1;
+    const limit     = parseInt(req.query.limit, 10) || 10;
+    const { jobStatus, search } = req.query; 
 
     const user = await Provider.findById(req.user.userId)
-      .select("assignedJobs")
+      .select('assignedJobs')
       .lean();
 
     if (!user?.assignedJobs?.length) {
-      return res.status(200).json({ message: "No jobs found" });
+      return res.status(200).json({
+        status: 200,
+        message: 'Jobs fetched successfully',
+        jobs: [],
+        pagination: {
+          totalJobs: 0,
+          totalPages: 0,
+          currentPage: page,
+        },
+      });
     }
 
-    const jobIds = [...new Set(user.assignedJobs.map((s) => new mongoose.Types.ObjectId(s)))];
-    let aggregation=[];
-    aggregation.push({
-      $match: { _id: { $in: jobIds } },
-    });
-    
-    aggregation.push({
-      $facet: {
-        totalCount: [{ $count: "count" }],
-        paginatedResults: [
-          { $skip: (page - 1) * limit },
-          { $limit: limit },
-        ],
+    const jobIds = [...new Set(
+      user.assignedJobs.map(id => new mongoose.Types.ObjectId(id))
+    )];
+
+    const matchCriteria = { _id: { $in: jobIds } };
+
+    if (jobStatus && jobStatus.trim()) {
+      matchCriteria.jobStatus = jobStatus.trim();
+    }
+
+    if (search && search.trim()) {
+      matchCriteria.title = { $regex: search.trim(), $options: 'i' };
+    }
+
+    const aggregation = [
+      { $match: matchCriteria },
+      {
+        $facet: {
+          totalCount: [{ $count: 'count' }],
+          paginatedResults: [
+            { $skip: (page - 1) * limit },
+            { $limit: limit },
+          ],
+        },
       },
-    })
+    ];
+
     const jobsAgg = await JobPost.aggregate(aggregation);
-    const totalJobs = jobsAgg[0]?.totalCount[0]?.count || 0;  
-    const jobs = jobsAgg[0]?.paginatedResults || [];
-   
+    const totalJobs = jobsAgg[0]?.totalCount[0]?.count || 0;
+    const jobs      = jobsAgg[0]?.paginatedResults || [];
 
     return res.status(200).json({
       status: 200,
-      message: "Jobs fetched successfully",
+      message: 'Jobs fetched successfully',
       jobs,
       pagination: {
         totalJobs,
@@ -301,11 +336,14 @@ const myAcceptedJobs = async (req, res) => {
         currentPage: page,
       },
     });
+
   } catch (error) {
-    console.error("Error fetching jobs:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error('Error fetching jobs:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
+
 
 const businessTypes = async (req, res) => {
   try {
@@ -597,18 +635,20 @@ const getJobCountByBusinessType = async (req, res) => {
         },
       },
     ]);
+
     const allBusinessTypes = await BusinessType.find({}, { _id: 0, name: 1 }).lean();
 
     const jobCountMap = {};
     for (const jc of jobCounts) {
       jobCountMap[jc.name] = jc.count;
     }
+
     const result = allBusinessTypes.map((bt) => ({
       name: bt.name,
       count: jobCountMap[bt.name] || 0,
     }));
 
-    result.sort((a, b) => b.count - a.count);
+    result.sort((a, b) => a.name.localeCompare(b.name));
 
     return res.status(200).json({
       status: 200,
@@ -619,6 +659,7 @@ const getJobCountByBusinessType = async (req, res) => {
     return res.status(500).json({ status: 500, error: error.message });
   }
 };
+
 
 const jobsByBusinessType = async (req, res) => {
   try {
@@ -714,6 +755,7 @@ const incrementJobAcceptCount = async (req, res) => {
 const updateJobPost = async (req, res) => {
   try {
     const updates = { ...req.body };
+
     if (updates.estimatedBudget !== undefined) {
       if (updates.estimatedBudget === "null") {
         updates.estimatedBudget = null;
@@ -754,24 +796,23 @@ const updateJobPost = async (req, res) => {
     if (Object.keys(jobLocation).length > 0) {
       updates.jobLocation = jobLocation;
     }
+    const existingJobPost = await JobPost.findById(req.params.id);
+    if (!existingJobPost) {
+      return apiResponse.error(res, "Job post not found.", 404);
+    }
 
     if (req.fileLocations && req.fileLocations.length > 0) {
-      updates.documents = req.fileLocations;
+      updates.documents = [
+        ...(existingJobPost.documents || []),
+        ...req.fileLocations,
+      ];
     }
 
     const jobPost = await JobPost.findByIdAndUpdate(req.params.id, updates, {
       new: true,
     });
 
-    if (!jobPost) {
-      return apiResponse.error(res, "Job post not found.", 404);
-    }
-
-    return apiResponse.success(
-      res,
-      "Job post updated successfully.",
-      jobPost
-    );
+    return apiResponse.success(res, "Job post updated successfully.", jobPost);
   } catch (error) {
     console.error("Error in updateJobPost:", error);
     return apiResponse.error(res, "Internal server error.", 500, {

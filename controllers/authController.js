@@ -3,11 +3,13 @@ const mongoose = require("mongoose");
 const User = require("../models/hunterModel");
 const generateverificationOTP = require("../utils/VerifyOTP");
 const sendEmail = require("../services/sendMail");
+const sendInvoiceEmail = require("../services/sendInvoiceMail");
 const jwt = require("jsonwebtoken");
 const apiResponse = require("../utils/responsehandler");
 const Provider = require("../models/providerModel");
 const Hunter = require("../models/hunterModel");
 const Address = require("../models/addressModel");
+const DeviceToken = require('../models/devicetokenModel');
 
 const signUp = async (req, res) => {
   try {
@@ -187,6 +189,7 @@ const signUp = async (req, res) => {
         <p>This OTP is valid for 10 minutes. Do not share it with anyone.</p>
         <br />
         <p>Cheers,<br /><strong>Trade Hunters</strong></p>
+        <p style="font-size: 12px; color: gray;">THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL</p>
       </div>
       `
     );
@@ -204,8 +207,8 @@ const signUp = async (req, res) => {
       }).save();
     }
 
-    await sendEmail(
-      "rishabh.sharma@aayaninfotech.com",
+    await sendInvoiceEmail(
+      "tradehunters2025@gmail.com",
       `New ${userType} Signup - ${name}`,
       `
       <div style="font-family: Arial, sans-serif;">
@@ -214,8 +217,10 @@ const signUp = async (req, res) => {
         <p><strong>Email:</strong> ${email}</p>
         <p><strong>Phone:</strong> ${phoneNo}</p>
         <p><strong>Signed up as:</strong> ${userType}</p>
+        <p style="font-size: 12px; color: gray;">THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL</p>
         <br />
         <p>Regards,<br />Trade Hunters</p>
+
       </div>
       `
     );
@@ -350,6 +355,11 @@ const logout = async (req, res) => {
 
     user.refreshToken = "";
     await user.save();
+     // Find and update deviceToken if userId matches
+    await DeviceToken.findOneAndUpdate(
+      { userId: req.user.userId },
+      { $set: { deviceToken: "" } }
+    );
 
     return res.status(200).json({
       status: 200,
@@ -433,12 +443,13 @@ const forgotPassword = async (req, res) => {
       "Reset Password OTP - Trade Hunters",
       `
       <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-        <h2>Hello ${name},</h2>
+        <h2>Hello ,</h2>
         <p>Welcome aboard! Here is your Otp for Reset Password:</p>
-        <h3 style="color: #2c3e50;">Your OTP: <span style="color: #e74c3c;">${verificationOTP}</span></h3>
+        <h3 style="color: #2c3e50;">Your OTP: <span style="color: #e74c3c;">${otp}</span></h3>
         <p>This OTP is valid for 10 minutes. Do not share it with anyone.</p>
         <br />
         <p>Cheers,<br /><strong>Trade Hunters</strong></p>
+        <p style="font-size: 12px; color: gray;">THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL</p>
       </div>
       `
     );
@@ -693,6 +704,7 @@ const resendOTP = async (req, res) => {
         <p>This OTP is valid for 10 minutes.</p>
         <br />
         <p>Cheers,<br /><strong>Trade Hunters</strong></p>
+        <p style="font-size: 12px; color: gray;">THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL</p>
       </div>
       `
     );

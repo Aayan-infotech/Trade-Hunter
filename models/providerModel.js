@@ -79,6 +79,7 @@ const providerSchema = new mongoose.Schema(
     files: [fileSchema],
     about: { type: String, required: false, trim: true },
     isNotificationEnable: { type: Boolean, default: true },
+    ewayTokenCustomerId: { type: String, default: null },
   },
   { timestamps: true }
 );

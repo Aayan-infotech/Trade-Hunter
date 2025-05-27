@@ -51,7 +51,7 @@ const JobPostSchema = new mongoose.Schema({
   provider: { type: mongoose.Schema.Types.ObjectId, ref: "Provider", default: null },
   jobStatus: {
     type: String,
-    enum: ['Pending', 'Assigned', 'InProgress', 'Completed', 'Deleted'],
+    enum: ['Pending','Quoted','Assigned', 'Completed', 'Deleted'],
     default: 'Pending',
   },
   jobAssigned: {
@@ -72,9 +72,13 @@ const JobPostSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  completionDate: {
+    type: Date,
+    default: null,
+  },
   
 
-  deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+  deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "hunter", default: null },
 }, { timestamps: true });
 
 JobPostSchema.index({ "jobLocation.location": "2dsphere" });

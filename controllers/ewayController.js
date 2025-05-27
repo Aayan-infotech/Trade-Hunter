@@ -1,9 +1,14 @@
-const Transaction = require("../models/TransactionModelNew");
+const PDFDocument = require("pdfkit");
+const fs = require("fs");
+const path = require("path");
+const sendEmail = require("../services/sendInvoiceMail");
 const ewayService = require("../services/ewayService");
+const Transaction = require("../models/TransactionModelNew");
 const SubscriptionVoucherUser = require("../models/SubscriptionVoucherUserModel");
 const SubscriptionPlan = require("../models/SubscriptionPlanModel");
 const SubscriptionType = require("../models/SubscriptionTypeModel");
 const Provider = require("../models/providerModel");
+
 
 exports.initiatePayment = async (req, res) => {
   try {
@@ -21,9 +26,9 @@ exports.initiatePayment = async (req, res) => {
       "CVN",
     ];
     const requiredPaymentFields = ["TotalAmount", "CurrencyCode"];
-
     const { Customer, Payment, userId, subscriptionPlanId } = req.body;
 
+    // 1. Validate presence
     if (!Customer || !Payment) {
       return res
         .status(400)
@@ -35,7 +40,6 @@ exports.initiatePayment = async (req, res) => {
       (f) => !Customer.CardDetails?.[f]
     );
     const missingPayment = requiredPaymentFields.filter((f) => !Payment[f]);
-
     if (missingCustomer.length || missingCard.length || missingPayment.length) {
       return res.status(400).json({
         message: "Missing required fields",
@@ -47,6 +51,22 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
+    const provider = await Provider.findById(userId).lean();
+    const subscriptionPlan = await SubscriptionPlan.findById(
+      subscriptionPlanId
+    ).lean();
+    const subscriptionType = subscriptionPlan
+      ? await SubscriptionType.findById(subscriptionPlan.type).lean()
+      : null;
+
+    if (!provider)
+      return res.status(404).json({ message: "Provider not found" });
+    if (!subscriptionPlan)
+      return res.status(404).json({ message: "Subscription Plan not found" });
+    if (!subscriptionType)
+      return res.status(404).json({ message: "Subscription Type not found" });
+
+    // 3. Build eWAY payment request
     const paymentData = {
       Customer: {
         FirstName: Customer.FirstName,
@@ -64,16 +84,15 @@ exports.initiatePayment = async (req, res) => {
         },
       },
       Payment: {
-        TotalAmount: Payment.TotalAmount,
+        TotalAmount: Payment.TotalAmount,   
         CurrencyCode: Payment.CurrencyCode,
       },
       TransactionType: "MOTO",
       Capture: true,
     };
-
     const ewayResponse = await ewayService.createTransaction(paymentData);
-    const txId = ewayResponse.TransactionID;
 
+    const txId = ewayResponse.TransactionID;
     if (!txId) {
       return res.status(400).json({
         message: "Failed to process payment: Missing TransactionID",
@@ -82,7 +101,9 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
-    const amountCharged = (Payment.TotalAmount || 0) / 100;
+    const amountCharged = (Payment.TotalAmount || 0) / 100; 
+    const subTotal = +(amountCharged / 1.1).toFixed(2);
+    const gst = +(amountCharged - subTotal).toFixed(2);
 
     const txn = new Transaction({
       userId,
@@ -111,44 +132,37 @@ exports.initiatePayment = async (req, res) => {
         payerEmail: ewayResponse.Customer.Email,
       },
     });
-
     await txn.save();
 
-    const subscriptionPlan = await SubscriptionPlan.findById(
-      subscriptionPlanId
-    );
-    if (!subscriptionPlan) {
-      return res.status(404).json({ message: "Subscription Plan not found" });
-    }
-
-    const subscriptionType = await SubscriptionType.findById(
-      subscriptionPlan.type
-    );
-    if (!subscriptionType) {
-      return res.status(404).json({ message: "Subscription Type not found" });
-    }
-
-    if (!ewayResponse.TransactionStatus) {
-      return res.status(400).json({
-        status: 400,
-        success: false,
-        message: "Payment failed",
-        data: null,
-      });
-    }
-
-    let newStartDate = new Date();
-    let newStatus = "active";
-
-    const latestSub = await SubscriptionVoucherUser.findOne({
+    const setToMidnight = (d) => {
+      d.setHours(0, 0, 0, 0);
+      return d;
+    };
+    const todayMidnight = setToMidnight(new Date());
+    const existingActive = await SubscriptionVoucherUser.findOne({
       userId,
-      type: subscriptionType.type,
-      status: { $in: ["active", "upcoming"] },
-    }).sort({ endDate: -1 });
+      status: "active",
+    }).sort({ startDate: -1 });
 
-    if (latestSub) {
-      newStartDate = new Date(latestSub.endDate);
-      newStatus = "upcoming";
+    let newStartDate, newStatus;
+    if (existingActive && existingActive.type !== "Subscription") {
+      existingActive.status = "expired";
+      existingActive.endDate = todayMidnight;
+      await existingActive.save();
+      newStartDate = todayMidnight;
+      newStatus = "active";
+    } else {
+      const latestSub = await SubscriptionVoucherUser.findOne({
+        userId,
+        status: { $in: ["active", "upcoming"] },
+      }).sort({ endDate: -1 });
+      if (latestSub) {
+        newStartDate = setToMidnight(new Date(latestSub.endDate));
+        newStatus = "upcoming";
+      } else {
+        newStartDate = todayMidnight;
+        newStatus = "active";
+      }
     }
 
     const newEndDate = new Date(newStartDate);
@@ -163,7 +177,6 @@ exports.initiatePayment = async (req, res) => {
       status: newStatus,
       kmRadius: subscriptionPlan.kmRadius,
     });
-
     await newSubscription.save();
 
     if (newStatus === "active") {
@@ -176,6 +189,164 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
+    const nowDate = new Date().toLocaleDateString();
+    const doc = new PDFDocument({ margin: 50 });
+    const buffers = [];
+    doc.on("data", buffers.push.bind(buffers));
+
+    const { pdfGenerated, emailSent } = await new Promise((resolve) => {
+      doc.on("end", async () => {
+        const pdfBuffer = Buffer.concat(buffers);
+        let emailSuccess = false;
+        try {
+          await sendEmail(
+            Customer.Email,
+            `Your Invoice #${txId}`,
+            `<p>Hi ${Customer.FirstName},</p>
+             <p>Thank you for your payment of $${amountCharged.toFixed(2)}.
+             Please find your invoice attached.</p>
+             <p>Regards,<br/>Trade Hunters Team</p>
+             <p style="font-size: 12px; color: gray;">THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL</p>`,
+             
+            [
+              {
+                filename: `invoice_${txId}.pdf`,
+                content: pdfBuffer,
+                contentType: "application/pdf",
+              },
+            ]
+          );
+          emailSuccess = true;
+        } catch (err) {
+          console.error("Invoice email failed:", err);
+        }
+        resolve({
+          pdfGenerated: pdfBuffer.length > 0,
+          emailSent: emailSuccess,
+        });
+      });
+
+      const logoPath = path.join(__dirname, "../utils/tredhunter.jpg");
+      const leftX = 50;
+      const rightX = 330;
+      const pageWidth = doc.page.width - 2 * leftX;
+      const lineHeight = 20;
+      let y = 50;
+
+      doc.rect(0, 0, doc.page.width, 100).fill("#fff").fillOpacity(1);
+      if (fs.existsSync(logoPath)) {
+        doc.image(logoPath, leftX, y - 10, { width: 50 });
+      }
+      doc
+        .fillColor("#000")
+        .fontSize(18)
+        .font("Helvetica-Bold")
+        .text("Trade Hunters PTY LTD", rightX, y - 10, { align: "right" })
+        .fontSize(10)
+        .text("ABN: 24 682 578 892", rightX, y + 10, { align: "right" });
+      y += 80;
+      doc
+        .moveTo(leftX, y)
+        .lineTo(leftX + pageWidth, y)
+        .strokeColor("#999")
+        .lineWidth(1)
+        .stroke();
+      y += 15;
+
+      // Customer & Invoice info
+      doc
+        .fontSize(11)
+        .fillColor("#003366")
+        .font("Helvetica-Bold")
+        .text("Business Name:", leftX, y)
+        .font("Helvetica")
+        .fillColor("black")
+        .text(provider.businessName, leftX + 110, y);
+      y += lineHeight;
+      doc
+        .fillColor("#003366")
+        .font("Helvetica-Bold")
+        .text("Business Address:", leftX, y)
+        .fillColor("black")
+        .font("Helvetica");
+      doc.text(provider.address.addressLine, leftX + 110, y, { width: 220 });
+      doc
+        .fillColor("#003366")
+        .font("Helvetica-Bold")
+        .text("Invoice No.:", rightX + 50, y - 20)
+        .font("Helvetica")
+        .fillColor("black")
+        .text(txId.toString(), rightX + 130, y - 20);
+      doc
+        .fillColor("#003366")
+        .font("Helvetica-Bold")
+        .text("Invoice Date:", rightX + 50, y)
+        .fillColor("black")
+        .font("Helvetica")
+        .text(nowDate, rightX + 130, y);
+
+      y += 60;
+      doc
+        .fillColor("#f0f0f0")
+        .rect(leftX, y - 10, pageWidth, 30)
+        .fill()
+        .fillColor("#003366")
+        .font("Helvetica-Bold")
+        .fontSize(12)
+        .text("Subscription Details:-", leftX, y - 5);
+      y += 30;
+
+      doc
+        .fontSize(11)
+        .fillColor("#003366")
+        .font("Helvetica-Bold")
+        .text("Description:", leftX, y);
+      y += lineHeight;
+      doc
+        .font("Helvetica")
+        .fillColor("black")
+        .text(subscriptionPlan.planName, leftX, y, { width: pageWidth });
+      y = doc.y + lineHeight;
+      doc
+        .fillColor("#003366")
+        .font("Helvetica-Bold")
+        .text("Plan:", leftX, y)
+        .fillColor("black")
+        .font("Helvetica")
+        .text(` ${subscriptionType.type}`, leftX + 60, y);
+      doc
+        .fillColor("#003366")
+        .font("Helvetica-Bold")
+        .text("Amount:", rightX + 80, y)
+        .fillColor("black")
+        .font("Helvetica")
+        .text(` $${subscriptionPlan.amount}`, rightX + 150, y);
+
+      y += lineHeight * 2;
+      // Totals table
+      doc
+        .fillColor("black")
+        .font("Helvetica")
+        .text(`Subtotal: $${subTotal.toFixed(2)}`, rightX + 80, y + 5)
+        .text(`GST(10%): $${gst.toFixed(2)}`, rightX + 80, y + lineHeight + 5)
+        .font("Helvetica-Bold")
+        .text(
+          `Total: $${amountCharged.toFixed(2)}`,
+          rightX + 80,
+          y + lineHeight * 2 + 5
+        );
+
+      // Footer
+      const footerY = doc.page.height - 80;
+      doc
+        .fontSize(11)
+        .fillColor("#003366")
+        .font("Helvetica-Bold")
+        .text("Thanks!! Trade Hunters Team", leftX, footerY);
+
+      doc.end();
+    });
+
     return res.status(200).json({
       message: "Payment processed successfully",
       userId,
@@ -185,47 +356,65 @@ exports.initiatePayment = async (req, res) => {
       status: ewayResponse.TransactionStatus,
       responseCode: ewayResponse.ResponseCode,
       amountCharged: `${amountCharged}$`,
+      subTotal: `${subTotal}$`,
+      gst: `${gst}$`,
+      pdfGenerated,
+      emailSent,
       gatewayResponse: ewayResponse,
     });
   } catch (error) {
     console.error("Payment Processing Error:", error);
-
-    if (error.response?.data) {
-      return res.status(500).json({
-        message: "Payment initiation failed",
-        error: error.message,
-        details: error.response.data,
-        stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
-      });
-    }
-
+    const details = error.response?.data;
     return res.status(500).json({
       message: "Payment initiation failed",
       error: error.message,
+      details,
       stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 };
 
+
 exports.getAllTransactions = async (req, res) => {
   try {
-    const transactions = await Transaction.find()
+    const page  = Math.max(1, parseInt(req.query.page, 10)  || 1);
+    const limit = Math.max(1, parseInt(req.query.limit, 10) || 10);
+    const { search } = req.query;
+    let filter = {};
+
+    if (search && search.trim()) {
+      const matchingProviders = await Provider.find({
+        businessName: { $regex: new RegExp(search.trim(), "i") }
+      }).select("_id");
+      const providerIds = matchingProviders.map(p => p._id);
+      filter.userId = { $in: providerIds };         
+    }
+
+    const totalCount = await Transaction.countDocuments(filter);
+
+    const transactions = await Transaction.find(filter)
       .sort({ "transaction.transactionDate": -1 })
-      .populate("userId", "contactName email ")
-      .populate("subscriptionPlanId", "planName kmRadius ");
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate("userId", "contactName email businessName")    
+      .populate("subscriptionPlanId", "planName kmRadius");
 
     return res.status(200).json({
-      count: transactions.length,
+      count:       transactions.length,
+      totalCount,
+      page,
+      totalPages:  Math.ceil(totalCount / limit),
       transactions,
     });
   } catch (error) {
     console.error("Error fetching transactions:", error);
     return res.status(500).json({
       message: "Failed to fetch transactions",
-      error: error.message,
+      error:   error.message,
     });
   }
 };
+
 
 exports.getTotalSubscriptionRevenue = async (req, res) => {
   try {
@@ -297,56 +486,77 @@ exports.getSubscriptionByUserId = async (req, res) => {
     const { userId } = req.user;
 
     const transactions = await Transaction.find({ userId })
-      .populate("subscriptionPlanId", "planName kmRadius")
+      .populate("subscriptionPlanId", "planName kmRadius validity")
       .lean();
 
     const subscriptions = await SubscriptionVoucherUser.find({ userId })
       .select("subscriptionPlanId startDate endDate status")
       .lean();
 
-    const combinedData = transactions.map((txn) => {
-      const planIdFromTxn = txn.subscriptionPlanId
-        ? txn.subscriptionPlanId._id?.toString() ||
-          txn.subscriptionPlanId.toString()
-        : null;
+    const txByPlan = {};
+    for (const t of transactions) {
+      const planId =
+        t.subscriptionPlanId && t.subscriptionPlanId._id
+          ? t.subscriptionPlanId._id.toString()
+          : "none";
 
-      const txnDate = new Date(txn.transaction.transactionDate);
+      txByPlan[planId] = txByPlan[planId] || [];
+      txByPlan[planId].push(t);
+    }
 
-      const matchingVouchers = subscriptions.filter(
-        (sub) => sub.subscriptionPlanId.toString() === planIdFromTxn
+    const vchByPlan = {};
+    for (const v of subscriptions) {
+      const planId = v.subscriptionPlanId
+        ? v.subscriptionPlanId.toString()
+        : "none";
+
+      vchByPlan[planId] = vchByPlan[planId] || [];
+      vchByPlan[planId].push(v);
+    }
+
+    for (const planId of Object.keys(txByPlan)) {
+      txByPlan[planId].sort(
+        (a, b) =>
+          new Date(a.transaction?.transactionDate || 0) -
+          new Date(b.transaction?.transactionDate || 0)
       );
+      vchByPlan[planId]?.sort(
+        (a, b) => new Date(a.startDate) - new Date(b.startDate)
+      );
+    }
 
-      let matchedVoucher = matchingVouchers
-        .filter((sub) => new Date(sub.startDate) >= txnDate)
-        .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))[0];
+    const combined = [];
+    for (const planId of Object.keys(txByPlan)) {
+      const txns = txByPlan[planId];
+      const vchs = vchByPlan[planId] || [];
 
-      if (!matchedVoucher) {
-        matchedVoucher = matchingVouchers
-          .filter((sub) => new Date(sub.startDate) <= txnDate)
-          .sort((a, b) => new Date(b.startDate) - new Date(a.startDate))[0];
+      for (let i = 0; i < txns.length; i++) {
+        const txn = txns[i];
+        const v = vchs[i] || vchs[vchs.length - 1] || null;
+
+        combined.push({
+          ...txn,
+          subscriptionStartDate: v?.startDate ?? null,
+          subscriptionEndDate: v?.endDate ?? null,
+          subscriptionStatus: v?.status ?? null,
+        });
       }
-
-      return {
-        ...txn,
-        subscriptionStartDate: matchedVoucher?.startDate || null,
-        subscriptionEndDate: matchedVoucher?.endDate || null,
-        subscriptionStatus: matchedVoucher?.status || null,
-      };
-    });
+    }
 
     return res.status(200).json({
       status: 200,
       success: true,
       message: "Data fetched successfully",
-      data: combinedData,
+      data: combined,
     });
-  } catch (error) {
-    console.error("Error in getSubscriptionByUserId:", error);
+  } catch (err) {
+    console.error("Error in getSubscriptionByUserId:", err);
     return res.status(500).json({
       status: 500,
       success: false,
       message: "Server error",
-      error: error.message,
+      error: err.message,
     });
   }
 };
+

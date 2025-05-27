@@ -12,6 +12,7 @@ exports.getAllProviders = async (req, res) => {
       isGuestMode: false,
       $or: [
         { contactName: { $regex: `.*${search}.*`, $options: "i" } },
+        {businessName: { $regex: `.*${search}.*`, $options: "i" } },
         { email: { $regex: `.*${search}.*`, $options: "i" } },
         { "address.addressLine": { $regex: `.*${search}.*`, $options: "i" } },
       ],
@@ -43,6 +44,42 @@ exports.getAllProviders = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error", error });
   }
 };
+
+exports.getAllProviders2 = async (req, res) => {
+  try {
+    const { search = "", userStatus } = req.query;
+
+    let query = {
+      isGuestMode: false,
+      $or: [
+        { contactName: { $regex: `.*${search}.*`, $options: "i" } },
+        { businessName: { $regex: `.*${search}.*`, $options: "i" } },
+        { email: { $regex: `.*${search}.*`, $options: "i" } },
+        { "address.addressLine": { $regex: `.*${search}.*`, $options: "i" } },
+      ],
+    };
+
+    const validStatuses = ["Active", "Suspended", "Pending"];
+    if (userStatus && validStatuses.includes(userStatus)) {
+      query.userStatus = userStatus;
+    }
+
+    const providers = await Provider.find(query)
+      .sort({ createdAt: -1 })
+      .populate("assignedJobs");
+
+    res.status(200).json({
+      success: true,
+      data: providers,
+      metadata: {
+        total: providers.length,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error", error });
+  }
+};
+
 
 
 
@@ -117,6 +154,7 @@ exports.getAllProvidersGuestMode = async (req, res) => {
       isGuestMode: true,
       $or: [
         { contactName: { $regex: `.*${search}.*`, $options: "i" } },
+        { businessName: { $regex: `.*${search}.*`, $options: "i" } },
         { email: { $regex: `.*${search}.*`, $options: "i" } },
         { "address.addressLine": { $regex: `.*${search}.*`, $options: "i" } },
       ],

@@ -1,19 +1,19 @@
 const express = require("express");
 const router = express.Router();
 const Contact = require("../models/contactUsModel");
-const sendEmail = require("../services/sendMail"); 
+const sendEmail = require("../services/sendInvoiceMail"); 
 
 exports.createContact = async (req, res) => {
   try {
-    const { name, email, message } = req.body;
+    const { name, email, message,userType } = req.body;
 
-    if (!name || !email || !message) {
+    if (!name || !email || !message || !userType) {
       return res
         .status(400)
-        .json({ message: "Name, email, and message are required." });
+        .json({ message: "Name, email,userType and message are required." });
     }
 
-    const newContact = new Contact({ name, email, message });
+    const newContact = new Contact({ name, email, message,userType, isRead: false });
     await newContact.save();
 
     const subject = "📨 New Contact Request Received";
@@ -24,12 +24,14 @@ exports.createContact = async (req, res) => {
         <ul>
           <li><strong>Name:</strong> ${name}</li>
           <li><strong>Email:</strong> ${email}</li>
+          <li><strong>User Type:</strong> ${userType}</li>
         </ul>
         <p><strong>Message:</strong> ${message}</p>
-        <p style="font-size: 12px; color: gray;">This is an automated email from Trade Hunter</p>
+        <p style="font-size: 12px; color: gray;">THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL
+</p>
       </div>
     `;
-    await sendEmail("rishabh.sharma@aayaninfotech.com", subject, htmlMessage);
+    await sendEmail("tradehunters2025@gmail.com", subject, htmlMessage);
 
     const io = req.app.get("io");
     io.emit("newContact", newContact);
@@ -45,7 +47,7 @@ exports.createContact = async (req, res) => {
       .json({ message: "Internal server error", error: error.message });
   }
 };
-
+   
 
 exports.getAllContacts = async (req, res) => {
   try {
@@ -76,5 +78,28 @@ exports.deleteContact = async (req, res) => {
     res
       .status(500)
       .json({ message: "Internal server error", error: error.message });
+  }
+};
+
+
+
+exports.getReadCount = async (req, res) => {
+  try {
+    const count = await Contact.countDocuments({ isRead: false });
+    res.json({ isReadCount: count });
+  } catch (error) {
+    console.error("Error fetching read count:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+// Mark all contacts as read
+exports.markAllAsRead = async (req, res) => {
+  try {
+    const result = await Contact.updateMany({}, { isRead: true });
+    res.json({ message: "All messages marked as read", modifiedCount: result.modifiedCount });
+  } catch (error) {
+    console.error("Error updating contacts:", error);
+    res.status(500).json({ error: "Server error" });
   }
 };

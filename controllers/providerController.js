@@ -284,87 +284,93 @@ exports.getServicesForGuestLocation = async (req, res) => {
 exports.getNearbyJobs = async (req, res) => {
   try {
     const {
-      businessType,
       latitude,
       longitude,
       radius,
       page = 1,
       limit = 10,
+      businessType = [],
+      providerId,
     } = req.body;
 
-    if (!businessType || !latitude || !longitude || !radius) {
+    if (!providerId || latitude == null || longitude == null || radius == null) {
       return res.status(400).json({
         status: 400,
-        message: "Missing required fields",
+        message: "providerId, latitude, longitude, and radius are all required",
       });
     }
 
-    let businessTypeCondition;
-    if (Array.isArray(businessType)) {
-      businessTypeCondition = {
-        $in: businessType.map((bt) => new RegExp(`^${bt}$`, "i")),
+    const filterCondition = {};
+    if (Array.isArray(businessType) && businessType.length > 0) {
+      filterCondition.businessType = {
+        $in: businessType.map(type => new RegExp(`^${type}$`, "i"))
       };
-    } else {
-      businessTypeCondition = new RegExp(`^${businessType}$`, "i");
     }
 
-    const jobs = await jobpostModel.aggregate([
+    const radiusInMeters = parseFloat(radius);
+    const radiusInRadians = radiusInMeters / 6378100;
+
+    // 1️⃣ Fetch Pending jobs (within geo range)
+    const geoPendingJobs = await jobpostModel.aggregate([
       {
         $geoNear: {
           near: { type: "Point", coordinates: [longitude, latitude] },
           distanceField: "distance",
-          maxDistance: radius,
+          maxDistance: radiusInMeters,
           spherical: true,
           key: "jobLocation.location",
+          query: {
+            jobStatus: "Pending",
+            ...filterCondition
+          }
         },
       },
-      {
-        $match: {
-          businessType: businessTypeCondition,
-          jobStatus: "Pending",
-        },
-      },
-      {
-        $sort: { createdAt: -1 },
-      },
-      {
-        $skip: (page - 1) * limit,
-      },
-      {
-        $limit: limit,
-      },
+      { $sort: { createdAt: -1 } }
     ]);
 
-    const radiusInRadians = radius / 6378100;
-    const totalJobs = await jobpostModel.countDocuments({
-      businessType: businessTypeCondition,
-      jobStatus: "Pending",
-      "jobLocation.location": {
-        $geoWithin: {
-          $centerSphere: [[longitude, latitude], radiusInRadians],
-        },
-      },
-    });
+    // 2️⃣ Fetch Quoted jobs for providerId
+    const quotedJobs = await jobpostModel.find({
+      jobStatus: "Quoted",
+      "jobAcceptCount.providerId": providerId,
+      ...filterCondition
+    }).sort({ createdAt: -1 }).lean();
+
+    // 3️⃣ Combine both
+    const combinedJobs = [...geoPendingJobs, ...quotedJobs];
+
+    // 4️⃣ Sort combined by createdAt DESC
+    combinedJobs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // 5️⃣ Paginate
+    const startIndex = (page - 1) * limit;
+    const paginatedJobs = combinedJobs.slice(startIndex, startIndex + limit);
 
     return res.status(200).json({
       status: 200,
       message: "Jobs fetched successfully",
-      data: jobs,
+      data: paginatedJobs,
       pagination: {
-        totalJobs,
+        totalJobs: combinedJobs.length,
         currentPage: page,
-        totalPages: Math.ceil(totalJobs / limit),
+        totalPages: Math.ceil(combinedJobs.length / limit),
       },
     });
+
   } catch (error) {
     console.error("Error fetching jobs:", error);
     return res.status(500).json({
       status: 500,
       message: "Error fetching jobs",
-      error,
+      error: error.message || error,
     });
   }
 };
+
+
+
+
+
+
 
 exports.getNearbyJobsForGuest = async (req, res) => {
   try {
@@ -558,28 +564,34 @@ exports.jobAcceptCount = async (req, res) => {
       });
     }
 
+    let leadLimitReached = false;
+
     if (provider.subscriptionType === "Pay Per Lead") {
       const plan = await SubscriptionPlan.findById(provider.subscriptionPlanId);
       const allowedLeads = plan?.leadCount ?? 0;
-      const usedLeads = provider.leadCompleteCount || 0;
+      const usedLeadsBefore = provider.leadCompleteCount || 0;
 
-      if (usedLeads >= allowedLeads) {
+      if (usedLeadsBefore >= allowedLeads) {
         await expireSubscription(provider);
         await provider.save();
         return res.status(400).json({
           status: 400,
-          message:
-            "Your allotted leads have been completed. Please purchase a new plan.",
+          message: "Your allotted leads have been completed. Please purchase a new plan.",
         });
       }
 
-      provider.leadCompleteCount = usedLeads + 1;
+      // ⬆️ Increase lead count
+      const usedLeadsAfter = usedLeadsBefore + 1;
+      provider.leadCompleteCount = usedLeadsAfter;
 
-      if (provider.leadCompleteCount > allowedLeads) {
-        await expireSubscription(provider);
+      // ✅ Check AFTER incrementing if it now reaches the limit
+      if (usedLeadsAfter >= allowedLeads) {
+        leadLimitReached = true;
+        await expireSubscription(provider); // Expire after this last allowed lead
       }
     }
 
+    // 🔁 Increment job accept count
     provider.jobAcceptCount = (provider.jobAcceptCount || 0) + 1;
 
     await provider.save();
@@ -589,6 +601,7 @@ exports.jobAcceptCount = async (req, res) => {
       message: "Job accept count incremented successfully!",
       jobAcceptCount: provider.jobAcceptCount,
       leadCompleteCount: provider.leadCompleteCount,
+      leadLimitReached,
     });
   } catch (error) {
     console.error("Error in jobAcceptCount:", error);
@@ -599,6 +612,7 @@ exports.jobAcceptCount = async (req, res) => {
     });
   }
 };
+
 
 async function expireSubscription(provider) {
   const voucher = await SubscriptionVoucherUser.findOne({
@@ -614,7 +628,7 @@ async function expireSubscription(provider) {
   provider.subscriptionPlanId = null;
   provider.subscriptionType = null;
   provider.leadCompleteCount = null;
-  provider.address.radius = 10000;
+  provider.address.radius = 160000;
 }
 
 exports.jobCompleteCount = async (req, res) => {
@@ -766,8 +780,8 @@ exports.getProvidersByBusinessType = async (req, res) => {
       {
         $match: {
           businessType: { $in: businessTypesArray },
-          subscriptionType: "Advertising",
-        },
+        }
+        
       },
       {
         $project: {
@@ -878,7 +892,7 @@ exports.getProvidersListing = async (req, res) => {
 
     const latitude = parseFloat(lat);
     const longitude = parseFloat(lng);
-    radius = parseFloat(radius) || 20000;
+    radius = parseFloat(radius) || 80000;
     const businessTypesArray = Array.isArray(businessType)
       ? businessType
       : [businessType];
@@ -962,3 +976,64 @@ exports.getAllProviders = async (req, res) => {
     });
   }
 };
+
+exports.getVoucherUsers = async (req, res) => {
+  try {
+    const page   = Math.max(1, parseInt(req.query.page, 10) || 1)
+    const limit  = Math.max(1, parseInt(req.query.limit, 10) || 10)
+    const search = (req.query.search || '').trim()
+
+    let matchingUserIds = []
+    if (search) {
+      const users = await providerModel.find({
+        businessName: { $regex: search, $options: 'i' }
+      }).select('_id')
+      matchingUserIds = users.map(u => u._id)
+    }
+
+    const voucherFilter = { type: 'Voucher' }
+    if (search) {
+      voucherFilter.userId = matchingUserIds.length
+        ? { $in: matchingUserIds }
+        : { $in: [] } 
+    }
+
+    let totalCount = 0
+    let voucherUsers = []
+
+    if (!search || matchingUserIds.length > 0) {
+      totalCount = await SubscriptionVoucherUser.countDocuments(voucherFilter)
+      voucherUsers = await SubscriptionVoucherUser.find(voucherFilter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .populate('userId', 'contactName email businessName')
+        .lean()
+    }
+
+    return res.status(200).json({
+      status: 200,
+      message: voucherUsers.length
+        ? 'Voucher users fetched successfully'
+        : 'No voucher users found',
+      data: voucherUsers,
+      meta: {
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    })
+  } catch (error) {
+    console.error('Error fetching voucher users:', error)
+    return res.status(500).json({
+      status: 500,
+      message: 'Error fetching voucher users',
+      error: error.message,
+    })
+  }
+}
+
+
+
+

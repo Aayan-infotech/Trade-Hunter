@@ -4,6 +4,7 @@ const notificationController = require('../controllers/pushNotificationControlle
 const { verifyUser } = require("../middlewares/auth");
 
 router.post('/send-notification',verifyUser, notificationController.sendPushNotification);
+router.post('/adminNotification', notificationController.sendPushNotificationAdmin);
 router.get('/get-notification/:userType',verifyUser, notificationController.getNotificationsByUserId);
 router.get('/Read-notification/:notificationId/:type',verifyUser, notificationController.ReadNotification);
 router.get('/AllRead-notification',verifyUser, notificationController.AllReadNotifications);

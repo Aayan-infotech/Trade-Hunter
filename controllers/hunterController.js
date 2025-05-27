@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const providerModel = require("../models/providerModel");
 const Hunter = require("../models/hunterModel");
 const Address = require("../models/addressModel");
-const sendEmail = require('../services/sendMail');
+const sendEmail = require('../services/sendInvoiceMail');
 
 exports.getNearbyServiceProviders = async (req, res) => {
   try {
@@ -11,10 +11,11 @@ exports.getNearbyServiceProviders = async (req, res) => {
       longitude,
       radius,
       page = 1,
-      limit = 10
+      limit = 10,
+      filter = [] // <-- now from req.body
     } = req.body;
 
-    const { search = "" } = req.query; 
+    const { search = "" } = req.query;
     const offset = (page - 1) * limit;
 
     if (!latitude || !longitude || !radius) {
@@ -42,6 +43,14 @@ exports.getNearbyServiceProviders = async (req, res) => {
       aggregation.push({
         $match: {
           "address.addressLine": { $regex: search, $options: "i" },
+        },
+      });
+    }
+
+    if (Array.isArray(filter) && filter.length > 0) {
+      aggregation.push({
+        $match: {
+          businessType: { $in: filter },
         },
       });
     }
@@ -93,6 +102,9 @@ exports.getNearbyServiceProviders = async (req, res) => {
     });
   }
 };
+
+
+
 
 exports.updateHunterById = async (req, res) => {
   try {
@@ -247,7 +259,7 @@ exports.sendJobNotificationEmail = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required: name, receverEmail' });
     }
 
-    const subject = '📩 New Job Message Notification';
+    const subject = '📩 New  Message Notification';
 
     const jobTitleSection = jobTitle
       ? `regarding the job titled <strong style="color: #27ae60;">${jobTitle}</strong>`
