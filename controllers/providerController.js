@@ -287,60 +287,122 @@ exports.getNearbyJobs = async (req, res) => {
       latitude,
       longitude,
       radius,
-      page     = 1,
-      limit    = 10,
-      businessType = [], 
+      page = 1,
+      limit = 10,
+      businessType = [],
+      providerId
     } = req.body;
 
-    if (
-      latitude == null ||
-      longitude == null ||
-      radius == null
-    ) {
+    if (!providerId) {
       return res.status(400).json({
-        status:  400,
-        message: "Missing required fields: latitude, longitude, and radius are all required",
+        status: 400,
+        message: "Missing required field: providerId is required",
       });
     }
 
-    let filterCondition = {};
+    if (latitude == null || longitude == null || radius == null) {
+      return res.status(400).json({
+        status: 400,
+        message: "Missing required fields: latitude, longitude, and radius are required",
+      });
+    }
+
+    const filterCondition = {};
     if (Array.isArray(businessType) && businessType.length > 0) {
       filterCondition.businessType = {
-        $in: businessType.map((type) => new RegExp(`^${type}$`, "i"))
+        $in: businessType.map(type => new RegExp(`^${type}$`, "i"))
       };
     }
 
+    // Calculate radius in radians for count
+    const radiusInRadians = radius / 6378100;
+
     const jobs = await jobpostModel.aggregate([
+      {
+        $match: {
+          $or: [
+            {
+              jobStatus: "Pending",
+              ...filterCondition
+            },
+            {
+              jobStatus: "Quoted",
+              jobAcceptCount: {
+                $elemMatch: {
+                  providerId: new mongoose.Types.ObjectId(providerId)
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        $addFields: {
+          isGeoFiltered: {
+            $cond: [
+              { $eq: ["$jobStatus", "Pending"] },
+              true,
+              false
+            ]
+          }
+        }
+      },
       {
         $geoNear: {
           near: { type: "Point", coordinates: [longitude, latitude] },
           distanceField: "distance",
-          maxDistance:    radius,
-          spherical:      true,
-          key:            "jobLocation.location",
-        },
+          maxDistance: radius,
+          spherical: true,
+          key: "jobLocation.location",
+          query: { jobStatus: "Pending" }
+        }
       },
       {
-        $match: {
-          jobStatus: "Pending",
-          ...filterCondition,         
-        },
+        $unionWith: {
+          coll: "jobposts", // collection name
+          pipeline: [
+            {
+              $match: {
+                jobStatus: "Quoted",
+                jobAcceptCount: {
+                  $elemMatch: {
+                    providerId: new mongoose.Types.ObjectId(providerId)
+                  }
+                },
+                ...filterCondition
+              }
+            },
+            { $addFields: { distance: null } } // keep schema uniform
+          ]
+        }
       },
       { $sort: { createdAt: -1 } },
       { $skip: (page - 1) * limit },
-      { $limit: limit },
+      { $limit: limit }
     ]);
 
-    const radiusInRadians = radius / 6378100;
-    const totalJobs = await jobpostModel.countDocuments({
+    // Count total jobs
+    const geoCount = await jobpostModel.countDocuments({
       jobStatus: "Pending",
-      ...filterCondition,
       "jobLocation.location": {
         $geoWithin: {
-          $centerSphere: [[longitude, latitude], radiusInRadians],
-        },
+          $centerSphere: [[longitude, latitude], radiusInRadians]
+        }
       },
+      ...filterCondition
     });
+
+    const quotedCount = await jobpostModel.countDocuments({
+      jobStatus: "Quoted",
+      jobAcceptCount: {
+        $elemMatch: {
+          providerId: new mongoose.Types.ObjectId(providerId)
+        }
+      },
+      ...filterCondition
+    });
+
+    const totalJobs = geoCount + quotedCount;
 
     return res.status(200).json({
       status: 200,
@@ -352,15 +414,18 @@ exports.getNearbyJobs = async (req, res) => {
         totalPages: Math.ceil(totalJobs / limit),
       },
     });
+
   } catch (error) {
     console.error("Error fetching jobs:", error);
     return res.status(500).json({
       status: 500,
       message: "Error fetching jobs",
-      error:   error.message || error,
+      error: error.message || error,
     });
   }
 };
+
+
 
 
 

@@ -51,7 +51,7 @@ const JobPostSchema = new mongoose.Schema({
   provider: { type: mongoose.Schema.Types.ObjectId, ref: "Provider", default: null },
   jobStatus: {
     type: String,
-    enum: ['Pending', 'Assigned', 'Completed', 'Deleted'],
+    enum: ['Pending','Quoted','Assigned', 'Completed', 'Deleted'],
     default: 'Pending',
   },
   jobAssigned: {

@@ -200,7 +200,7 @@ const getJobPostByUserId = async (req, res) => {
 const changeJobStatus = async (req, res) => {
   try {
     const jobId = req.params.jobId;
-    const { providerId, jobStatus } = req.body; 
+    const { providerId, jobStatus } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(jobId)) {
       return res.status(400).json({ error: "Invalid Job ID format" });
@@ -211,52 +211,57 @@ const changeJobStatus = async (req, res) => {
       return res.status(404).json({ error: "Job post not found" });
     }
 
-    // Transition from Pending → Assigned
-    if (jobPost.jobStatus === "Pending") {
+    const currentStatus = jobPost.jobStatus;
+    const allowedStatuses = ['Pending', 'Quoted', 'Assigned', 'Completed', 'Deleted'];
+
+    if (!jobStatus || !allowedStatuses.includes(jobStatus)) {
+      return res.status(400).json({
+        error: "Invalid or missing jobStatus. Allowed values: Pending, Quoted, Assigned, Completed, Deleted",
+      });
+    }
+
+    const validTransitions = {
+      Pending: ['Quoted'],
+      Quoted: ['Assigned'],
+      Assigned: ['Completed'],
+      Completed: [], 
+      Deleted: [],   
+    };
+
+    if (!validTransitions[currentStatus].includes(jobStatus)) {
+      return res.status(400).json({
+        error: `Invalid status transition from '${currentStatus}' to '${jobStatus}'`,
+      });
+    }
+
+    if (currentStatus === 'Quoted' && jobStatus === 'Assigned') {
       if (!providerId || !mongoose.Types.ObjectId.isValid(providerId)) {
-        return res
-          .status(400)
-          .json({ error: "A valid Provider ID is required when job status is Pending" });
+        return res.status(400).json({ error: "A valid providerId is required for assignment" });
       }
 
       const provider = await Provider.findById(providerId);
       if (!provider) {
-        return res.status(404).json({ error: "Provider Not Found" });
+        return res.status(404).json({ error: "Provider not found" });
       }
 
-      jobPost.jobStatus = "Assigned";
       jobPost.provider = provider._id;
-      jobPost.completionDate = null;      // clear any old completionDate
-      await jobPost.save();
-
-      if (!provider.assignedJobs.includes(jobId)) {
-        provider.assignedJobs.push(jobId);
+      if (!provider.assignedJobs.includes(jobPost._id.toString())) {
+        provider.assignedJobs.push(jobPost._id);
         await provider.save();
       }
-
-    // Transition from Assigned → Completed
-    } else if (jobPost.jobStatus === "Assigned") {
-      jobPost.jobStatus = "Completed";
-      jobPost.completionDate = new Date(); // set completionDate to now
-      await jobPost.save();
-
-    // Any other manual override
-    } else {
-      const allowedStatuses = ["Pending", "Assigned", "Completed"];
-      if (jobStatus && allowedStatuses.includes(jobStatus)) {
-        jobPost.jobStatus = jobStatus;
-        // If manually resetting back to Pending or Assigned, clear completionDate
-        jobPost.completionDate = jobStatus === "Completed" ? new Date() : null;
-      } else if (jobStatus) {
-        return res.status(400).json({
-          error: "Invalid job status. Allowed values: Pending, Assigned, Completed",
-        });
-      }
-      await jobPost.save();
     }
 
+    if (jobStatus === 'Completed') {
+      jobPost.completionDate = new Date();
+    } else {
+      jobPost.completionDate = null;
+    }
+
+    jobPost.jobStatus = jobStatus;
+    await jobPost.save();
+
     return res.status(200).json({
-      message: "Job status changed successfully",
+      message: `Job status changed to '${jobStatus}' successfully.`,
       status: 200,
       jobPost,
     });
@@ -264,6 +269,7 @@ const changeJobStatus = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
 
 
 const myAcceptedJobs = async (req, res) => {
