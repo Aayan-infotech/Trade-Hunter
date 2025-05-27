@@ -290,20 +290,13 @@ exports.getNearbyJobs = async (req, res) => {
       page = 1,
       limit = 10,
       businessType = [],
-      providerId
+      providerId,
     } = req.body;
 
-    if (!providerId) {
+    if (!providerId || latitude == null || longitude == null || radius == null) {
       return res.status(400).json({
         status: 400,
-        message: "Missing required field: providerId is required",
-      });
-    }
-
-    if (latitude == null || longitude == null || radius == null) {
-      return res.status(400).json({
-        status: 400,
-        message: "Missing required fields: latitude, longitude, and radius are required",
+        message: "providerId, latitude, longitude, and radius are all required",
       });
     }
 
@@ -314,104 +307,52 @@ exports.getNearbyJobs = async (req, res) => {
       };
     }
 
-    // Calculate radius in radians for count
-    const radiusInRadians = radius / 6378100;
+    const radiusInMeters = parseFloat(radius);
+    const radiusInRadians = radiusInMeters / 6378100;
 
-    const jobs = await jobpostModel.aggregate([
-      {
-        $match: {
-          $or: [
-            {
-              jobStatus: "Pending",
-              ...filterCondition
-            },
-            {
-              jobStatus: "Quoted",
-              jobAcceptCount: {
-                $elemMatch: {
-                  providerId: new mongoose.Types.ObjectId(providerId)
-                }
-              }
-            }
-          ]
-        }
-      },
-      {
-        $addFields: {
-          isGeoFiltered: {
-            $cond: [
-              { $eq: ["$jobStatus", "Pending"] },
-              true,
-              false
-            ]
-          }
-        }
-      },
+    // 1️⃣ Fetch Pending jobs (within geo range)
+    const geoPendingJobs = await jobpostModel.aggregate([
       {
         $geoNear: {
           near: { type: "Point", coordinates: [longitude, latitude] },
           distanceField: "distance",
-          maxDistance: radius,
+          maxDistance: radiusInMeters,
           spherical: true,
           key: "jobLocation.location",
-          query: { jobStatus: "Pending" }
-        }
+          query: {
+            jobStatus: "Pending",
+            ...filterCondition
+          }
+        },
       },
-      {
-        $unionWith: {
-          coll: "jobposts", // collection name
-          pipeline: [
-            {
-              $match: {
-                jobStatus: "Quoted",
-                jobAcceptCount: {
-                  $elemMatch: {
-                    providerId: new mongoose.Types.ObjectId(providerId)
-                  }
-                },
-                ...filterCondition
-              }
-            },
-            { $addFields: { distance: null } } // keep schema uniform
-          ]
-        }
-      },
-      { $sort: { createdAt: -1 } },
-      { $skip: (page - 1) * limit },
-      { $limit: limit }
+      { $sort: { createdAt: -1 } }
     ]);
 
-    // Count total jobs
-    const geoCount = await jobpostModel.countDocuments({
-      jobStatus: "Pending",
-      "jobLocation.location": {
-        $geoWithin: {
-          $centerSphere: [[longitude, latitude], radiusInRadians]
-        }
-      },
-      ...filterCondition
-    });
-
-    const quotedCount = await jobpostModel.countDocuments({
+    // 2️⃣ Fetch Quoted jobs for providerId
+    const quotedJobs = await jobpostModel.find({
       jobStatus: "Quoted",
-      jobAcceptCount: {
-        $elemMatch: {
-          providerId: new mongoose.Types.ObjectId(providerId)
-        }
-      },
+      "jobAcceptCount.providerId": providerId,
       ...filterCondition
-    });
+    }).sort({ createdAt: -1 }).lean();
 
-    const totalJobs = geoCount + quotedCount;
+    // 3️⃣ Combine both
+    const combinedJobs = [...geoPendingJobs, ...quotedJobs];
+
+    // 4️⃣ Sort combined by createdAt DESC
+    combinedJobs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    // 5️⃣ Paginate
+    const startIndex = (page - 1) * limit;
+    const paginatedJobs = combinedJobs.slice(startIndex, startIndex + limit);
 
     return res.status(200).json({
       status: 200,
       message: "Jobs fetched successfully",
-      data: jobs,
+      data: paginatedJobs,
       pagination: {
-        totalJobs,
+        totalJobs: combinedJobs.length,
         currentPage: page,
-        totalPages: Math.ceil(totalJobs / limit),
+        totalPages: Math.ceil(combinedJobs.length / limit),
       },
     });
 
@@ -424,6 +365,8 @@ exports.getNearbyJobs = async (req, res) => {
     });
   }
 };
+
+
 
 
 
