@@ -1,4 +1,4 @@
-pipeline {
+kpipeline {
     agent any
 
     environment {
@@ -167,6 +167,10 @@ pipeline {
                     sh '''
                     echo "Starting new container with latest image..."
                     docker run -d \
+                        --log-driver=awslogs \
+                        --log-opt awslogs-region=us-east-1 \
+                        --log-opt awslogs-group=/docker/${IMAGE_NAME} \
+                        --log-opt awslogs-stream=${HOST_PORT} \
                         -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
                         -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
                         -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}:prodv1
@@ -200,3 +204,4 @@ pipeline {
         }
     }
 }
+
