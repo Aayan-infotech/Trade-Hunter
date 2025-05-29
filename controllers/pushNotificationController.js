@@ -143,7 +143,8 @@ exports.sendPushNotificationAdmin = async (req, res) => {
 
     // Emit to specific user room
     const io = req.app.get("io");
-    io.to(receiverId.toString()).emit("new Admin Notification", notificationData);
+     // Step 2: Emit a socket event to the receiver
+    io.emit("Admin Notification",notificationData); 
 
     return res.status(200).json({
       status: 200,
