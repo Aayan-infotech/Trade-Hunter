@@ -106,49 +106,45 @@ exports.sendPushNotification = async (req, res) => {
 
 exports.sendPushNotificationAdmin = async (req, res) => {
   try {
-    const { title, body, receiverId } = req.body
+    const { title, body, receiverId } = req.body;
 
-    // 1. Validate required fields
     if (!title || !body || !receiverId) {
       return res.status(400).json({
         status: 400,
         success: false,
         message: "Title, body, and receiverId are required.",
         data: [],
-      })
+      });
     }
 
-    // 2. Look up the device token
-    const device = await DeviceToken.findOne({ userId: receiverId })
-    const deviceToken = device?.deviceToken || null
+    const device = await DeviceToken.findOne({ userId: receiverId });
+    const deviceToken = device?.deviceToken || null;
 
-    // 3. Save the notification record (always)
     const notificationData = await Notification.create({
       title,
       body,
       receiverId: new mongoose.Types.ObjectId(receiverId),
       notificationType: "admin_message",
       isRead: false,
-    })
+    });
 
-    // 4. Attempt to send push via FCM if we have a token
-    let fcmSent = false
+    let fcmSent = false;
     if (deviceToken) {
       try {
         await admin.messaging().send({
           notification: { title, body },
           token: deviceToken,
-        })
-        fcmSent = true
+        });
+        fcmSent = true;
       } catch (fcmError) {
-        // Log and continue — do not throw
-        console.warn("FCM send error (ignored):", fcmError.message)
+        console.warn("FCM send error (ignored):", fcmError.message);
       }
     }
-    const io = req.app.get("io");
-    io.emit("new Admin Notification");
 
-    // 5. Respond success no matter what
+    // Emit to specific user room
+    const io = req.app.get("io");
+    io.to(receiverId.toString()).emit("new Admin Notification", notificationData);
+
     return res.status(200).json({
       status: 200,
       success: true,
@@ -158,18 +154,19 @@ exports.sendPushNotificationAdmin = async (req, res) => {
         ? "Notification saved but push failed or disabled."
         : "Notification saved but not sent (no device token).",
       data: [notificationData],
-    })
+    });
   } catch (error) {
-    console.error("Error in sendPushNotificationAdmin:", error)
+    console.error("Error in sendPushNotificationAdmin:", error);
     return res.status(500).json({
       status: 500,
       success: false,
       message: "Failed to send notification.",
       data: [],
       error: error.message,
-    })
+    });
   }
-}
+};
+
 
 
 // NotificationController.js
