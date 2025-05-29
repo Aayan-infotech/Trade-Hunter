@@ -310,7 +310,6 @@ exports.getNearbyJobs = async (req, res) => {
     const radiusInMeters = parseFloat(radius);
     const radiusInRadians = radiusInMeters / 6378100;
 
-    // 1️⃣ Fetch Pending jobs (within geo range)
     const geoPendingJobs = await jobpostModel.aggregate([
       {
         $geoNear: {
@@ -328,20 +327,14 @@ exports.getNearbyJobs = async (req, res) => {
       { $sort: { createdAt: -1 } }
     ]);
 
-    // 2️⃣ Fetch Quoted jobs for providerId
     const quotedJobs = await jobpostModel.find({
       jobStatus: "Quoted",
       "jobAcceptCount.providerId": providerId,
       ...filterCondition
     }).sort({ createdAt: -1 }).lean();
-
-    // 3️⃣ Combine both
     const combinedJobs = [...geoPendingJobs, ...quotedJobs];
-
-    // 4️⃣ Sort combined by createdAt DESC
     combinedJobs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    // 5️⃣ Paginate
     const startIndex = (page - 1) * limit;
     const paginatedJobs = combinedJobs.slice(startIndex, startIndex + limit);
 
@@ -365,10 +358,6 @@ exports.getNearbyJobs = async (req, res) => {
     });
   }
 };
-
-
-
-
 
 
 
@@ -580,18 +569,15 @@ exports.jobAcceptCount = async (req, res) => {
         });
       }
 
-      // ⬆️ Increase lead count
       const usedLeadsAfter = usedLeadsBefore + 1;
       provider.leadCompleteCount = usedLeadsAfter;
 
-      // ✅ Check AFTER incrementing if it now reaches the limit
       if (usedLeadsAfter >= allowedLeads) {
         leadLimitReached = true;
-        await expireSubscription(provider); // Expire after this last allowed lead
+        await expireSubscription(provider); 
       }
     }
 
-    // 🔁 Increment job accept count
     provider.jobAcceptCount = (provider.jobAcceptCount || 0) + 1;
 
     await provider.save();
@@ -628,7 +614,7 @@ async function expireSubscription(provider) {
   provider.subscriptionPlanId = null;
   provider.subscriptionType = null;
   provider.leadCompleteCount = null;
-  provider.address.radius = 160000;
+  provider.address.radius = 10000;
 }
 
 exports.jobCompleteCount = async (req, res) => {

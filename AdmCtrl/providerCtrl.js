@@ -1,5 +1,6 @@
 const Provider = require("../models/providerModel"); 
 const mongoose = require("mongoose");
+const pushNotification = require("../models/pushNotificationModel");
 
 exports.getAllProviders = async (req, res) => {
   try {
@@ -97,7 +98,14 @@ exports.deleteProvider = async (req, res) => {
       return res.status(404).json({ success: false, message: "Provider not found" });
     }
 
-    res.status(200).json({ success: true, message: "Provider deleted successfully" });
+    await pushNotification.deleteMany({
+      $or: [
+        { userId: id },
+        { receiverId: id }
+      ]
+    });
+
+    res.status(200).json({ success: true, message: "Provider and related notifications deleted successfully" });
   } catch (error) {
     console.error("Delete provider error:", error);
     res.status(500).json({ success: false, message: "Server error", error });
