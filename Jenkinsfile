@@ -7,7 +7,7 @@ pipeline {
         HOST_PORT = "7787"
         DOCKER_HUB_USERNAME = credentials('docker-hub-username')
         DOCKER_HUB_PASSWORD = credentials('docker-hub-password')
-        EMAIL_RECIPIENTS = "rishabh.sharma@aayaninfotech.com"
+        EMAIL_RECIPIENTS = "@aayaninfotech.com"
         SONARTOKEN = credentials('sonartoken') // Securely use stored token
         AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
         AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY') 
