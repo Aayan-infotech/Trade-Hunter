@@ -2,8 +2,8 @@ kpipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "docker.io/aayanindia/trade-hunter-backend"
-        CONTAINER_PORT = "7777"
+        IMAGE_NAME = "docker.io/aayanindia/trade-hunter-back"
+        CONTAINER_PORT = "7700"
         HOST_PORT = "7787"
         DOCKER_HUB_USERNAME = credentials('docker-hub-username')
         DOCKER_HUB_PASSWORD = credentials('docker-hub-password')
