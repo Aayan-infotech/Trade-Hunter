@@ -78,4 +78,3 @@ exports.createTransaction = async (paymentData) => {
     return { error: error.message };
   }
 };
-
