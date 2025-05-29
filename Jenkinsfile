@@ -161,6 +161,26 @@ pipeline {
             }
         }
 
+        // <-- Your fix inserted here:
+        stage('Ensure CloudWatch Log Group Exists') {
+            steps {
+                script {
+                    sh '''
+                    LOG_GROUP="/docker/${IMAGE_NAME}"
+
+                    # Check if log group exists
+                    if ! aws logs describe-log-groups --log-group-name-prefix "$LOG_GROUP" --region us-east-1 | grep -q "$LOG_GROUP"; then
+                        echo "Log group $LOG_GROUP does not exist. Creating..."
+                        aws logs create-log-group --log-group-name "$LOG_GROUP" --region us-east-1
+                        echo "Log group $LOG_GROUP created."
+                    else
+                        echo "Log group $LOG_GROUP already exists."
+                    fi
+                    '''
+                }
+            }
+        }
+
         stage('Run New Docker Container') {
             steps {
                 script {
@@ -169,8 +189,8 @@ pipeline {
                     docker run -d \
                         --log-driver=awslogs \
                         --log-opt awslogs-region=us-east-1 \
-                        --log-opt awslogs-group=/docker/${IMAGE_NAME} \
-                        --log-opt awslogs-stream=${HOST_PORT} \
+                        --log-opt awslogs-group=/docker/docker.io/aayanindia/trade-hunter-back \
+                        --log-opt awslogs-stream=stream-$(date +%s) \
                         -e AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} \
                         -e AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} \
                         -p ${HOST_PORT}:${CONTAINER_PORT} ${IMAGE_NAME}:prodv1
@@ -204,4 +224,3 @@ pipeline {
         }
     }
 }
-
