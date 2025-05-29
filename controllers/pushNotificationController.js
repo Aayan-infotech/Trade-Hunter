@@ -452,7 +452,8 @@ exports.sendAdminNotification = async (req, res) => {
     });
 
     const device = await DeviceToken.findOne({ userId: receiverId });
-
+      const io = req.app.get("io");
+    io.emit("Admin Notification", notificationData);
     if (!device) {
       return res.status(200).json({
         status: 200,
