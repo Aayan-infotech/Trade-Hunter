@@ -21,6 +21,7 @@ const { createSubscriptionType,
     deleteSubscription,
     getRetentionRate,
     getSubscriptionPlansByTypeId,
+    getActiveUsersGroupedByPlan
  } = require("../controllers/SubscriptionNewController");
 
 
@@ -51,5 +52,6 @@ router.delete('/subscription/:id',verifyUser, deleteSubscription);
 router.get("/retentionRate",verifyUser, getRetentionRate);
 
 router.get('/subscriptionPlansByType/:subscriptionTypeId', getSubscriptionPlansByTypeId);
+router.get('/usersByPlan', getActiveUsersGroupedByPlan);
 
 module.exports = router;
