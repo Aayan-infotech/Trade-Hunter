@@ -145,6 +145,8 @@ exports.sendPushNotificationAdmin = async (req, res) => {
         console.warn("FCM send error (ignored):", fcmError.message)
       }
     }
+    const io = req.app.get("io");
+    io.emit("new Admin Notification");
 
     // 5. Respond success no matter what
     return res.status(200).json({
