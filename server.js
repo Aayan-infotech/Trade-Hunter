@@ -32,6 +32,7 @@ connectDB();
 
 // 🔥 Import cron job
 require("./middlewares/cron");
+require("./middlewares/billingJob");
 
 // Make io available in req.app.get("io")
 app.set("io", io);
