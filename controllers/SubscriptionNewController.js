@@ -398,3 +398,50 @@ exports.getSubscriptionPlansByTypeId = async (req, res) => {
   }
 };
 
+exports.getActiveUsersGroupedByPlan = async (req, res) => {
+  try {
+    const activeSubs = await SubscriptionUser.find({ status: "active" })
+      .populate({
+        path: "subscriptionPlanId",
+        select: "planName",
+        model: SubscriptionPlan,
+      })
+      .select("subscriptionPlanId userId status");
+
+    const grouped = activeSubs.reduce((acc, sub) => {
+      const plan = sub.subscriptionPlanId;
+      if (!plan) return acc;
+
+      const planId = plan._id.toString();
+      if (!acc[planId]) {
+        acc[planId] = {
+          subscriptionPlanId: planId,
+          planName: plan.planName,
+          userIds: [],
+        };
+      }
+      acc[planId].userIds.push(sub.userId);
+      return acc;
+    }, {});
+
+    const result = Object.values(grouped).map((entry) => ({
+      ...entry,
+      count: entry.userIds.length,
+    }));
+
+    return res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Active users grouped by subscription plan retrieved successfully",
+      data: result,
+    });
+  } catch (error) {
+    console.error("getActiveUsersGroupedByPlan error:", error);
+    return res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
