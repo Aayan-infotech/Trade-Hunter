@@ -5,9 +5,8 @@ const DeviceToken = require("../models/devicetokenModel");
 const Hunter = require("../models/hunterModel");
 const Provider = require("../models/providerModel");
 const SubscriptionVoucherUser = require("../models/SubscriptionVoucherUserModel");
-const JobPost = require('../models/jobpostModel');  // Import the Job 
+const JobPost = require("../models/jobpostModel"); // Import the Job
 const mongoose = require("mongoose");
-
 
 exports.sendPushNotification = async (req, res) => {
   try {
@@ -82,7 +81,8 @@ exports.sendPushNotification = async (req, res) => {
       receiverId,
       notificationType,
     });
-
+    const io = req.app.get("io");
+    io.emit("Admin Notification", notificationData);
     return res.status(200).json({
       status: 200,
       success: true,
@@ -102,7 +102,6 @@ exports.sendPushNotification = async (req, res) => {
     });
   }
 };
-
 
 exports.sendPushNotificationAdmin = async (req, res) => {
   try {
@@ -141,10 +140,9 @@ exports.sendPushNotificationAdmin = async (req, res) => {
       }
     }
 
-    // Emit to specific user room
+    // Emit to specific user room using their userId
     const io = req.app.get("io");
-     // Step 2: Emit a socket event to the receiver
-    io.emit("Admin Notification",notificationData); 
+    io.to(receiverId).emit("Admin Notification", notificationData);
 
     return res.status(200).json({
       status: 200,
@@ -169,16 +167,15 @@ exports.sendPushNotificationAdmin = async (req, res) => {
 };
 
 
-
 // NotificationController.js
 exports.getNotificationsByUserId = async (req, res) => {
   try {
     const receiverId = req.user.userId;
-    const userType   = req.params.userType;
+    const userType = req.params.userType;
 
-    const page  = parseInt(req.query.page, 10)  || 1;
+    const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
-    const skip  = (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
     // 1) Fetch personal notifications for this user
     const userNotifications = await Notification.find({
@@ -247,8 +244,8 @@ exports.getNotificationsByUserId = async (req, res) => {
     );
 
     const unreadCount = all.filter((n) => !n.isRead).length;
-    const paginated   = all.slice(skip, skip + limit);
-    const total       = all.length;
+    const paginated = all.slice(skip, skip + limit);
+    const total = all.length;
 
     return res.status(200).json({
       status: 200,
@@ -271,7 +268,6 @@ exports.getNotificationsByUserId = async (req, res) => {
     });
   }
 };
-
 
 exports.ReadNotification = async (req, res) => {
   try {
