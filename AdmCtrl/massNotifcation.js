@@ -66,6 +66,8 @@ exports.sendMassNotification = async (req, res) => {
         console.warn(`User with ID ${userId} does not have a deviceToken.`);
       }
     }
+    const io = req.app.get("io");
+    io.emit("Mass Notification");
 
     await Promise.all(notificationsPromises);
     res.status(200).json({
