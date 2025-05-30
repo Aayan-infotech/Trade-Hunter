@@ -312,15 +312,15 @@ const login = async (req, res) => {
 
     // Step 7: Check account statuses
     if (user.userStatus === "Suspended") {
-      return res.status(200).json({
-        status: 200,
+      return res.status(204).json({
+        status: 204,
         message: "Your account is suspended. Please contact the support team.",
       });
     }
 
     if (user.accountStatus === "Suspend") {
-      return res.status(200).json({
-        status: 200,
+      return res.status(204).json({
+        status: 204,
         message: "You have deleted your account. Please contact the support team to restore.",
       });
     }
