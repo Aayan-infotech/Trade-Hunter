@@ -94,13 +94,11 @@ exports.uploadFile = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in uploadFile:", error);
-    return res
-      .status(500)
-      .json({
-        status: 500,
-        message: "Error saving file to the database.",
-        error,
-      });
+    return res.status(500).json({
+      status: 500,
+      message: "Error saving file to the database.",
+      error,
+    });
   }
 };
 
@@ -293,7 +291,12 @@ exports.getNearbyJobs = async (req, res) => {
       providerId,
     } = req.body;
 
-    if (!providerId || latitude == null || longitude == null || radius == null) {
+    if (
+      !providerId ||
+      latitude == null ||
+      longitude == null ||
+      radius == null
+    ) {
       return res.status(400).json({
         status: 400,
         message: "providerId, latitude, longitude, and radius are all required",
@@ -303,7 +306,7 @@ exports.getNearbyJobs = async (req, res) => {
     const filterCondition = {};
     if (Array.isArray(businessType) && businessType.length > 0) {
       filterCondition.businessType = {
-        $in: businessType.map(type => new RegExp(`^${type}$`, "i"))
+        $in: businessType.map((type) => new RegExp(`^${type}$`, "i")),
       };
     }
 
@@ -319,19 +322,22 @@ exports.getNearbyJobs = async (req, res) => {
           spherical: true,
           key: "jobLocation.location",
           query: {
-            jobStatus: "Pending",
-            ...filterCondition
-          }
+            jobStatus: { $in: ["Pending", "Quoted"] },
+            ...filterCondition,
+          },
         },
       },
-      { $sort: { createdAt: -1 } }
+      { $sort: { createdAt: -1 } },
     ]);
 
-    const quotedJobs = await jobpostModel.find({
-      jobStatus: "Quoted",
-      "jobAcceptCount.providerId": providerId,
-      ...filterCondition
-    }).sort({ createdAt: -1 }).lean();
+    const quotedJobs = await jobpostModel
+      .find({
+        jobStatus: "Quoted",
+        "jobAcceptCount.providerId": providerId,
+        ...filterCondition,
+      })
+      .sort({ createdAt: -1 })
+      .lean();
     const combinedJobs = [...geoPendingJobs, ...quotedJobs];
     combinedJobs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
@@ -348,7 +354,6 @@ exports.getNearbyJobs = async (req, res) => {
         totalPages: Math.ceil(combinedJobs.length / limit),
       },
     });
-
   } catch (error) {
     console.error("Error fetching jobs:", error);
     return res.status(500).json({
@@ -358,8 +363,6 @@ exports.getNearbyJobs = async (req, res) => {
     });
   }
 };
-
-
 
 exports.getNearbyJobsForGuest = async (req, res) => {
   try {
@@ -382,17 +385,17 @@ exports.getNearbyJobsForGuest = async (req, res) => {
       },
       {
         $match: {
-          jobStatus: "Pending", 
+          jobStatus: "Pending",
         },
       },
       {
-        $sort: { distance: 1 }, 
+        $sort: { distance: 1 },
       },
       {
-        $skip: (page - 1) * limit, 
+        $skip: (page - 1) * limit,
       },
       {
-        $limit: limit, 
+        $limit: limit,
       },
     ]);
 
@@ -565,7 +568,8 @@ exports.jobAcceptCount = async (req, res) => {
         await provider.save();
         return res.status(400).json({
           status: 400,
-          message: "Your allotted leads have been completed. Please purchase a new plan.",
+          message:
+            "Your allotted leads have been completed. Please purchase a new plan.",
         });
       }
 
@@ -574,7 +578,7 @@ exports.jobAcceptCount = async (req, res) => {
 
       if (usedLeadsAfter >= allowedLeads) {
         leadLimitReached = true;
-        await expireSubscription(provider); 
+        await expireSubscription(provider);
       }
     }
 
@@ -598,7 +602,6 @@ exports.jobAcceptCount = async (req, res) => {
     });
   }
 };
-
 
 async function expireSubscription(provider) {
   const voucher = await SubscriptionVoucherUser.findOne({
@@ -724,13 +727,11 @@ exports.deleteFile = async (req, res) => {
       .status(200)
       .json({ status: 200, message: "File deleted successfully." });
   } catch (error) {
-    return res
-      .status(500)
-      .json({
-        status: 500,
-        message: "Internal server error",
-        error: error.message,
-      });
+    return res.status(500).json({
+      status: 500,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
@@ -766,8 +767,7 @@ exports.getProvidersByBusinessType = async (req, res) => {
       {
         $match: {
           businessType: { $in: businessTypesArray },
-        }
-        
+        },
       },
       {
         $project: {
@@ -890,7 +890,7 @@ exports.getProvidersListing = async (req, res) => {
           distanceField: "distance",
           spherical: true,
           key: "address.location",
-          maxDistance: radius, 
+          maxDistance: radius,
         },
       },
       {
@@ -965,43 +965,45 @@ exports.getAllProviders = async (req, res) => {
 
 exports.getVoucherUsers = async (req, res) => {
   try {
-    const page   = Math.max(1, parseInt(req.query.page, 10) || 1)
-    const limit  = Math.max(1, parseInt(req.query.limit, 10) || 10)
-    const search = (req.query.search || '').trim()
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit, 10) || 10);
+    const search = (req.query.search || "").trim();
 
-    let matchingUserIds = []
+    let matchingUserIds = [];
     if (search) {
-      const users = await providerModel.find({
-        businessName: { $regex: search, $options: 'i' }
-      }).select('_id')
-      matchingUserIds = users.map(u => u._id)
+      const users = await providerModel
+        .find({
+          businessName: { $regex: search, $options: "i" },
+        })
+        .select("_id");
+      matchingUserIds = users.map((u) => u._id);
     }
 
-    const voucherFilter = { type: 'Voucher' }
+    const voucherFilter = { type: "Voucher" };
     if (search) {
       voucherFilter.userId = matchingUserIds.length
         ? { $in: matchingUserIds }
-        : { $in: [] } 
+        : { $in: [] };
     }
 
-    let totalCount = 0
-    let voucherUsers = []
+    let totalCount = 0;
+    let voucherUsers = [];
 
     if (!search || matchingUserIds.length > 0) {
-      totalCount = await SubscriptionVoucherUser.countDocuments(voucherFilter)
+      totalCount = await SubscriptionVoucherUser.countDocuments(voucherFilter);
       voucherUsers = await SubscriptionVoucherUser.find(voucherFilter)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
-        .populate('userId', 'contactName email businessName')
-        .lean()
+        .populate("userId", "contactName email businessName")
+        .lean();
     }
 
     return res.status(200).json({
       status: 200,
       message: voucherUsers.length
-        ? 'Voucher users fetched successfully'
-        : 'No voucher users found',
+        ? "Voucher users fetched successfully"
+        : "No voucher users found",
       data: voucherUsers,
       meta: {
         page,
@@ -1009,17 +1011,13 @@ exports.getVoucherUsers = async (req, res) => {
         totalCount,
         totalPages: Math.ceil(totalCount / limit),
       },
-    })
+    });
   } catch (error) {
-    console.error('Error fetching voucher users:', error)
+    console.error("Error fetching voucher users:", error);
     return res.status(500).json({
       status: 500,
-      message: 'Error fetching voucher users',
+      message: "Error fetching voucher users",
       error: error.message,
-    })
+    });
   }
-}
-
-
-
-
+};
