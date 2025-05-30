@@ -238,7 +238,7 @@ exports.getNotificationsByUserId = async (req, res) => {
     const joinDate = joinRecord?.createdAt || new Date(0)
 
     // 4) Fetch mass notifications, excluding those the user deleted
-    const massNotifs = await MassNotification.find({
+    const massNotifs = await massNotification.find({
       userType,
       createdAt: { $gte: joinDate },
       deletedBy: { $ne: receiverId },
