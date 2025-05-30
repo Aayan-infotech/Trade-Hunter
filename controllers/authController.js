@@ -256,9 +256,9 @@ const login = async (req, res) => {
     // Step 2: Find user by type
     let user;
     if (userType === "hunter") {
-      user = await User.findOne({ email, userType, isDeleted: { $ne: true } });
+      user = await User.findOne({ email, userType  });
     } else {
-      user = await Provider.findOne({ email, userType, isDeleted: { $ne: true } });
+      user = await Provider.findOne({ email, userType });
     }
 
     if (!user) {
