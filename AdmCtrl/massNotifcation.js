@@ -67,7 +67,7 @@ exports.sendMassNotification = async (req, res) => {
       }
     }
     const io = req.app.get("io");
-    io.emit("Mass Notification");
+    io.emit("Mass Notification", userType);
 
     await Promise.all(notificationsPromises);
     res.status(200).json({
