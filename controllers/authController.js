@@ -325,11 +325,13 @@ const login = async (req, res) => {
       });
     }
 
-    if (userType === "provider" && user.subscriptionStatus !== 1) {
+    if (userType === "provider" && user.subscriptionPlanId == null) {
       return res.status(200).json({
         status: 200,
-        message: "You have not subscribed to the service.",
-        data: { token, user },
+
+        message: "you havee not subscribed to the service",
+        data: { token: token, user: user },
+
       });
     }
 
