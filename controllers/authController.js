@@ -242,36 +242,42 @@ const signUp = async (req, res) => {
 };
 
 const login = async (req, res) => {
-  const { email, password, userType } = req.body;
+  const { email, password, userType, UID } = req.body;
 
+  // Step 1: Validate userType
   if (!["hunter", "provider"].includes(userType)) {
-    return res.status(400).json({ status: 400, message: "Invalid user type." });
+    return res.status(400).json({
+      status: 400,
+      message: "Invalid user type.",
+    });
   }
-  try {
-    let user;
 
-    if (userType == "hunter") {
+  try {
+    // Step 2: Find user by type
+    let user;
+    if (userType === "hunter") {
       user = await User.findOne({ email, userType, isDeleted: { $ne: true } });
     } else {
-      user = await Provider.findOne({
-        email,
-        userType,
-        isDeleted: { $ne: true },
+      user = await Provider.findOne({ email, userType, isDeleted: { $ne: true } });
+    }
+
+    if (!user) {
+      return res.status(400).json({
+        status: 400,
+        message: "Invalid credentials",
       });
     }
-    if (!user) {
-      return res
-        .status(400)
-        .json({ status: 400, message: "Invalid credentials" });
-    }
 
+    // Step 3: Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res
-        .status(400)
-        .json({ status: 400, message: "Invalid credentials" });
+      return res.status(400).json({
+        status: 400,
+        message: "Invalid credentials",
+      });
     }
 
+    // Step 4: Generate tokens
     const token = jwt.sign(
       { userId: user._id, email: user.email },
       process.env.JWT_SECRET,
@@ -283,8 +289,9 @@ const login = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    if (req.body.UID) {
-      user.UID = req.body.UID;
+    // Step 5: Save tokens & UID if present
+    if (UID) {
+      user.UID = UID;
     }
 
     user.refreshToken = refreshToken;
@@ -292,41 +299,55 @@ const login = async (req, res) => {
 
     await user.save();
 
+    // Step 6: Check verification
     if (!user.emailVerified) {
       const verificationOTP = await generateverificationOTP(user);
       await sendEmail(email, "Account Verification OTP", verificationOTP);
+
       return res.status(200).json({
         status: 200,
-        message: "You are not verified, Please verify your email",
+        message: "You are not verified. Please verify your email.",
       });
     }
 
-    if (user.userStatus == "Suspended") {
+    // Step 7: Check account statuses
+    if (user.userStatus === "Suspended") {
       return res.status(200).json({
         status: 200,
-        message: "Your account is suspended. Please contact support team",
+        message: "Your account is suspended. Please contact the support team.",
+      });
+    }
+
+    if (user.accountStatus === "Suspend") {
+      return res.status(200).json({
+        status: 200,
+        message: "You have deleted your account. Please contact the support team to restore.",
       });
     }
 
     if (userType === "provider" && user.subscriptionStatus !== 1) {
       return res.status(200).json({
         status: 200,
-        message: "You have not subscribed to the service",
-        data: { token: token, user: user },
+        message: "You have not subscribed to the service.",
+        data: { token, user },
       });
     }
 
+    // Step 8: Return success response
     return res.status(200).json({
       status: 200,
       message: "Login successful",
-      data: { token: token, user: user },
+      data: { token, user },
     });
   } catch (err) {
-    return res
-      .status(500)
-      .json({ status: 500, message: "Server error", error: err.message });
+    return res.status(500).json({
+      status: 500,
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
+
 
 const logout = async (req, res) => {
   try {

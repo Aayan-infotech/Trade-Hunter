@@ -424,10 +424,12 @@ exports.getActiveUsersGroupedByPlan = async (req, res) => {
       return acc;
     }, {});
 
-    const result = Object.values(grouped).map((entry) => ({
-      ...entry,
-      count: entry.userIds.length,
-    }));
+    const result = Object.values(grouped)
+      .map((entry) => ({
+        ...entry,
+        count: entry.userIds.length,
+      }))
+      .sort((a, b) => b.count - a.count); // 🔥 Sort descending by count
 
     return res.status(200).json({
       status: 200,
@@ -445,3 +447,4 @@ exports.getActiveUsersGroupedByPlan = async (req, res) => {
     });
   }
 };
+
