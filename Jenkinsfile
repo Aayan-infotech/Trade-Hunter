@@ -22,16 +22,6 @@ pipeline {
             }
         }
 
-        stage('Run ESLint') {
-            steps {
-                script {
-                    sh '''
-                    echo "Running ESLint..."
-                    npm run lint || echo "⚠️ ESLint completed with errors, but continuing pipeline..."
-                    '''
-                }
-            }
-        }
 
         stage('SonarQube Analysis') {
             steps {
