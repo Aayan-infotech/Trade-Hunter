@@ -97,25 +97,45 @@ exports.giveRating = async (req, res) => {
 
 exports.getRatings = async (req, res) => {
   try {
-    const { providerId } = req.params; 
+    const { providerId } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(providerId)) {
       return res.status(400).json({ message: "Invalid providerId." });
     }
 
     const providerRatings = await Rating.find({ providerId })
-      .populate("userId", "name email images") 
-      .populate("providerId", "contactName email images"); 
+      .populate("userId", "name email images")
+      .populate("providerId", "contactName email images");
+
+    const result = await Rating.aggregate([
+      { $match: { providerId: new mongoose.Types.ObjectId(providerId) } },
+      {
+        $group: {
+          _id: "$providerId",
+          avgRating: { $avg: "$rating" },
+          totalRatings: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const ratingStats = result.length > 0
+      ? result[0]
+      : { avgRating: 0, totalRatings: 0 };
 
     return res.status(200).json({
       message: "Ratings retrieved successfully.",
-      providerRatings,
+      data: {
+        providerRatings,
+        avgRating: ratingStats.avgRating,
+        totalRatings: ratingStats.totalRatings
+      }
     });
 
   } catch (error) {
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 
 exports.getAvgRating = async (req, res) => {
