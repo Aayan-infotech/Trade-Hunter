@@ -3,13 +3,15 @@ const apiResponse = require("../utils/responsehandler");
 const mongoose = require("mongoose");
 
 const getAllJobPosts = async (req, res) => {
-  let page = parseInt(req.query.page) || 1;
-  let limit = parseInt(req.query.limit) || 10;
-  let skip = (page - 1) * limit;
-  let search = req.query.search || "";
-  let status = req.query.status || "";
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  const skip = (page - 1) * limit;
+  const search = req.query.search || "";
+  const status = req.query.status || "";
+  const overrideTotal = parseInt(req.query.total, 10) || 0;
 
   try {
+    // 1) Build initial pipeline for lookups & filters
     let pipeline = [];
 
     pipeline.push({
@@ -20,7 +22,6 @@ const getAllJobPosts = async (req, res) => {
         as: "userDetails",
       },
     });
-
     pipeline.push({
       $unwind: {
         path: "$userDetails",
@@ -42,7 +43,6 @@ const getAllJobPosts = async (req, res) => {
         as: "providerDetails",
       },
     });
-
     pipeline.push({
       $unwind: {
         path: "$providerDetails",
@@ -50,6 +50,7 @@ const getAllJobPosts = async (req, res) => {
       },
     });
 
+    // 1.1) Search filter
     if (search.trim()) {
       pipeline.push({
         $match: {
@@ -62,22 +63,35 @@ const getAllJobPosts = async (req, res) => {
       });
     }
 
+    // 1.2) Status filter
     if (status.trim()) {
       pipeline.push({
-        $match: {
-          jobStatus: status,
-        },
+        $match: { jobStatus: status },
       });
     }
 
+    // 2) Count how many match so far
     const countPipeline = [...pipeline, { $count: "totalJobs" }];
     const countResult = await JobPost.aggregate(countPipeline);
-    const totalJobs = countResult[0] ? countResult[0].totalJobs : 0;
+    const actualTotal = countResult[0] ? countResult[0].totalJobs : 0;
 
+    // 3) Decide effectiveTotal based on override
+    let effectiveTotal = actualTotal;
+    if (overrideTotal > 0) {
+      effectiveTotal = Math.min(actualTotal, overrideTotal);
+    }
+
+    // 4) If overrideTotal > 0, cap the pipeline
+    if (overrideTotal > 0) {
+      pipeline.push({ $limit: effectiveTotal });
+    }
+
+    // 5) Sort & paginate
     pipeline.push({ $sort: { createdAt: -1 } });
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limit });
 
+    // 6) Project fields
     pipeline.push({
       $project: {
         title: 1,
@@ -107,23 +121,26 @@ const getAllJobPosts = async (req, res) => {
       },
     });
 
+    // 7) Execute the aggregation
     const jobPosts = await JobPost.aggregate(pipeline);
 
+    // 8) Return response with pagination based on effectiveTotal
     return apiResponse.success(res, "Job posts retrieved successfully.", {
       pagination: {
-        totalJobs,
+        totalJobs: effectiveTotal,
         currentPage: page,
-        totalPages: Math.ceil(totalJobs / limit),
+        totalPages: Math.ceil(effectiveTotal / limit),
       },
       jobPosts,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error in getAllJobPosts:", error);
     return apiResponse.error(res, "Internal server error.", 500, {
       error: error.message,
     });
   }
 };
+
 
 
 
