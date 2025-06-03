@@ -200,22 +200,52 @@ exports.initiatePayment = async (req, res) => {
         let emailSuccess = false;
         try {
           await sendEmail(
-            Customer.Email,
-            `Your Invoice #${txId}`,
-            `<p>Hi ${Customer.FirstName},</p>
-             <p>Thank you for your payment of $${amountCharged.toFixed(2)}.
-             Please find your invoice attached.</p>
-             <p>Regards,<br/>Trade Hunters Team</p>
-             <p style="font-size: 12px; color: gray;">THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL</p>`,
-             
-            [
-              {
-                filename: `invoice_${txId}.pdf`,
-                content: pdfBuffer,
-                contentType: "application/pdf",
-              },
-            ]
-          );
+  Customer.Email,
+  `Your Invoice #${txId} - Trade Hunters`,
+  `
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9fafc; padding: 30px;">
+    <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);">
+
+      <!-- Header -->
+      <div style="background-color: #004aad; color: white; padding: 20px; border-top-left-radius: 10px; border-top-right-radius: 10px;">
+        <h2 style="margin: 0;">📄 Invoice Confirmation</h2>
+      </div>
+
+      <!-- Body -->
+      <div style="padding: 30px;">
+        <p style="font-size: 16px;">Hi ${Customer.FirstName},</p>
+        <p style="font-size: 15px;">
+          Thank you for your payment of <strong>$${amountCharged.toFixed(2)}</strong>.
+          Your transaction has been successfully processed.
+        </p>
+
+        <p style="font-size: 15px;">
+          Please find your invoice <strong>(#${txId})</strong> attached to this email.
+        </p>
+
+        <div style="margin-top: 20px; padding: 15px; background-color: #f0f4f8; border-left: 5px solid #004aad; border-radius: 6px;">
+          <p style="margin: 0;"><strong>Need help?</strong> Reach out to our support team if you have any questions about this invoice.</p>
+        </div>
+
+        <br/>
+        <p style="font-size: 14px;">Best regards,<br/><strong>Trade Hunters Team</strong></p>
+
+        <p style="font-size: 11px; color: gray; text-align: center; margin-top: 40px;">
+          THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL.
+        </p>
+      </div>
+    </div>
+  </div>
+  `,
+  [
+    {
+      filename: `invoice_${txId}.pdf`,
+      content: pdfBuffer,
+      contentType: "application/pdf",
+    },
+  ]
+);
+
           emailSuccess = true;
         } catch (err) {
           console.error("Invoice email failed:", err);

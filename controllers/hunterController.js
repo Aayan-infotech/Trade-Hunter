@@ -266,21 +266,44 @@ exports.sendJobNotificationEmail = async (req, res) => {
       : '';
 
     const htmlMessage = `
-      <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f7f9fc; color: #333;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px;">
-          <h2 style="color: #2c3e50;">🔔 New Job Message Notification</h2>
-          <p style="font-size: 16px;">Hello,</p>
-          <p style="font-size: 16px;">
-            You have received a new message from 
-            <strong style="color: #2980b9;">${name}</strong> 
-            ${jobTitleSection ? jobTitleSection : ''}.
-          </p>
-          <p style="font-size: 14px; color: #7f8c8d;">Please log in to your account to view more details or respond to the message.</p>
-          <hr style="margin: 20px 0;" />
-          <p style="font-size: 12px; color: #95a5a6;">This is an automated message. Please do not reply to this email.</p>
-        </div>
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 30px; color: #2c3e50;">
+    <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden;">
+
+      <!-- Header -->
+      <div style="background-color: #004aad; color: white; padding: 20px;">
+        <h2 style="margin: 0;">📬 New Job Message Alert</h2>
       </div>
-    `;
+
+      <!-- Body -->
+      <div style="padding: 25px;">
+        <p style="font-size: 16px;">Hi there,</p>
+        <p style="font-size: 15px; line-height: 1.6;">
+          You've received a new message from 
+          <strong style="color: #004aad;">${name}</strong>
+          ${jobTitleSection ? jobTitleSection : ''}.
+        </p>
+
+        <p style="font-size: 15px;">
+          To view and respond to this message, please log in to your Trade Hunters account.
+        </p>
+
+        <!-- CTA Button -->
+        <div style="margin: 30px 0;">
+          <a href="https://your-app-domain.com/login" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #004aad; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            View Message
+          </a>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #e1e4e8;" />
+
+        <p style="font-size: 12px; color: #95a5a6; text-align: center; margin-top: 20px;">
+          This is an automated message from Trade Hunters. Please do not reply to this email.
+        </p>
+      </div>
+    </div>
+  </div>
+`;
+
 
     await sendEmail(receverEmail, subject, htmlMessage);
 

@@ -179,20 +179,41 @@ const signUp = async (req, res) => {
     const verificationOTP = await generateverificationOTP(newUser);
 
     await sendEmail(
-      email,
-      "Account Verification OTP - Trade Hunters",
-      `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-        <h2>Hello ${name},</h2>
-        <p>Welcome aboard! To complete your registration, please use the OTP below:</p>
-        <h3 style="color: #2c3e50;">Your OTP: <span style="color: #e74c3c;">${verificationOTP}</span></h3>
-        <p>This OTP is valid for 10 minutes. Do not share it with anyone.</p>
-        <br />
-        <p>Cheers,<br /><strong>Trade Hunters</strong></p>
-        <p style="font-size: 12px; color: gray;">THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL</p>
+  email,
+  "Account Verification OTP - Trade Hunters",
+  `
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9f9f9; padding: 30px;">
+    <div style="max-width: 550px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+      
+      <!-- Header -->
+      <div style="background-color: #004aad; color: #ffffff; padding: 20px; border-top-left-radius: 10px; border-top-right-radius: 10px; text-align: center;">
+        <h1 style="margin: 0; font-size: 22px;">🔐 Account Verification</h1>
+        <p style="margin: 5px 0 0; font-size: 14px;">Trade Hunters</p>
       </div>
-      `
-    );
+      
+      <!-- Body -->
+      <div style="padding: 25px 30px;">
+        <p style="font-size: 16px;">Hi <strong>${name}</strong>,</p>
+        <p style="font-size: 15px;">Thanks for joining Trade Hunters! To verify your account, please use the OTP below:</p>
+        
+        <div style="margin: 20px 0; padding: 15px; background-color: #f0f4f8; text-align: center; border-left: 5px solid #004aad; border-radius: 5px;">
+          <h2 style="margin: 0; font-size: 24px; color: #e74c3c;">${verificationOTP}</h2>
+          <p style="margin: 5px 0 0; font-size: 13px; color: #555;">Valid for 10 minutes</p>
+        </div>
+        
+        <p style="font-size: 14px;">Please do not share this OTP with anyone for your security.</p>
+        
+        <br />
+        <p style="font-size: 14px;">Warm regards,<br /><strong>Team Trade Hunters</strong></p>
+        <p style="font-size: 11px; color: gray; text-align: center; margin-top: 30px;">
+          This is an automated message. Please do not reply.
+        </p>
+      </div>
+    </div>
+  </div>
+  `
+);
+
 
     const savedUser = await newUser.save();
 
@@ -208,22 +229,50 @@ const signUp = async (req, res) => {
     }
 
     await sendInvoiceEmail(
-      "tradehunters2025@gmail.com",
-      `New ${userType} Signup - ${name}`,
-      `
-      <div style="font-family: Arial, sans-serif;">
-        <h2>New User Signup Notification</h2>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Phone:</strong> ${phoneNo}</p>
-        <p><strong>Signed up as:</strong> ${userType}</p>
-        <p style="font-size: 12px; color: gray;">THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL</p>
-        <br />
-        <p>Regards,<br />Trade Hunters</p>
-
+  "tradehunters2025@gmail.com",
+  `New ${userType} Signup - ${name}`,
+  `
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9f9f9; padding: 30px;">
+    <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
+      
+      <!-- Header -->
+      <div style="background-color: #004aad; color: white; padding: 20px 30px; text-align: center;">
+        <h2 style="margin: 0;">👥 New User Signup Notification</h2>
+        <p style="margin: 5px 0 0; font-size: 14px;">A new user has registered on the platform</p>
       </div>
-      `
-    );
+      
+      <!-- Body -->
+      <div style="padding: 25px 30px;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 10px; font-weight: bold;">👤 Name:</td>
+            <td style="padding: 10px;">${name}</td>
+          </tr>
+          <tr style="background-color: #f4f6f8;">
+            <td style="padding: 10px; font-weight: bold;">📧 Email:</td>
+            <td style="padding: 10px;">${email}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px; font-weight: bold;">📞 Phone:</td>
+            <td style="padding: 10px;">${phoneNo}</td>
+          </tr>
+          <tr style="background-color: #f4f6f8;">
+            <td style="padding: 10px; font-weight: bold;">🧾 Signed up as:</td>
+            <td style="padding: 10px;">${userType}</td>
+          </tr>
+        </table>
+
+        <p style="margin-top: 25px; font-size: 13px; color: gray; text-align: center;">
+          THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL
+        </p>
+
+        <p style="margin-top: 30px; font-size: 14px;">Regards,<br /><strong>Trade Hunters</strong></p>
+      </div>
+    </div>
+  </div>
+  `
+);
+
 
     return res.status(200).json({
       status: 200,
@@ -462,20 +511,42 @@ const forgotPassword = async (req, res) => {
 
     const otp = await generateverificationOTP(user);
     await sendEmail(
-      email,
-      "Reset Password OTP - Trade Hunters",
-      `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-        <h2>Hello ,</h2>
-        <p>Welcome aboard! Here is your Otp for Reset Password:</p>
-        <h3 style="color: #2c3e50;">Your OTP: <span style="color: #e74c3c;">${otp}</span></h3>
-        <p>This OTP is valid for 10 minutes. Do not share it with anyone.</p>
-        <br />
-        <p>Cheers,<br /><strong>Trade Hunters</strong></p>
-        <p style="font-size: 12px; color: gray;">THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL</p>
+  email,
+  "Reset Password OTP - Trade Hunters",
+  `
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f8; padding: 30px;">
+    <div style="max-width: 550px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+      
+      <!-- Header -->
+      <div style="background-color: #004aad; color: white; padding: 20px 30px; text-align: center; border-top-left-radius: 10px; border-top-right-radius: 10px;">
+        <h2 style="margin: 0;">🔒 Reset Your Password</h2>
       </div>
-      `
-    );
+
+      <!-- Body -->
+      <div style="padding: 25px 30px;">
+        <p style="font-size: 16px;">Hello,</p>
+        <p style="font-size: 15px;">We received a request to reset your password on <strong>Trade Hunters</strong>. Use the OTP below to proceed:</p>
+
+        <div style="margin: 20px 0; padding: 15px; background-color: #f0f4f8; text-align: center; border-left: 5px solid #004aad; border-radius: 5px;">
+          <h2 style="margin: 0; font-size: 24px; color: #e74c3c;">${otp}</h2>
+          <p style="margin: 5px 0 0; font-size: 13px; color: #555;">Valid for 10 minutes</p>
+        </div>
+
+        <p style="font-size: 14px;">⚠️ Please do not share this OTP with anyone for your account's security.</p>
+        <p style="font-size: 14px;">If you did not request this, please ignore this email or contact support.</p>
+
+        <br />
+        <p style="font-size: 14px;">Regards,<br /><strong>Team Trade Hunters</strong></p>
+        
+        <p style="font-size: 11px; color: gray; text-align: center; margin-top: 30px;">
+          This is an automated message. Please do not reply to this email.
+        </p>
+      </div>
+    </div>
+  </div>
+  `
+);
+
 
     return res.status(200).json({
       status: 200,
@@ -715,22 +786,39 @@ const resendOTP = async (req, res) => {
     const verificationOTP = await generateverificationOTP(user);
 
     await sendEmail(
-      email,
-      "Resend OTP - Trade Hunters",
-      `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-        <h2>Hello ${user.name || user.contactName},</h2>
-        <p>You requested a new OTP to verify your email.</p>
-        <h3 style="color: #2c3e50;">Your OTP: 
-          <span style="color: #e74c3c;">${verificationOTP}</span>
-        </h3>
-        <p>This OTP is valid for 10 minutes.</p>
-        <br />
-        <p>Cheers,<br /><strong>Trade Hunters</strong></p>
-        <p style="font-size: 12px; color: gray;">THIS IS AN AUTOMATED MESSAGE. PLEASE DO NOT REPLY TO THIS EMAIL</p>
+  email,
+  "Resend OTP - Trade Hunters",
+  `
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f8; padding: 30px;">
+    <div style="max-width: 550px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+      
+      <!-- Header -->
+      <div style="background-color: #004aad; color: white; padding: 20px 30px; text-align: center; border-top-left-radius: 10px; border-top-right-radius: 10px;">
+        <h2 style="margin: 0;">📩 New OTP Request</h2>
       </div>
-      `
-    );
+
+      <!-- Body -->
+      <div style="padding: 25px 30px;">
+        <p style="font-size: 16px;">Hello ${user.name || user.contactName},</p>
+        <p style="font-size: 15px;">You requested a new OTP to verify your email. Please use the OTP below to complete the process:</p>
+
+        <div style="margin: 20px 0; padding: 15px; background-color: #f0f4f8; text-align: center; border-left: 5px solid #004aad; border-radius: 5px;">
+          <h2 style="margin: 0; font-size: 24px; color: #e74c3c;">${verificationOTP}</h2>
+          <p style="margin: 5px 0 0; font-size: 13px; color: #555;">Valid for 10 minutes</p>
+        </div>
+
+        <p style="font-size: 14px;">⚠️ Please do not share this OTP with anyone for your account's security.</p>
+        <br />
+        <p style="font-size: 14px;">Cheers,<br /><strong>Team Trade Hunters</strong></p>
+
+        <p style="font-size: 11px; color: gray; text-align: center; margin-top: 30px;">
+          This is an automated message. Please do not reply to this email.
+        </p>
+      </div>
+    </div>
+  </div>
+  `
+);
 
     return res
       .status(200)

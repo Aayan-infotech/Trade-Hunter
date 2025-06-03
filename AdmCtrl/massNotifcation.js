@@ -147,7 +147,6 @@ exports.deleteForUser = async (req, res) => {
     const userId = req.user._id;
     const notifId = req.params.id;
 
-    // Add this user to deletedBy (won’t duplicate if already there)
     await Notification.findByIdAndUpdate(
       notifId,
       { $addToSet: { deletedBy: userId } },
