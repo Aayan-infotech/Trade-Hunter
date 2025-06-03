@@ -596,6 +596,56 @@ exports.deleteNotificationById = async (req, res) => {
   }
 };
 
+exports.deleteNotificationByIdforUser = async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+    const userId = req.user._id; 
+
+    if (!notificationId || !userId) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Notification ID and User ID are required.",
+        data: [],
+      });
+    }
+
+    const notification = await Notification.findById(notificationId);
+
+    if (!notification) {
+      return res.status(404).json({
+        status: 404,
+        success: false,
+        message: "Notification not found.",
+        data: [],
+      });
+    }
+
+    // Avoid duplicate entries
+    if (!notification.deletedBy.includes(userId)) {
+      notification.deletedBy.push(userId);
+      await notification.save();
+    }
+
+    return res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Notification deleted from user view.",
+      data: [notification],
+    });
+  } catch (error) {
+    console.error("Error deleting notification:", error);
+    return res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Internal Server Error.",
+      data: [],
+      error: error.message,
+    });
+  }
+};
+
+
 exports.updateNotificationStatus = async (req, res) => {
   try {
     const { id, type } = req.params;
