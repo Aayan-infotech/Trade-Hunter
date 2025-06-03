@@ -950,7 +950,8 @@ exports.getProvidersListing = async (req, res) => {
 exports.getAllProviders = async (req, res) => {
   try {
     const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
+    const limitParam = parseInt(req.query.limit, 10) || 10;
+    const totalQuery = parseInt(req.query.total, 10);
     const search = req.query.search?.trim() || "";
 
     const filter = {};
@@ -958,21 +959,28 @@ exports.getAllProviders = async (req, res) => {
       filter.businessType = { $regex: search, $options: "i" };
     }
 
-    const total = await providerModel.countDocuments(filter);
+    const query = providerModel.find(filter).sort({ createdAt: -1 }).select("-password -__v");
 
-    const providers = await providerModel
-      .find(filter)
-      .select("-password -__v")
-      .skip((page - 1) * limit)
-      .limit(limit);
+    let providers;
+    let total;
+    let limit = limitParam;
 
-    const totalPages = Math.ceil(total / limit);
+    if (!isNaN(totalQuery)) {
+      // When total is provided, return most recent `totalQuery` results, skip pagination
+      providers = await query.limit(totalQuery);
+      total = totalQuery;
+    } else {
+      total = await providerModel.countDocuments(filter);
+      providers = await query.skip((page - 1) * limit).limit(limit);
+    }
+
+    const totalPages = isNaN(totalQuery) ? Math.ceil(total / limit) : 1;
 
     return res.status(200).json({
       status: 200,
       message: "Providers fetched successfully",
-      page,
-      limit,
+      page: isNaN(totalQuery) ? page : 1,
+      limit: isNaN(totalQuery) ? limit : totalQuery,
       total,
       totalPages,
       data: providers,
@@ -986,6 +994,7 @@ exports.getAllProviders = async (req, res) => {
     });
   }
 };
+
 
 exports.getVoucherUsers = async (req, res) => {
   try {

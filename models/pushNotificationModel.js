@@ -43,6 +43,11 @@ const pushNotificationSchema = new Schema(
       ref: 'JobPost',
       required: false,
     },
+    deletedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: false,
+    },
   },
   { timestamps: true }
 );
