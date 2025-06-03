@@ -952,28 +952,48 @@ exports.getAllProviders = async (req, res) => {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
     const search = req.query.search?.trim() || "";
+    const overrideTotal = parseInt(req.query.total, 10) || 0;
+    const skip = (page - 1) * limit;
 
     const filter = {};
     if (search) {
       filter.businessType = { $regex: search, $options: "i" };
     }
 
-    const total = await providerModel.countDocuments(filter);
+    const actualTotal = await providerModel.countDocuments(filter);
 
-    const providers = await providerModel
-      .find(filter)
-      .select("-password -__v")
-      .skip((page - 1) * limit)
-      .limit(limit);
+    let effectiveTotal = actualTotal;
+    if (overrideTotal > 0) {
+      effectiveTotal = Math.min(actualTotal, overrideTotal);
+    }
 
-    const totalPages = Math.ceil(total / limit);
+    const pipeline = [];
+    pipeline.push({ $match: filter });
+
+    if (overrideTotal > 0) {
+      pipeline.push({ $limit: effectiveTotal });
+    }
+
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    pipeline.push({
+      $project: {
+        password: 0,
+        __v: 0,
+      },
+    });
+
+    const providers = await providerModel.aggregate(pipeline);
+
+    const totalPages = Math.ceil(effectiveTotal / limit);
 
     return res.status(200).json({
       status: 200,
       message: "Providers fetched successfully",
       page,
       limit,
-      total,
+      total: effectiveTotal,  
       totalPages,
       data: providers,
     });
@@ -986,6 +1006,7 @@ exports.getAllProviders = async (req, res) => {
     });
   }
 };
+
 
 exports.getVoucherUsers = async (req, res) => {
   try {
