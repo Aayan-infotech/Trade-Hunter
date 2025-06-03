@@ -595,7 +595,7 @@ exports.deleteNotificationById = async (req, res) => {
 exports.deleteNotificationByIdforUser = async (req, res) => {
   try {
     const { notificationId } = req.params;
-    const userId = req.user.userId; 
+    const userId = req.user.userId;
 
     if (!notificationId || !userId) {
       return res.status(400).json({
@@ -617,9 +617,8 @@ exports.deleteNotificationByIdforUser = async (req, res) => {
       });
     }
 
-    // Avoid duplicate entries
-    if (!notification.deletedBy.includes(userId)) {
-      notification.deletedBy.push(userId);
+    if (!notification.deletedBy || notification.deletedBy.toString() !== userId) {
+      notification.deletedBy = userId;
       await notification.save();
     }
 
