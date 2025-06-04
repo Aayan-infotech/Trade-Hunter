@@ -9,18 +9,36 @@ const SubscriptionPlan = require("../models/SubscriptionPlanModel");
 const SubscriptionType = require("../models/SubscriptionTypeModel");
 const Provider = require("../models/providerModel");
 
+
 exports.initiatePayment = async (req, res) => {
   try {
-    const requiredCustomerFields = ["FirstName", "LastName", "Email", "CardDetails"];
-    const requiredCardFields = ["Name", "Number", "ExpiryMonth", "ExpiryYear", "CVN"];
+    const requiredCustomerFields = [
+      "FirstName",
+      "LastName",
+      "Email",
+      "CardDetails",
+    ];
+    const requiredCardFields = [
+      "Name",
+      "Number",
+      "ExpiryMonth",
+      "ExpiryYear",
+      "CVN",
+    ];
     const requiredPaymentFields = ["TotalAmount", "CurrencyCode"];
     const { Customer, Payment, userId, subscriptionPlanId } = req.body;
 
+    // 1. Validate presence
     if (!Customer || !Payment) {
-      return res.status(400).json({ message: "Missing Customer or Payment object" });
+      return res
+        .status(400)
+        .json({ message: "Missing Customer or Payment object" });
     }
+
     const missingCustomer = requiredCustomerFields.filter((f) => !Customer[f]);
-    const missingCard = requiredCardFields.filter((f) => !Customer.CardDetails?.[f]);
+    const missingCard = requiredCardFields.filter(
+      (f) => !Customer.CardDetails?.[f]
+    );
     const missingPayment = requiredPaymentFields.filter((f) => !Payment[f]);
     if (missingCustomer.length || missingCard.length || missingPayment.length) {
       return res.status(400).json({
@@ -34,89 +52,72 @@ exports.initiatePayment = async (req, res) => {
     }
 
     const provider = await Provider.findById(userId).lean();
-    const subscriptionPlan = await SubscriptionPlan.findById(subscriptionPlanId).lean();
+    const subscriptionPlan = await SubscriptionPlan.findById(
+      subscriptionPlanId
+    ).lean();
     const subscriptionType = subscriptionPlan
       ? await SubscriptionType.findById(subscriptionPlan.type).lean()
       : null;
 
-    if (!provider) {
+    if (!provider)
       return res.status(404).json({ message: "Provider not found" });
-    }
-    if (!subscriptionPlan) {
+    if (!subscriptionPlan)
       return res.status(404).json({ message: "Subscription Plan not found" });
-    }
-    if (!subscriptionType) {
+    if (!subscriptionType)
       return res.status(404).json({ message: "Subscription Type not found" });
-    }
 
-    const tokenCustomerPayload = {
-      FirstName: Customer.FirstName,
-      LastName: Customer.LastName,
-      Email: Customer.Email,
-      Address: {
-        Street1: Customer.Address?.Street1 || "",
-        City: Customer.Address?.City || "",
-        State: Customer.Address?.State || "",
-        PostalCode: Customer.Address?.PostalCode || "",
-        Country: Customer.Address?.Country || "AU",
-      },
-      CardDetails: {
-        Name: Customer.CardDetails.Name,
-        Number: Customer.CardDetails.Number.replace(/\s/g, ""),
-        ExpiryMonth: Customer.CardDetails.ExpiryMonth.padStart(2, "0"),
-        ExpiryYear:
-          Customer.CardDetails.ExpiryYear.length === 2
-            ? `20${Customer.CardDetails.ExpiryYear}`
-            : Customer.CardDetails.ExpiryYear,
-        CVN: Customer.CardDetails.CVN,
-      },
-    };
-
-    const createCustomerResponse = await ewayService.createTokenCustomer(tokenCustomerPayload);
-    const tokenCustomerId = createCustomerResponse.Customer.TokenCustomerID;
-    if (!tokenCustomerId) {
-      return res.status(400).json({
-        message: "Failed to tokenize customer: Missing TokenCustomerID",
-        details: createCustomerResponse,
-      });
-    }
-
-    const initialChargePayload = {
+    // 3. Build eWAY payment request
+    const paymentData = {
       Customer: {
-        TokenCustomerID: tokenCustomerId,
+        FirstName: Customer.FirstName,
+        LastName: Customer.LastName,
+        Email: Customer.Email,
+        CardDetails: {
+          Name: Customer.CardDetails.Name,
+          Number: Customer.CardDetails.Number.replace(/\s/g, ""),
+          ExpiryMonth: Customer.CardDetails.ExpiryMonth.padStart(2, "0"),
+          ExpiryYear:
+            Customer.CardDetails.ExpiryYear.length === 2
+              ? `20${Customer.CardDetails.ExpiryYear}`
+              : Customer.CardDetails.ExpiryYear,
+          CVN: Customer.CardDetails.CVN,
+        },
       },
       Payment: {
-        TotalAmount: Payment.TotalAmount,
+        TotalAmount: Payment.TotalAmount,   
         CurrencyCode: Payment.CurrencyCode,
       },
-      TransactionType: "Recurring",
+      TransactionType: "MOTO",
       Capture: true,
     };
+    const ewayResponse = await ewayService.createTransaction(paymentData);
 
-    const ewayChargeResponse = await ewayService.createTransaction(initialChargePayload);
-    const txId = ewayChargeResponse.TransactionID;
+    const txId = ewayResponse.TransactionID;
     if (!txId) {
       return res.status(400).json({
-        message: "Failed to process initial charge: Missing TransactionID",
-        details: ewayChargeResponse,
+        message: "Failed to process payment: Missing TransactionID",
+        error: "TransactionID not found in response",
+        details: ewayResponse,
       });
     }
 
-    const amountCharged = (Payment.TotalAmount || 0) / 100;
+    const amountCharged = (Payment.TotalAmount || 0) / 100; 
     const subTotal = +(amountCharged / 1.1).toFixed(2);
     const gst = +(amountCharged - subTotal).toFixed(2);
 
     const txn = new Transaction({
       userId,
       subscriptionPlanId,
-      status: ewayChargeResponse.TransactionStatus ? "completed" : "failed",
+      status: ewayResponse.TransactionStatus ? "completed" : "failed",
       amount: amountCharged,
       currency: Payment.CurrencyCode,
       transaction: {
         transactionPrice: amountCharged,
-        transactionStatus: ewayChargeResponse.TransactionStatus ? "Success" : "Failed",
-        transactionType: ewayChargeResponse.TransactionType,
-        authorisationCode: ewayChargeResponse.AuthorisationCode,
+        transactionStatus: ewayResponse.TransactionStatus
+          ? "Success"
+          : "Failed",
+        transactionType: ewayResponse.TransactionType,
+        authorisationCode: ewayResponse.AuthorisationCode,
         transactionDate: new Date(),
         transactionId: txId,
       },
@@ -126,9 +127,9 @@ exports.initiatePayment = async (req, res) => {
         countryCode: Payment.CurrencyCode,
       },
       payer: {
-        payerId: tokenCustomerId,
-        payerName: Customer.CardDetails.Name,
-        payerEmail: Customer.Email,
+        payerId: ewayResponse.Customer.TokenCustomerID || "",
+        payerName: ewayResponse.Customer.CardDetails.Name,
+        payerEmail: ewayResponse.Customer.Email,
       },
     });
     await txn.save();
@@ -138,7 +139,6 @@ exports.initiatePayment = async (req, res) => {
       return d;
     };
     const todayMidnight = setToMidnight(new Date());
-
     const existingActive = await SubscriptionVoucherUser.findOne({
       userId,
       status: "active",
@@ -176,8 +176,6 @@ exports.initiatePayment = async (req, res) => {
       endDate: newEndDate,
       status: newStatus,
       kmRadius: subscriptionPlan.kmRadius,
-      tokenCustomerId,
-      nextChargeDate: newStartDate,
     });
     await newSubscription.save();
 
@@ -202,9 +200,9 @@ exports.initiatePayment = async (req, res) => {
         let emailSuccess = false;
         try {
           await sendEmail(
-            Customer.Email,
-            `Your Invoice #${txId} - Trade Hunters`,
-            `
+  Customer.Email,
+  `Your Invoice #${txId} - Trade Hunters`,
+  `
   <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9fafc; padding: 30px;">
     <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);">
 
@@ -239,14 +237,15 @@ exports.initiatePayment = async (req, res) => {
     </div>
   </div>
   `,
-            [
-              {
-                filename: `invoice_${txId}.pdf`,
-                content: pdfBuffer,
-                contentType: "application/pdf",
-              },
-            ]
-          );
+  [
+    {
+      filename: `invoice_${txId}.pdf`,
+      content: pdfBuffer,
+      contentType: "application/pdf",
+    },
+  ]
+);
+
           emailSuccess = true;
         } catch (err) {
           console.error("Invoice email failed:", err);
@@ -276,7 +275,6 @@ exports.initiatePayment = async (req, res) => {
         .fontSize(10)
         .text("ABN: 24 682 578 892", rightX, y + 10, { align: "right" });
       y += 80;
-
       doc
         .moveTo(leftX, y)
         .lineTo(leftX + pageWidth, y)
@@ -285,6 +283,7 @@ exports.initiatePayment = async (req, res) => {
         .stroke();
       y += 15;
 
+      // Customer & Invoice info
       doc
         .fontSize(11)
         .fillColor("#003366")
@@ -294,7 +293,6 @@ exports.initiatePayment = async (req, res) => {
         .fillColor("black")
         .text(provider.businessName, leftX + 110, y);
       y += lineHeight;
-
       doc
         .fillColor("#003366")
         .font("Helvetica-Bold")
@@ -302,7 +300,6 @@ exports.initiatePayment = async (req, res) => {
         .fillColor("black")
         .font("Helvetica");
       doc.text(provider.address.addressLine, leftX + 110, y, { width: 220 });
-
       doc
         .fillColor("#003366")
         .font("Helvetica-Bold")
@@ -310,7 +307,6 @@ exports.initiatePayment = async (req, res) => {
         .font("Helvetica")
         .fillColor("black")
         .text(txId.toString(), rightX + 130, y - 20);
-
       doc
         .fillColor("#003366")
         .font("Helvetica-Bold")
@@ -320,7 +316,6 @@ exports.initiatePayment = async (req, res) => {
         .text(nowDate, rightX + 130, y);
 
       y += 60;
-
       doc
         .fillColor("#f0f0f0")
         .rect(leftX, y - 10, pageWidth, 30)
@@ -337,13 +332,11 @@ exports.initiatePayment = async (req, res) => {
         .font("Helvetica-Bold")
         .text("Description:", leftX, y);
       y += lineHeight;
-
       doc
         .font("Helvetica")
         .fillColor("black")
         .text(subscriptionPlan.planName, leftX, y, { width: pageWidth });
       y = doc.y + lineHeight;
-
       doc
         .fillColor("#003366")
         .font("Helvetica-Bold")
@@ -351,7 +344,6 @@ exports.initiatePayment = async (req, res) => {
         .fillColor("black")
         .font("Helvetica")
         .text(` ${subscriptionType.type}`, leftX + 60, y);
-
       doc
         .fillColor("#003366")
         .font("Helvetica-Bold")
@@ -361,15 +353,20 @@ exports.initiatePayment = async (req, res) => {
         .text(` $${subscriptionPlan.amount}`, rightX + 150, y);
 
       y += lineHeight * 2;
-
+      // Totals table
       doc
         .fillColor("black")
         .font("Helvetica")
         .text(`Subtotal: $${subTotal.toFixed(2)}`, rightX + 80, y + 5)
         .text(`GST(10%): $${gst.toFixed(2)}`, rightX + 80, y + lineHeight + 5)
         .font("Helvetica-Bold")
-        .text(`Total: $${amountCharged.toFixed(2)}`, rightX + 80, y + lineHeight * 2 + 5);
+        .text(
+          `Total: $${amountCharged.toFixed(2)}`,
+          rightX + 80,
+          y + lineHeight * 2 + 5
+        );
 
+      // Footer
       const footerY = doc.page.height - 80;
       doc
         .fontSize(11)
@@ -381,20 +378,19 @@ exports.initiatePayment = async (req, res) => {
     });
 
     return res.status(200).json({
-      message: "Payment processed successfully (initial + subscription created)",
+      message: "Payment processed successfully",
       userId,
       subscriptionPlanId,
       subscriptionType: subscriptionType.type,
       transactionId: txId,
-      status: ewayChargeResponse.TransactionStatus,
-      responseCode: ewayChargeResponse.ResponseCode,
+      status: ewayResponse.TransactionStatus,
+      responseCode: ewayResponse.ResponseCode,
       amountCharged: `${amountCharged}$`,
       subTotal: `${subTotal}$`,
       gst: `${gst}$`,
       pdfGenerated,
       emailSent,
-      nextChargeDate: newSubscription.nextChargeDate,
-      gatewayResponse: ewayChargeResponse,
+      gatewayResponse: ewayResponse,
     });
   } catch (error) {
     console.error("Payment Processing Error:", error);
@@ -406,9 +402,7 @@ exports.initiatePayment = async (req, res) => {
       stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
-};
-
-
+}; 
 
 exports.getAllTransactions = async (req, res) => {
   try {

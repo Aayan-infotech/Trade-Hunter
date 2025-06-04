@@ -46,18 +46,6 @@ const SubscriptionVoucherUserSchema = new mongoose.Schema({
     required: true,
     default: 160
   },
-   tokenCustomerId: {
-    type: String,
-    required: true,
-    trim: true,
-    description: "eWAY TokenCustomerID (used for recurring charges)",
-  },
-  nextChargeDate: {
-    type: Date,
-    required: true,
-    description: "The date when the next recurring charge should run",
-    index: true,
-  },
   createdAt: {
     type: Date,
     default: Date.now

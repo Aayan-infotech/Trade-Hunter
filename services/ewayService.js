@@ -44,31 +44,3 @@ exports.createTransaction = async (paymentData) => {
     return { error: error.message };
   }
 };
-exports.createTokenCustomer = async (customerData) => {
-  try {
-    if (!API_URL || !API_KEY || !API_PASSWORD) {
-      throw new Error("Secrets not loaded");
-    }
-
-    const url = `${API_URL}/Customer`;
-    const response = await axios.post(url, customerData, {
-      headers: {
-        Authorization: getAuthHeader(),
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      timeout: 20000,
-    });
-
-    if (!response.data?.Customer?.TokenCustomerID) {
-      throw new Error(
-        "Invalid response from eWAY (createTokenCustomer): Missing TokenCustomerID"
-      );
-    }
-
-    return response.data;
-  } catch (error) {
-    console.error("eWAY createTokenCustomer error:", error);
-    throw error;
-  }
-};
