@@ -240,7 +240,7 @@ exports.getNotificationsByUserId = async (req, res) => {
     const massNotifs = await massNotification.find({
       userType,
       createdAt: { $gte: joinDate },
-      deletedBy: { $ne: new ObjectId(receiverId) },
+      readBy: { $ne: new ObjectId(receiverId) },
     }).lean();
 
     const formattedMass = massNotifs.map((mn) => ({
