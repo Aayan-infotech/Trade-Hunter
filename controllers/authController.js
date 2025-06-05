@@ -2,8 +2,8 @@ const bcrypt = require("bcryptjs");
 const mongoose = require("mongoose");
 const User = require("../models/hunterModel");
 const generateverificationOTP = require("../utils/VerifyOTP");
-const sendEmail = require("../services/sendMail");
-const sendInvoiceEmail = require("../services/sendInvoiceMail");
+const sendOtp = require("../services/otpMail");
+const signupEmail = require("../services/signUpMail");
 const jwt = require("jsonwebtoken");
 const apiResponse = require("../utils/responsehandler");
 const Provider = require("../models/providerModel");
@@ -178,7 +178,7 @@ const signUp = async (req, res) => {
 
     const verificationOTP = await generateverificationOTP(newUser);
 
-    await sendEmail(
+    await sendOtp(
   email,
   "Account Verification OTP - Trade Hunters",
   `
@@ -228,8 +228,8 @@ const signUp = async (req, res) => {
       }).save();
     }
 
-    await sendInvoiceEmail(
-  "tradehunters2025@gmail.com",
+    await signupEmail(
+  "signup.tradehunters@gmail.com",
   `New ${userType} Signup - ${name}`,
   `
   <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9f9f9; padding: 30px;">
@@ -351,7 +351,7 @@ const login = async (req, res) => {
     // Step 6: Check verification
     if (!user.emailVerified) {
       const verificationOTP = await generateverificationOTP(user);
-      await sendEmail(email, "Account Verification OTP", verificationOTP);
+      await sendOtp(email, "Account Verification OTP", verificationOTP);
 
       return res.status(200).json({
         status: 200,
@@ -510,7 +510,7 @@ const forgotPassword = async (req, res) => {
     }
 
     const otp = await generateverificationOTP(user);
-    await sendEmail(
+    await sendOtp(
   email,
   "Reset Password OTP - Trade Hunters",
   `
@@ -785,7 +785,7 @@ const resendOTP = async (req, res) => {
 
     const verificationOTP = await generateverificationOTP(user);
 
-    await sendEmail(
+    await sendOtp(
   email,
   "Resend OTP - Trade Hunters",
   `
