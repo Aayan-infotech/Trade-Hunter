@@ -10,5 +10,6 @@ router.post('/getNearbyServiceProviders',verifyUser ,hunterController.getNearbyS
 router.put('/updateById/:id', verifyUser, upload.single("images"), uploadToS3, hunterController.updateHunterById);
 router.patch('/updateRadius', verifyUser, hunterController.updateRadius);
 router.post('/send-job-email', hunterController.sendJobNotificationEmail);
+router.post('/sendSupportEmail', hunterController.sendSupportEmail);
 
 module.exports = router;
