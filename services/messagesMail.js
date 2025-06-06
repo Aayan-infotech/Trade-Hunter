@@ -15,7 +15,7 @@ const messagesEmail = async (recipient, subject, htmlMessage, attachments = []) 
       secure: false,
       auth: {
         user: 'messages.tradehunters@gmail.com',
-        pass: 'yfyf qhva qhso igjf',
+        pass: 'yfyf qhva ghso iqjf',
       },
       tls: { rejectUnauthorized: false },
     });
