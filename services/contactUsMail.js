@@ -15,7 +15,7 @@ const contactUsEmail = async (recipient, subject, htmlMessage, attachments = [])
       secure: false,
       auth: {
         user: 'tradehunters2025@gmail.com',
-        pass: 'tsnx gttz krsr zkyi',
+        pass: 'osje alyn imbq udny',
       },
       tls: { rejectUnauthorized: false },
     });
