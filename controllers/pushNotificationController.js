@@ -185,10 +185,11 @@ exports.getNotificationsByUserId = async (req, res) => {
     const limit = Math.max(1, parseInt(req.query.limit, 10) || 10);
     const skip = (page - 1) * limit;
 
-    // 1) Fetch personal notifications (EXCLUDE deletedBy user)
+    // 1) Fetch personal notifications (EXCLUDE deletedBy user AND admin notifications)
     const personalNotifs = await Notification.find({
       receiverId: new ObjectId(receiverId),
       deletedBy: { $ne: new ObjectId(receiverId) },
+      notificationType: { $ne: "admin_message" }, // exclude admin notifications
     }).lean();
 
     // 2) Enrich personal notifications
@@ -196,9 +197,7 @@ exports.getNotificationsByUserId = async (req, res) => {
       personalNotifs.map(async (notif) => {
         let userName = null;
 
-        if (notif.notificationType === "admin_message") {
-          userName = "Admin";
-        } else if (notif.userId) {
+        if (notif.userId) {
           const sender =
             (await Provider.findById(notif.userId).select("name")) ||
             (await Hunter.findById(notif.userId).select("name"));
@@ -229,27 +228,8 @@ exports.getNotificationsByUserId = async (req, res) => {
       })
     );
 
-    // 3) Find join date
-    const joinRecord =
-      userType === "provider"
-        ? await Provider.findById(receiverId).select("createdAt").lean()
-        : await Hunter.findById(receiverId).select("createdAt").lean();
-    const joinDate = joinRecord?.createdAt || new Date(0);
-
-    // 4) Fetch mass notifications (EXCLUDE deleted + read)
-    const massNotifs = await massNotification.find({
-      userType,
-      createdAt: { $gte: joinDate },
-      readBy: { $ne: new ObjectId(receiverId) },
-    }).lean();
-
-    const formattedMass = massNotifs.map((mn) => ({
-      ...mn,
-      isRead: mn.readBy?.some((id) => id.toString() === receiverId),
-    }));
-
-    // 5) Combine, paginate, return
-    const allNotifs = [...enrichedPersonal, ...formattedMass].sort(
+    // 3) Combine, paginate, return
+    const allNotifs = [...enrichedPersonal].sort(
       (a, b) => b.createdAt - a.createdAt
     );
 
@@ -282,6 +262,7 @@ exports.getNotificationsByUserId = async (req, res) => {
     });
   }
 };
+
 
 
 exports.ReadNotification = async (req, res) => {
