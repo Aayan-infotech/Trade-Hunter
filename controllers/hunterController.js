@@ -3,7 +3,7 @@ const providerModel = require("../models/providerModel");
 const Hunter = require("../models/hunterModel");
 const Address = require("../models/addressModel");
 const sendEmail = require('../services/messagesMail');
-const sendSupportEmail = require('../services/InfoMail');
+const sendSupportEmail = require('../services/contactUsMail');
 
 exports.getNearbyServiceProviders = async (req, res) => {
   try {

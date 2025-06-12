@@ -14,14 +14,14 @@ const contactUsEmail = async (recipient, subject, htmlMessage, attachments = [])
       port: 587,
       secure: false,
       auth: {
-        user: 'tradehunters2025@gmail.com',
-        pass: 'osje alyn imbq udny',
+        user: 'messages.tradehunters@gmail.com',
+        pass: 'yfyf qhva ghso iqjf',
       },
       tls: { rejectUnauthorized: false },
     });
 
     const mailOptions = {
-      from:    '"Trade Hunters" <tradehunters2025@gmail.com>',
+      from:    '"Trade Hunters" <messages.tradehunters@gmail.com>',
       to:      recipient,
       subject: subject,
       html:    htmlMessage,

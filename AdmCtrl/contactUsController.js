@@ -69,7 +69,7 @@ exports.createContact = async (req, res) => {
   </div>
 `;
 
-    await sendEmail("messages.tradehunters@gmail.com", subject, htmlMessage);
+    await sendEmail("tradehunters2025@gmail.com", subject, htmlMessage);
 
     const io = req.app.get("io");
     io.emit("newContact", newContact);
