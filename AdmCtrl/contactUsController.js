@@ -22,15 +22,15 @@ exports.createContact = async (req, res) => {
     });
     await newContact.save();
 
-    const subject = "📨 New Contact Request Received";
+    const subject = "📨  Contact Request Received";
     const htmlMessage = `
   <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9f9f9; padding: 30px;">
     <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
       
       <!-- Header -->
       <div style="background-color: #004aad; color: white; padding: 20px 30px; text-align: center;">
-        <h1 style="margin: 0;">📨 New Contact Request</h1>
-        <p style="margin: 5px 0 0;">You've received a new message from your website</p>
+        <h1 style="margin: 0;">📨  Contact Request</h1>
+        <p style="margin: 5px 0 0;">You've received a  message from your website</p>
       </div>
       
       <!-- Content -->

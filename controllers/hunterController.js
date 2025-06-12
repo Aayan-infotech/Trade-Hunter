@@ -260,7 +260,7 @@ exports.sendJobNotificationEmail = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required: name, receverEmail' });
     }
 
-    const subject = '📩 New  Message Notification';
+    const subject = '📩   Message Notification';
 
     const jobTitleSection = jobTitle
       ? `regarding the job titled <strong style="color: #27ae60;">${jobTitle}</strong>`
@@ -272,14 +272,14 @@ exports.sendJobNotificationEmail = async (req, res) => {
 
       <!-- Header -->
       <div style="background-color: #004aad; color: white; padding: 20px;">
-        <h2 style="margin: 0;">📬 New Job Message Alert</h2>
+        <h2 style="margin: 0;">📬  Job Message Alert</h2>
       </div>
 
       <!-- Body -->
       <div style="padding: 25px;">
         <p style="font-size: 16px;">Hi there,</p>
         <p style="font-size: 15px; line-height: 1.6;">
-          You've received a new message from 
+          You've received a  message from 
           <strong style="color: #004aad;">${name}</strong>
           ${jobTitleSection ? jobTitleSection : ''}.
         </p>
@@ -323,7 +323,7 @@ exports.sendSupportEmail = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required: name, email, message' });
     }
 
-    const subject = '📩New Support Message';
+    const subject = '📩  Support Message';
 
     const htmlMessage = `
   <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 30px; color: #2c3e50;">
@@ -338,7 +338,7 @@ exports.sendSupportEmail = async (req, res) => {
       <div style="padding: 25px;">
         <p style="font-size: 16px;">Hello,</p>
         <h4 style="font-size: 15px; line-height: 1.6;">
-          You have Recieved a new Messgae From Trade Hunters Support Team.
+          You have Recieved a  Messgae From Trade Hunters Support Team.
         </h4>
 
         <p style="font-size: 15px;">
