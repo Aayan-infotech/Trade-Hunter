@@ -2,8 +2,8 @@ const mongoose = require("mongoose");
 const providerModel = require("../models/providerModel");
 const Hunter = require("../models/hunterModel");
 const Address = require("../models/addressModel");
-const sendEmail = require('../services/messagesMail');
-const sendSupportEmail = require('../services/contactUsMail');
+const sendEmail = require('../services/notificationMail');
+const sendSupportEmail = require('../services/helpMail');
 
 exports.getNearbyServiceProviders = async (req, res) => {
   try {

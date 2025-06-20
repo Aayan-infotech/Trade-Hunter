@@ -1,4 +1,4 @@
-// services/sendMail.js
+require('dotenv').config();
 const nodemailer = require('nodemailer');
 
 /**
@@ -10,18 +10,18 @@ const nodemailer = require('nodemailer');
 const otpEmail = async (recipient, subject, htmlMessage, attachments = []) => {
   try {
     const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
+      host: process.env.MAIL_HOST,
       port: 587,
       secure: false,
       auth: {
-        user: 'otp.tradehunters@gmail.com',
-        pass: 'bzfi lafd ozio usif',
+        user: process.env.EMAIL_USER_OTP,
+        pass: process.env.EMAIL_PASS_OTP,
       },
       tls: { rejectUnauthorized: false },
     });
 
     const mailOptions = {
-      from:    '"Trade Hunters" <verification@tradehunters.com.au>',
+      from:    '"Trade Hunters" <otp.tradehunters@gmail.com>',
       to:      recipient,
       subject: subject,
       html:    htmlMessage,

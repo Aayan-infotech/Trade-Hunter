@@ -1,3 +1,4 @@
+require('dotenv').config();
 const nodemailer = require('nodemailer');
 
 /**
@@ -9,18 +10,18 @@ const nodemailer = require('nodemailer');
 const infoEmail = async (recipient, subject, htmlMessage, attachments = []) => {
   try {
     const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
+      host: process.env.MAIL_HOST,
       port: 587,
       secure: false,
       auth: {
-        user: 'info.tradehunters@gmail.com',
-        pass: 'ktii ngep vtoo swch',
+        user: process.env.EMAIL_USER_INFO,
+        pass: process.env.EMAIL_USER_INFO,
       },
       tls: { rejectUnauthorized: false },
     });
 
     const mailOptions = {
-      from:    '"Trade Hunters" <verification@tradehunters.com.au>',
+      from:    '"Trade Hunters" <info.tradehunters@gmail.com>',
       to:      recipient,
       subject: subject,
       html:    htmlMessage,

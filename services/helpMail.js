@@ -1,4 +1,4 @@
-// services/sendMail.js
+require('dotenv').config();
 const nodemailer = require('nodemailer');
 
 /**
@@ -7,21 +7,21 @@ const nodemailer = require('nodemailer');
  * @param {string} htmlMessage  – the HTML body
  * @param {Array<Object>} attachments – optional array of attachments
  */
-const contactUsEmail = async (recipient, subject, htmlMessage, attachments = []) => {
+const helpEmail = async (recipient, subject, htmlMessage, attachments = []) => {
   try {
     const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
+      host: process.env.MAIL_HOST,
       port: 587,
       secure: false,
       auth: {
-        user: 'messages.tradehunters@gmail.com',
-        pass: 'yfyf qhva ghso iqjf',
+        user: process.env.EMAIL_USER_HELP,
+        pass: process.env.EMAIL_USER_HELP,
       },
       tls: { rejectUnauthorized: false },
     });
 
     const mailOptions = {
-      from:    '"Trade Hunters" <messages.tradehunters@gmail.com>',
+      from:    '"Trade Hunters" <help.tradehunters@gmail.com>',
       to:      recipient,
       subject: subject,
       html:    htmlMessage,
@@ -36,4 +36,4 @@ const contactUsEmail = async (recipient, subject, htmlMessage, attachments = [])
   }
 };
 
-module.exports = contactUsEmail;
+module.exports = helpEmail;

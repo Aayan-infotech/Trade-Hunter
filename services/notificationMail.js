@@ -1,4 +1,4 @@
-// services/sendMail.js
+require('dotenv').config();
 const nodemailer = require('nodemailer');
 
 /**
@@ -7,21 +7,21 @@ const nodemailer = require('nodemailer');
  * @param {string} htmlMessage  – the HTML body
  * @param {Array<Object>} attachments – optional array of attachments
  */
-const sendInvoiceMail = async (recipient, subject, htmlMessage, attachments = []) => {
+const notificationEmail = async (recipient, subject, htmlMessage, attachments = []) => {
   try {
     const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
+      host: process.env.MAIL_HOST,
       port: 587,
       secure: false,
       auth: {
-        user: 'admin@tradehunters.com.au',
-        pass: 'tsnx gttz krsr zkyi',
+        user: process.env.EMAIL_USER_NOTIFICATION,
+        pass: process.env.EMAIL_USER_NOTIFICATION,
       },
       tls: { rejectUnauthorized: false },
     });
 
     const mailOptions = {
-      from:    '"Trade Hunters" <info@tradehunters.com.au>',
+      from:    '"Trade Hunters" <notifications.tradehunters@gmail.com>',
       to:      recipient,
       subject: subject,
       html:    htmlMessage,
@@ -36,4 +36,4 @@ const sendInvoiceMail = async (recipient, subject, htmlMessage, attachments = []
   }
 };
 
-module.exports = sendInvoiceMail;
+module.exports = notificationEmail;

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Contact = require("../models/contactUsModel");
-const sendEmail = require("../services/contactUsMail");
+const sendEmail = require("../services/InfoMail");
 
 exports.createContact = async (req, res) => {
   try {
