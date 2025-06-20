@@ -15,7 +15,7 @@ const notificationEmail = async (recipient, subject, htmlMessage, attachments = 
       secure: false,
       auth: {
         user: process.env.EMAIL_USER_NOTIFICATION,
-        pass: process.env.EMAIL_USER_NOTIFICATION,
+        pass: process.env.EMAIL_PASS_NOTIFICATION,
       },
       tls: { rejectUnauthorized: false },
     });

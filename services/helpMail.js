@@ -15,7 +15,7 @@ const helpEmail = async (recipient, subject, htmlMessage, attachments = []) => {
       secure: false,
       auth: {
         user: process.env.EMAIL_USER_HELP,
-        pass: process.env.EMAIL_USER_HELP,
+        pass: process.env.EMAIL_PASS_HELP,
       },
       tls: { rejectUnauthorized: false },
     });
