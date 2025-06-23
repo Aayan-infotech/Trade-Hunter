@@ -25,7 +25,7 @@ const updateLeadBasedSubscriptionStatus = async () => {
         provider.subscriptionPlanId = null;
         provider.leadCompleteCount = null;
         provider.subscriptionType = null;
-        provider.address.radius = 10000;
+        provider.address.radius = 160000;
         console.log(` Lead limit reached for provider: ${provider._id}`);
       } else {
         provider.isGuestMode = false;
@@ -57,11 +57,11 @@ const updateSubscriptions = async () => {
       const provider = await Provider.findById(sub.userId);
       if (provider) {
         provider.subscriptionStatus = 0;
-        provider.address.radius = 10000;
+        provider.address.radius = 160000;
         provider.subscriptionPlanId = null;
         await provider.save();
         console.log(
-          ` Provider updated: ${provider._id} | Status: 0 | Radius: 10000`
+          ` Provider updated: ${provider._id} | Status: 0 | Radius: 160000`
         );
       }
     }

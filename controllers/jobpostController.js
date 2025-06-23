@@ -22,64 +22,87 @@ const createJobPost = async (req, res) => {
       date,
     } = req.body;
 
-    businessType = Array.isArray(businessType) ? businessType : [businessType];
-
-    const userId = req.user.userId;
-    const documents = req.files || [];
-
-    const hunter = await Hunter.findById(userId);
-
-    if (!hunter) {
-      return res.status(404).json({ message: "Hunter not found" });
-    }
-    if (hunter.userType !== "hunter") {
-      return res.status(403).json({ message: "Unauthorized: User is not a hunter" });
-    }
-    if (hunter.userStatus !== "Active") {
-      return res.status(403).json({ message: "Unauthorized: Hunter status is not Active" });
-    }
-
-    const jobLocation = {
-      city: city,
-      location: {
-        type: "Point",
-        coordinates: [
-          parseFloat(longitude), 
-          parseFloat(latitude)
-        ],
-      },
-      jobAddressLine: jobAddressLine,
-      jobRadius: parseFloat(jobRadius),
-    };
-
-    const timeframeRaw = req.body.timeframe;
-    const timeframe = {
-      from: Number(timeframeRaw?.from),
-      to: Number(timeframeRaw?.to),
-    };
-
-    if (
-      !title ||
-      !jobLocation.location.coordinates[0] || 
-      !jobLocation.location.coordinates[1] || 
-      !jobLocation.jobAddressLine || 
-      !jobLocation.jobRadius || 
-      !businessType || 
-      !city ||
-      !date || 
-      !requirements
-    ) {
+    // 1) Require businessType in payload
+    if (businessType == null) {
       return res.status(400).json({
-        message: "All fields are required",
+        message: "Missing required field: businessType",
       });
     }
 
+    // 2) Normalize businessType into an array
+    businessType = Array.isArray(businessType)
+      ? businessType
+      : [businessType];
+
+    // 3) Verify at least one businessType value
+    if (businessType.length === 0) {
+      return res.status(400).json({
+        message: "businessType must contain at least one value",
+      });
+    }
+
+    const userId   = req.user.userId;
+    const documents = req.files || [];
+
+    // 4) Ensure hunter exists and is active
+    const hunter = await Hunter.findById(userId);
+    if (!hunter) {
+      return res.status(404).json({ message: "Hunter not found" });
+    }
+    if (hunter.userType !== "hunter" || hunter.userStatus !== "Active") {
+      return res
+        .status(403)
+        .json({ message: "Unauthorized or inactive hunter account" });
+    }
+
+    // 5) Build GeoJSON location
+    const jobLocation = {
+      city,
+      location: {
+        type: "Point",
+        coordinates: [
+          parseFloat(longitude),
+          parseFloat(latitude),
+        ],
+      },
+      jobAddressLine,
+      jobRadius: parseFloat(jobRadius),
+    };
+
+    // 6) Parse timeframe if provided
+    const timeframeRaw = req.body.timeframe;
+    const timeframe =
+      timeframeRaw?.from && timeframeRaw?.to
+        ? {
+            from: Number(timeframeRaw.from),
+            to:   Number(timeframeRaw.to),
+          }
+        : null;
+
+    // 7) Validate all other required fields
+    if (
+      !title ||
+      isNaN(jobLocation.location.coordinates[0]) ||
+      isNaN(jobLocation.location.coordinates[1]) ||
+      !jobAddressLine ||
+      isNaN(jobLocation.jobRadius) ||
+      !city ||
+      !date ||
+      !requirements
+    ) {
+      return res.status(400).json({
+        message:
+          "Missing required field(s): title, longitude, latitude, jobAddressLine, jobRadius, city, date, or requirements",
+      });
+    }
+
+    // 8) Create and save the job post
     const jobPost = new JobPost({
       title,
       jobLocation,
       estimatedBudget: estimatedBudget || null,
-      businessType, 
-      timeframe: timeframe.from && timeframe.to ? timeframe : null,
+      businessType,
+      timeframe,
       documents: req.fileLocations || [],
       requirements,
       user: userId,
@@ -88,19 +111,21 @@ const createJobPost = async (req, res) => {
     });
 
     await jobPost.save();
+
+    // 9) Emit real-time update
     const io = req.app.get("io");
-    io.emit("new Job");
+    io.emit("new Job", { jobId: jobPost._id });
 
     return res.status(201).json({
-      message: "Job post created successfully.",  
+      message: "Job post created successfully.",
       jobPost,
     });
   } catch (error) {
-    return res.status(500).json({
-      error: error.message,
-    });
+    console.error("createJobPost error:", error);
+    return res.status(500).json({ error: error.message });
   }
 };
+
 
 const getJobPostById = async (req, res) => {
   try {

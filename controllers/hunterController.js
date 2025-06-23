@@ -2,7 +2,8 @@ const mongoose = require("mongoose");
 const providerModel = require("../models/providerModel");
 const Hunter = require("../models/hunterModel");
 const Address = require("../models/addressModel");
-const sendEmail = require('../services/sendInvoiceMail');
+const sendEmail = require('../services/notificationMail');
+const sendSupportEmail = require('../services/helpMail');
 
 exports.getNearbyServiceProviders = async (req, res) => {
   try {
@@ -259,28 +260,51 @@ exports.sendJobNotificationEmail = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required: name, receverEmail' });
     }
 
-    const subject = '📩 New  Message Notification';
+    const subject = '📩   Message Notification';
 
     const jobTitleSection = jobTitle
       ? `regarding the job titled <strong style="color: #27ae60;">${jobTitle}</strong>`
       : '';
 
     const htmlMessage = `
-      <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f7f9fc; color: #333;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); padding: 20px;">
-          <h2 style="color: #2c3e50;">🔔 New Job Message Notification</h2>
-          <p style="font-size: 16px;">Hello,</p>
-          <p style="font-size: 16px;">
-            You have received a new message from 
-            <strong style="color: #2980b9;">${name}</strong> 
-            ${jobTitleSection ? jobTitleSection : ''}.
-          </p>
-          <p style="font-size: 14px; color: #7f8c8d;">Please log in to your account to view more details or respond to the message.</p>
-          <hr style="margin: 20px 0;" />
-          <p style="font-size: 12px; color: #95a5a6;">This is an automated message. Please do not reply to this email.</p>
-        </div>
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 30px; color: #2c3e50;">
+    <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden;">
+
+      <!-- Header -->
+      <div style="background-color: #004aad; color: white; padding: 20px;">
+        <h2 style="margin: 0;">📬  Job Message Alert</h2>
       </div>
-    `;
+
+      <!-- Body -->
+      <div style="padding: 25px;">
+        <p style="font-size: 16px;">Hi there,</p>
+        <p style="font-size: 15px; line-height: 1.6;">
+          You've received a  message from 
+          <strong style="color: #004aad;">${name}</strong>
+          ${jobTitleSection ? jobTitleSection : ''}.
+        </p>
+
+        <p style="font-size: 15px;">
+          To view and respond to this message, please log in to your Trade Hunters account.
+        </p>
+
+        <!-- CTA Button -->
+        <div style="margin: 30px 0;">
+          <a href="https://your-app-domain.com/login" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #004aad; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            View Message
+          </a>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #e1e4e8;" />
+
+        <p style="font-size: 12px; color: #95a5a6; text-align: center; margin-top: 20px;">
+          This is an automated message from Trade Hunters. Please do not reply to this email.
+        </p>
+      </div>
+    </div>
+  </div>
+`;
+
 
     await sendEmail(receverEmail, subject, htmlMessage);
 
@@ -289,4 +313,56 @@ exports.sendJobNotificationEmail = async (req, res) => {
     res.status(500).json({ message: 'Failed to send email', error: error.message });
   }
 };
+
+
+exports.sendSupportEmail = async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+
+    if (!name || !email || !message) {
+      return res.status(400).json({ message: 'All fields are required: name, email, message' });
+    }
+
+    const subject = '📩  Support Message';
+
+    const htmlMessage = `
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 30px; color: #2c3e50;">
+    <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden;">
+
+      <!-- Header -->
+      <div style="background-color: #004aad; color: white; padding: 20px;">
+        <h2 style="margin: 0;">📬 Support Message</h2>
+      </div>
+
+      <!-- Body -->
+      <div style="padding: 25px;">
+        <p style="font-size: 16px;">Hello,</p>
+        <h4 style="font-size: 15px; line-height: 1.6;">
+          You have Recieved a  Messgae From Trade Hunters Support Team.
+        </h4>
+
+        <p style="font-size: 15px;">
+          Message:
+          <blockquote style="background-color: #f9f9f9; padding: 10px; border-left: 4px solid #004aad;">
+           Please Login to Your Trade Hunters Account to view more details or respond to the message.
+          </blockquote>
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e1e4e8;" />
+
+        <p style="font-size: 12px; color: #95a5a6; text-align: center; margin-top: 20px;">
+          This is an automated message from Trade Hunters. Please do not reply to this email.
+        </p>
+      </div>
+    </div>
+  </div>
+`;
+
+    await sendSupportEmail(email, subject, htmlMessage);
+    res.status(200).json({ message: 'Support email sent successfully' });
+  }
+  catch (error) {
+    res.status(500).json({ message: 'Failed to send support email', error: error.message });
+  }
+}
 

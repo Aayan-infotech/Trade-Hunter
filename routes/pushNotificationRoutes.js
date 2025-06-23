@@ -9,11 +9,12 @@ router.get('/get-notification/:userType',verifyUser, notificationController.getN
 router.get('/Read-notification/:notificationId/:type',verifyUser, notificationController.ReadNotification);
 router.get('/AllRead-notification',verifyUser, notificationController.AllReadNotifications);
 router.post('/sendNotification' , verifyUser, notificationController.sendPushNotification2);
-router.post('/sendAdminNotification/:receiverId' ,verifyUser, notificationController.sendAdminNotification);
+router.post('/sendAdminNotification/:receiverId' , notificationController.sendAdminNotification);
 router.get('/getAdminNotification/:receiverId',verifyUser,  notificationController.getAdminNotification);
 router.delete('/deleteNotification/:notificationId',verifyUser, notificationController.deleteNotificationById);
 router.patch("/notification/:type/:id", notificationController.updateNotificationStatus);
 router.get('/expiring-soon',verifyUser, notificationController.getExpiringSoonVouchers);
+router.delete('/deleteforUser/:notificationId', verifyUser, notificationController.deleteNotificationByIdforUser);
 
 
 module.exports = router;

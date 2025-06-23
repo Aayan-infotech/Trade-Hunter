@@ -1,4 +1,3 @@
-// services/sendMail.js
 require('dotenv').config();
 const nodemailer = require('nodemailer');
 
@@ -8,21 +7,21 @@ const nodemailer = require('nodemailer');
  * @param {string} htmlMessage  – the HTML body
  * @param {Array<Object>} attachments – optional array of attachments
  */
-const sendEmail = async (recipient, subject, htmlMessage, attachments = []) => {
+const otpEmail = async (recipient, subject, htmlMessage, attachments = []) => {
   try {
     const transporter = nodemailer.createTransport({
       host: process.env.MAIL_HOST,
       port: 587,
       secure: false,
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: process.env.EMAIL_USER_OTP,
+        pass: process.env.EMAIL_PASS_OTP,
       },
       tls: { rejectUnauthorized: false },
     });
 
     const mailOptions = {
-      from:    '"Trade Hunters" <verification@tradehunters.com.au>',
+      from:    '"Trade Hunters" <otp.tradehunters@gmail.com>',
       to:      recipient,
       subject: subject,
       html:    htmlMessage,
@@ -37,4 +36,4 @@ const sendEmail = async (recipient, subject, htmlMessage, attachments = []) => {
   }
 };
 
-module.exports = sendEmail;
+module.exports = otpEmail;

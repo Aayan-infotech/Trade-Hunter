@@ -289,7 +289,7 @@ exports.getNearbyJobs = async (req, res) => {
       limit = 10,
       businessType = [],
       providerId,
-    } = req.body;
+    } = req.body
 
     if (
       !providerId ||
@@ -298,25 +298,30 @@ exports.getNearbyJobs = async (req, res) => {
       radius == null
     ) {
       return res.status(400).json({
-        status: 400,
+        status:  400,
         message: "providerId, latitude, longitude, and radius are all required",
-      });
+      })
     }
 
-    const filterCondition = {};
+    // Build a businessType filter if needed
+    const filterCondition = {}
     if (Array.isArray(businessType) && businessType.length > 0) {
       filterCondition.businessType = {
         $in: businessType.map((type) => new RegExp(`^${type}$`, "i")),
-      };
+      }
     }
 
-    const radiusInMeters = parseFloat(radius);
-    const radiusInRadians = radiusInMeters / 6378100;
+    const radiusInMeters = parseFloat(radius)
 
-    const geoPendingJobs = await jobpostModel.aggregate([
+    // 1) Find “Pending” OR “Quoted” jobs near the location
+    //    We’ll filter out duplicates afterward.
+    const geoJobs = await jobpostModel.aggregate([
       {
         $geoNear: {
-          near: { type: "Point", coordinates: [longitude, latitude] },
+          near: {
+            type: "Point",
+            coordinates: [parseFloat(longitude), parseFloat(latitude)],
+          },
           distanceField: "distance",
           maxDistance: radiusInMeters,
           spherical: true,
@@ -328,8 +333,9 @@ exports.getNearbyJobs = async (req, res) => {
         },
       },
       { $sort: { createdAt: -1 } },
-    ]);
+    ])
 
+    // 2) Find all Quoted jobs **specifically accepted** by this provider
     const quotedJobs = await jobpostModel
       .find({
         jobStatus: "Quoted",
@@ -337,32 +343,50 @@ exports.getNearbyJobs = async (req, res) => {
         ...filterCondition,
       })
       .sort({ createdAt: -1 })
-      .lean();
-    const combinedJobs = [...geoPendingJobs, ...quotedJobs];
-    combinedJobs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      .lean()
 
-    const startIndex = (page - 1) * limit;
-    const paginatedJobs = combinedJobs.slice(startIndex, startIndex + limit);
+    // 3) Build a set of quoted-job IDs so we can remove duplicates
+    const quotedJobIdSet = new Set(quotedJobs.map((j) => j._id.toString()))
+
+    // 4) Exclude from the geoJobs any “Quoted” that this provider has already quoted
+    const filteredGeo = geoJobs.filter(
+      (job) =>
+        !(
+          job.jobStatus === "Quoted" &&
+          quotedJobIdSet.has(job._id.toString())
+        )
+    )
+
+    // 5) Merge Pending (and other providers’ Quoted) + this provider’s Quoted
+    const combined = [...filteredGeo, ...quotedJobs]
+
+    // 6) Sort by createdAt desc
+    combined.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+    // 7) Paginate
+    const startIndex    = (page - 1) * limit
+    const paginatedJobs = combined.slice(startIndex, startIndex + limit)
 
     return res.status(200).json({
       status: 200,
       message: "Jobs fetched successfully",
       data: paginatedJobs,
       pagination: {
-        totalJobs: combinedJobs.length,
+        totalJobs: combined.length,
         currentPage: page,
-        totalPages: Math.ceil(combinedJobs.length / limit),
+        totalPages: Math.ceil(combined.length / limit),
       },
-    });
+    })
   } catch (error) {
-    console.error("Error fetching jobs:", error);
+    console.error("Error fetching jobs:", error)
     return res.status(500).json({
-      status: 500,
+      status:  500,
       message: "Error fetching jobs",
-      error: error.message || error,
-    });
+      error:   error.message || error,
+    })
   }
-};
+}
+
 
 exports.getNearbyJobsForGuest = async (req, res) => {
   try {
@@ -617,7 +641,7 @@ async function expireSubscription(provider) {
   provider.subscriptionPlanId = null;
   provider.subscriptionType = null;
   provider.leadCompleteCount = null;
-  provider.address.radius = 10000;
+  provider.address.radius = 160000;
 }
 
 exports.jobCompleteCount = async (req, res) => {
@@ -928,28 +952,48 @@ exports.getAllProviders = async (req, res) => {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 10;
     const search = req.query.search?.trim() || "";
+    const overrideTotal = parseInt(req.query.total, 10) || 0;
+    const skip = (page - 1) * limit;
 
     const filter = {};
     if (search) {
       filter.businessType = { $regex: search, $options: "i" };
     }
 
-    const total = await providerModel.countDocuments(filter);
+    const actualTotal = await providerModel.countDocuments(filter);
 
-    const providers = await providerModel
-      .find(filter)
-      .select("-password -__v")
-      .skip((page - 1) * limit)
-      .limit(limit);
+    let effectiveTotal = actualTotal;
+    if (overrideTotal > 0) {
+      effectiveTotal = Math.min(actualTotal, overrideTotal);
+    }
 
-    const totalPages = Math.ceil(total / limit);
+    const pipeline = [];
+    pipeline.push({ $match: filter });
+
+    if (overrideTotal > 0) {
+      pipeline.push({ $limit: effectiveTotal });
+    }
+
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    pipeline.push({
+      $project: {
+        password: 0,
+        __v: 0,
+      },
+    });
+
+    const providers = await providerModel.aggregate(pipeline);
+
+    const totalPages = Math.ceil(effectiveTotal / limit);
 
     return res.status(200).json({
       status: 200,
       message: "Providers fetched successfully",
       page,
       limit,
-      total,
+      total: effectiveTotal,  
       totalPages,
       data: providers,
     });
@@ -962,6 +1006,7 @@ exports.getAllProviders = async (req, res) => {
     });
   }
 };
+
 
 exports.getVoucherUsers = async (req, res) => {
   try {

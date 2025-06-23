@@ -140,9 +140,6 @@ exports.sendPushNotificationAdmin = async (req, res) => {
       }
     }
 
-    // Emit to specific user room using their userId
-    const io = req.app.get("io");
-    io.emit("Admin Notification", notificationData);
 
     return res.status(200).json({
       status: 200,
@@ -166,40 +163,50 @@ exports.sendPushNotificationAdmin = async (req, res) => {
   }
 };
 
-
 // NotificationController.js
 exports.getNotificationsByUserId = async (req, res) => {
   try {
     const receiverId = req.user.userId;
     const userType = req.params.userType;
 
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
+    if (!mongoose.Types.ObjectId.isValid(receiverId)) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Invalid user ID format.",
+      });
+    }
+
+    const ObjectId = mongoose.Types.ObjectId;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit, 10) || 10);
     const skip = (page - 1) * limit;
 
-    // 1) Fetch personal notifications for this user
-    const userNotifications = await Notification.find({
-      receiverId: new mongoose.Types.ObjectId(receiverId),
-    });
+    // 1) Fetch personal notifications (EXCLUDE deletedBy user)
+    const personalNotifs = await Notification.find({
+      receiverId: new ObjectId(receiverId),
+      deletedBy: { $ne: new ObjectId(receiverId) },
+    }).lean();
 
-    // 2) Enrich each notification with sender name and job details
-    const enrichedNotifications = await Promise.all(
-      userNotifications.map(async (notif) => {
+    // 2) Enrich personal notifications
+    const enrichedPersonal = await Promise.all(
+      personalNotifs.map(async (notif) => {
         let userName = null;
+
         if (notif.notificationType === "admin_message") {
           userName = "Admin";
         } else if (notif.userId) {
           const sender =
-            (await Provider.findById(notif.userId)) ||
-            (await Hunter.findById(notif.userId));
+            (await Provider.findById(notif.userId).select("name")) ||
+            (await Hunter.findById(notif.userId).select("name"));
           userName = sender?.name || null;
         }
 
         let jobDetails = null;
         if (notif.jobId) {
-          const job = await JobPost.findById(notif.jobId).select(
-            "title jobStatus completionNotified"
-          );
+          const job = await JobPost.findById(notif.jobId)
+            .select("title jobStatus completionNotified")
+            .lean();
           if (job) {
             jobDetails = {
               _id: job._id,
@@ -211,41 +218,45 @@ exports.getNotificationsByUserId = async (req, res) => {
         }
 
         return {
-          ...notif._doc,
+          ...notif,
           userName,
-          isRead: notif.isRead,
+          isRead: !!notif.isRead,
           jobDetails,
         };
       })
     );
 
-    // 3) Determine the exact join timestamp of the user
-    let joinRecord;
-    if (userType === "provider") {
-      joinRecord = await Provider.findById(receiverId).select("createdAt");
-    } else {
-      joinRecord = await Hunter.findById(receiverId).select("createdAt");
-    }
+    // 3) Find join date
+    const joinRecord =
+      userType === "provider"
+        ? await Provider.findById(receiverId).select("createdAt").lean()
+        : await Hunter.findById(receiverId).select("createdAt").lean();
     const joinDate = joinRecord?.createdAt || new Date(0);
 
-    // 4) Fetch mass notifications created at or after joinDate
+    // 4) Fetch mass notifications (EXCLUDE deleted + read)
     const massNotifs = await massNotification.find({
       userType,
       createdAt: { $gte: joinDate },
-    });
+      readBy: { $ne: new ObjectId(receiverId) },
+    }).lean();
+
     const formattedMass = massNotifs.map((mn) => ({
-      ...mn._doc,
-      isRead: mn.readBy.includes(receiverId),
+      ...mn,
+      isRead: mn.readBy?.some((id) => id.toString() === receiverId),
     }));
 
-    // 5) Combine all, sort by descending timestamp, compute unread count, paginate
-    const all = [...enrichedNotifications, ...formattedMass].sort(
+    // 5) Combine, paginate, return
+    const allNotifs = [...enrichedPersonal, ...formattedMass].sort(
       (a, b) => b.createdAt - a.createdAt
     );
 
-    const unreadCount = all.filter((n) => !n.isRead).length;
-    const paginated = all.slice(skip, skip + limit);
-    const total = all.length;
+    const total = allNotifs.length;
+    const totalPages = Math.ceil(total / limit);
+    const paginated = allNotifs.slice(skip, skip + limit);
+    const unreadCount = allNotifs.reduce(
+      (cnt, n) => cnt + (n.isRead ? 0 : 1),
+      0
+    );
 
     return res.status(200).json({
       status: 200,
@@ -254,7 +265,7 @@ exports.getNotificationsByUserId = async (req, res) => {
       pagination: {
         total,
         currentPage: page,
-        totalPages: Math.ceil(total / limit),
+        totalPages,
       },
       unreadCount,
       message: "Fetched all valid notifications with pagination!",
@@ -268,6 +279,9 @@ exports.getNotificationsByUserId = async (req, res) => {
     });
   }
 };
+
+
+
 
 exports.ReadNotification = async (req, res) => {
   try {
@@ -452,8 +466,6 @@ exports.sendAdminNotification = async (req, res) => {
     });
 
     const device = await DeviceToken.findOne({ userId: receiverId });
-      const io = req.app.get("io");
-    io.emit("Admin Notification", notificationData);
     if (!device) {
       return res.status(200).json({
         status: 200,
@@ -576,6 +588,55 @@ exports.deleteNotificationById = async (req, res) => {
     });
   }
 };
+
+exports.deleteNotificationByIdforUser = async (req, res) => {
+  try {
+    const { notificationId } = req.params;
+    const userId = req.user.userId;
+
+    if (!notificationId || !userId) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Notification ID and User ID are required.",
+        data: [],
+      });
+    }
+
+    const notification = await Notification.findById(notificationId);
+
+    if (!notification) {
+      return res.status(404).json({
+        status: 404,
+        success: false,
+        message: "Notification not found.",
+        data: [],
+      });
+    }
+
+    if (!notification.deletedBy || notification.deletedBy.toString() !== userId) {
+      notification.deletedBy = userId;
+      await notification.save();
+    }
+
+    return res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Notification deleted from user view.",
+      data: [notification],
+    });
+  } catch (error) {
+    console.error("Error deleting notification:", error);
+    return res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Internal Server Error.",
+      data: [],
+      error: error.message,
+    });
+  }
+};
+
 
 exports.updateNotificationStatus = async (req, res) => {
   try {

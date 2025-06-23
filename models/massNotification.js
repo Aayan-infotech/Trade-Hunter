@@ -16,17 +16,33 @@ const MassNotificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    default: 'mass'
+    default: "mass",
   },
-  readBy: [{ type: mongoose.Schema.Types.ObjectId }],
+  readBy: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  ],
   isRead: {
     type: Boolean,
     default: false,
   },
+  deletedBy: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+  ], 
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
 
-module.exports = mongoose.model("MassNotification", MassNotificationSchema);
+MassNotificationSchema.index({ userType: 1, createdAt: -1 });
+
+module.exports = mongoose.model(
+  "MassNotification",
+  MassNotificationSchema
+);
