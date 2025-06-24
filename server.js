@@ -48,6 +48,7 @@ app.use(bodyParser.json());
 // }));
 
 app.use(cors(corsOptions));
+console.log(111);
 const upload = multer();
 
 connectDB();
