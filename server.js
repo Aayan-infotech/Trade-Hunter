@@ -10,33 +10,32 @@ const connectDB = require("./config/db");
 dotenv.config();
 
 const app = express();
-const server = http.createServer(app); // Create HTTP server
+const server = http.createServer(app); 
+const allowedOrigins = process.env.ALLOWED_ORIGINS.split(',');
 const io = new Server(server, {
   cors: {
-    origin: "*", // Adjust as needed for security
+    origin: allowedOrigins, 
     methods: ["GET", "POST"]
   }
 });
 
 const PORT = process.env.PORT || 7777;
 
-// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(cors());
+app.use(cors({
+  origin: allowedOrigins,
+  methods: ["GET", "POST", "PUT", "DELETE"],
+}));
 const upload = multer();
 
-// Connect DB
 connectDB();
 
-// 🔥 Import cron job
 require("./middlewares/cron");
 
-// Make io available in req.app.get("io")
 app.set("io", io);
 
-// Routes
 app.use("/api/authAdmin", require("./AdmRts/authAdmin"));
 app.use("/api/users", require("./AdmRts/userRoutes"));
 app.use("/api/Prvdr", require("./AdmRts/providerRts"));
@@ -63,7 +62,6 @@ app.use("/api/jobpost", require("./routes/jobpostRoutes"));
 app.use("/api/address", require("./routes/addressRoute"));
 app.use("/api/eway", require("./routes/ewayRoutes"));
 
-// Socket.IO setup
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
 
@@ -72,7 +70,6 @@ io.on("connection", (socket) => {
   });
 });
 
-// Start the server
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
