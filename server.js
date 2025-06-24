@@ -10,11 +10,11 @@ const connectDB = require("./config/db");
 dotenv.config();
 
 const app = express();
-const server = http.createServer(app); 
+const server = http.createServer(app);
 const allowedOrigins = process.env.ALLOWED_ORIGINS.split(',');
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins, 
+    origin: allowedOrigins,
     methods: ["GET", "POST"]
   }
 });
@@ -24,16 +24,22 @@ const PORT = process.env.PORT || 7777;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+
 app.use(cors({
-  origin: allowedOrigins,
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error("CORS Not Allowed: " + origin));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE"]
 }));
+
 const upload = multer();
 
 connectDB();
-
 require("./middlewares/cron");
-
 app.set("io", io);
 
 app.use("/api/authAdmin", require("./AdmRts/authAdmin"));
@@ -64,7 +70,6 @@ app.use("/api/eway", require("./routes/ewayRoutes"));
 
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
-
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.id);
   });
