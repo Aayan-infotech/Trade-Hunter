@@ -17,7 +17,7 @@ const corsOptions = {
   //   'https://tradehunters.com.au/',
   //   'http://18.209.91.97:2366/'
   // ],
-  origin:'*',
+  origin:'https://tradehunters.com.au/',
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true,
   optionsSuccessStatus: 204
