@@ -11,20 +11,21 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-const allowedOrigins = process.env.ALLOWED_ORIGINS.split(',');
-// const corsOptions = {
-//   origin: [
-//     'https://tradehunters.com.au/',
-//     'http://18.209.91.97:2366/'
-//   ],
-//   // origin:'*',
-//   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-//   credentials: true,
-//   optionsSuccessStatus: 204
-// };
+// const allowedOrigins = process.env.ALLOWED_ORIGINS.split(',');
+const corsOptions = {
+  // origin: [
+  //   'https://tradehunters.com.au/',
+  //   'http://18.209.91.97:2366/'
+  // ],
+  origin:'*',
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true,
+  optionsSuccessStatus: 204
+};
 const io = new Server(server, {
   cors: {
-    origin: ["http://18.209.91.97:2366","https://tradehunters.com.au"],
+    // origin: ["http://18.209.91.97:2366","https://tradehunters.com.au"],
+    corsOptions,
     methods: ["GET", "POST"]
   }
 });
@@ -35,18 +36,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error("CORS Not Allowed: " + origin));
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE"]
-}));
+// app.use(cors({
+//   origin: function (origin, callback) {
+//     if (!origin || allowedOrigins.includes(origin)) {
+//       return callback(null, true);
+//     }
+//     return callback(new Error("CORS Not Allowed: " + origin));
+//   },
+//   credentials: true,
+//   methods: ["GET", "POST", "PUT", "DELETE"]
+// }));
 
-// app.use(cors(corsOptions));
+app.use(cors(corsOptions));
 const upload = multer();
 
 connectDB();
