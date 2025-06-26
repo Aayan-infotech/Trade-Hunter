@@ -32,7 +32,7 @@ const { refreshToken } = require("../middlewares/auth");
 const { verifyUser } = require("../middlewares/auth");
 router.post(
   "/signup", 
-  upload.single("images"),  
+  // upload.single("images"),  
   uploadToS3,             
   signUp               
 );

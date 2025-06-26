@@ -28,7 +28,7 @@ const router = express.Router();
 router.post(
   "/jobpost",
   verifyUser,
-  upload.array("documents"),
+  // upload.array("documents"),
   uploadToS3files, 
   createJobPost
 );
