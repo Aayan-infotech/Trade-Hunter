@@ -68,14 +68,14 @@ const uploadToS3 = async (req, res, next) => {
         return res.status(400).send(`Unsupported file type: ${file.mimetype}`);
       }
       const params = {
-        Bucket:'trade-buckets-y6gopqvx',
+        Bucket:'trede-hunters-y6gopqvx',
         Key: `${Date.now()}-${file.name}`,
         Body: file.data,
         ContentType: file.mimetype,
       };
 
       await s3.putObject(params);
-      const fileUrl = `https://trade-buckets-y6gopqvx.s3.us-east-1.amazonaws.com/${params.Key}`;
+      const fileUrl = `https://trede-hunters-y6gopqvx.s3.us-east-1.amazonaws.com/${params.Key}`;
       fileLocations.push(fileUrl);
     }
 
