@@ -10,7 +10,7 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-router.post("/upload",verifyUser, upload.single("backgroundImg"), uploadToS3, backgroundImgController.uploadBackgroundImg);
+router.post("/upload",verifyUser,  uploadToS3, backgroundImgController.uploadBackgroundImg);
 router.get("/:userId",verifyUser, backgroundImgController.getBackgroundImg);
 
 module.exports = router;

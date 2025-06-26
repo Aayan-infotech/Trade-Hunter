@@ -12,6 +12,6 @@ router.get("/getAll", providerController.getAllProviders2);
 router.delete("/delete/:id", providerController.deleteProvider);
 router.put("/:id", providerController.updateProvider);
 router.get("/GuestMode", providerController.getAllProvidersGuestMode);
-router.put('/updateById/:id',upload.single("images"), uploadToS3, providers.updateProviderById);
+router.put('/updateById/:id',uploadToS3, providers.updateProviderById);
 
 module.exports = router;
