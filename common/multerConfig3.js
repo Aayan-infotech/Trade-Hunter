@@ -4,32 +4,28 @@ const multer = require("multer");
 const multerS3 = require("multer-s3");
 const path = require("path");
 const { S3Client } = require("@aws-sdk/client-s3");
-
 const { S3 } = require("@aws-sdk/client-s3");
 const {
   SecretsManagerClient,
   GetSecretValueCommand,
 } = require("@aws-sdk/client-secrets-manager");
 
-const secretsManagerClient = new SecretsManagerClient({
-  region: process.env.AWS_REGION,
-});
+const secretsManagerClient = new SecretsManagerClient({ region: 'us-east-1' });
 
 const getAwsCredentials = async () => {
   try {
-    const command = new GetSecretValueCommand({ SecretId: "aws-secret" });
+    const command = new GetSecretValueCommand({ SecretId:'aws-secrets' });
     const data = await secretsManagerClient.send(command);
 
     if (data.SecretString) {
       const secret = JSON.parse(data.SecretString);
       return {
-        accessKeyId: secret.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey:
-          secret.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY,
+        accessKeyId: secret.AWS_ACCESS_KEY_ID,
+        secretAccessKey: secret.AWS_SECRET_ACCESS_KEY,
       };
     }
   } catch (error) {
-    throw new Error("Failed to retrieve AWS credentials");
+    throw new Error(error.message);
   }
 };
 
@@ -38,55 +34,58 @@ const getS3Client = async () => {
     const credentials = await getAwsCredentials();
     return new S3({
       credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey:  process.env.AWS_SECRET_ACCESS_KEY,
+        accessKeyId: credentials.accessKeyId,
+        secretAccessKey: credentials.secretAccessKey,
       },
-      region: process.env.AWS_REGION,
+      region:'us-east-1',
     });
   } catch (error) {
+    console.error('Error initializing S3:', error.message);
     throw error;
   }
 };
 
 
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION, 
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-});
+const uploadToS3 = async (req, res, next) => {
+  const s3 = await getS3Client();
 
-const s3Storage = multerS3({
-  s3: s3Client,
-  bucket: process.env.AWS_S3_BUCKET_NAME, 
-  contentType: multerS3.AUTO_CONTENT_TYPE,
-  key: function (req, file, cb) {
-    console.log("In multerS3 key function, file:", file);
-    if (!file || !file.originalname) {
-      return cb(new Error("File is undefined or missing originalname."));
+  try {
+    if (!req.files || !req.files.image) {
+      return next();
     }
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + "-" + Date.now() + ext);
-  },
-});
 
-const uploadToS3 = multer({
-  storage: s3Storage,
-  limits: { fileSize: 1024 * 1024 * 5 },
-  fileFilter: function (req, file, cb) {
-    console.log("File filter invoked. File:", file);
-    const filetypes = /jpeg|jpg|png|gif|webp|jfif|pdf/;
-    const mimetype = filetypes.test(file.mimetype);
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error("Error: Only images or PDF files are allowed!"));
+    const mediaFiles = Array.isArray(req.files.image) ? req.files.image : [req.files.image];
+    const fileLocations = [];
+
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/webp',
+      'video/mp4', 'video/quicktime', 'video/x-matroska'
+    ];
+
+    for (const file of mediaFiles) {
+
+      if (!allowedTypes.includes(file.mimetype)) {
+        return res.status(400).send(`Unsupported file type: ${file.mimetype}`);
+      }
+      const params = {
+        Bucket:'trade-buckets-y6gopqvx',
+        Key: `${Date.now()}-${file.name}`,
+        Body: file.data,
+        ContentType: file.mimetype,
+      };
+
+      await s3.putObject(params);
+      const fileUrl = `https://trade-buckets-y6gopqvx.s3.us-east-1.amazonaws.com/${params.Key}`;
+      fileLocations.push(fileUrl);
     }
-  },
-}).any();
 
-module.exports = { uploadToS3 };
+    req.files = fileLocations;
+    next();
+  } catch (uploadError) {
+    return res.status(500).send(uploadError.message);
+  }
+};
 
-
+module.exports={
+  uploadToS3
+}

@@ -3,7 +3,7 @@ const Blog = require('../models/blogModel');
 exports.createBlog = async (req, res) => {
   try {
     const { title, content } = req.body;
-    const image = req.files && req.files.length > 0 ? req.files[0].location : "";
+    const image = req.files && req.files.length > 0 ? req.files[0] : "";
     const newBlog = new Blog({ title, content, image });
     const savedBlog = await newBlog.save();
     res.status(201).json({

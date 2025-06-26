@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const multer = require("multer");
+const fileUpload=require('express-fileupload');
 const connectDB = require("./config/db");
 
 dotenv.config();
@@ -29,6 +30,7 @@ const PORT = process.env.PORT || 7777;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(fileUpload());
 
 app.use(cors(corsOptions));
 const upload = multer();
