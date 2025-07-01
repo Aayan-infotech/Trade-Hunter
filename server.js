@@ -19,8 +19,6 @@ app.options("*", cors());
 app.use(
     cors({
         origin: "*",
-
-        
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
         allowedHeaders: ["Content-Type", "Authorization"],
     })
@@ -80,6 +78,9 @@ app.use("/api/jobpost", require("./routes/jobpostRoutes"));
 app.use("/api/address", require("./routes/addressRoute"));
 app.use("/api/eway", require("./routes/ewayRoutes"));
 
+app.get('/testmsg', (req,res) => {
+  res.send('Hello world');
+});
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
   socket.on("disconnect", () => {
