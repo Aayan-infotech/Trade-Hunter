@@ -79,7 +79,7 @@ app.use("/api/address", require("./routes/addressRoute"));
 app.use("/api/eway", require("./routes/ewayRoutes"));
 
 app.get('/testmsg', (req,res) => {
-  res.send('Hello world');
+  res.send('Hello world 1234');
 });
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
