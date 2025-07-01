@@ -58,9 +58,12 @@ const uploadToS3 = async (req, res, next) => {
     const fileLocations = [];
 
     const allowedTypes = [
-      'image/jpeg', 'image/png', 'image/webp',
-      'video/mp4', 'video/quicktime', 'video/x-matroska'
-    ];
+  'image/jpeg', 'image/png', 'image/webp',
+  'video/mp4', 'video/quicktime', 'video/x-matroska',
+  'application/pdf',
+  'application/msword', 
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
+];
 
     for (const file of mediaFiles) {
 

@@ -41,7 +41,7 @@ const upload = multer({
       cb(new Error("Error: Only images or PDF files are allowed!"));
     }
   },
-}).array("file", 10);
+}).array("files", 10);
 
 exports.uploadFile = async (req, res) => {
   const { description } = req.body;
