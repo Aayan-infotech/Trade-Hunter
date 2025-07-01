@@ -7,13 +7,14 @@ const cors = require("cors");
 const multer = require("multer");
 const fileUpload=require('express-fileupload');
 const connectDB = require("./config/db");
+const path = require('path');
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 const corsOptions = {
-  origin: ['https://tradehunters.com.au', 'https://admin.tradehunters.com.au', 'http://localhost:5173'],
+  origin: ['https://tradehunters.com.au', 'https://admin.tradehunters.com.au', 'http://localhost:5173', 'http://18.209.91.97:2366/' , 'http://18.209.91.97:7771'],
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true,
   optionsSuccessStatus: 204
@@ -31,7 +32,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(fileUpload());
-
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors(corsOptions));
 const upload = multer();
 
