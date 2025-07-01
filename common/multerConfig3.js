@@ -50,11 +50,14 @@ const uploadToS3 = async (req, res, next) => {
   const s3 = await getS3Client();
 
   try {
-    if (!req.files || !req.files.image) {
+    if (!req.files) {
+      // console.log('No file');
       return next();
-    }
 
-    const mediaFiles = Array.isArray(req.files.image) ? req.files.image : [req.files.image];
+    }
+// console.log(req.files.image);
+    const mediaFiles = Array.isArray(req.files.files) ? req.files.files : [req.files.files];
+    console.log(mediaFiles);
     const fileLocations = [];
 
     const allowedTypes = [
