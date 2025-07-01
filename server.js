@@ -14,7 +14,7 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 const corsOptions = {
-  origin: ['https://tradehunters.com.au', 'https://admin.tradehunters.com.au', 'http://localhost:5173', 'http://18.209.91.97:2366/' , 'http://18.209.91.97:7771/',, 'http://34.202.105.90:2366' ,'http://34.202.105.90:7771'],
+  origin: ['https://tradehunters.com.au', 'https://admin.tradehunters.com.au', 'http://localhost:5173', 'http://18.209.91.97:2366/' , 'http://18.209.91.97:7771/', 'http://34.202.105.90:2366' ,'http://34.202.105.90:7771'],
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true,
   optionsSuccessStatus: 204
