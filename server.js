@@ -13,9 +13,21 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+
+app.use(cors()); 
+app.options("*", cors()); 
+app.use(
+    cors({
+        origin: "*",
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+    })
+);
+
+
 const corsOptions = {
-  origin: ['https://tradehunters.com.au', 'https://admin.tradehunters.com.au', 'http://localhost:5173', 'http://18.209.91.97:2366' , 'http://18.209.91.97:7771', 'http://34.202.105.90:2366' ,'http://34.202.105.90:7771'],
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  origin: '*',
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,',
   credentials: true,
   optionsSuccessStatus: 204
 };
@@ -33,7 +45,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(fileUpload());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(cors(corsOptions));
+// app.use(cors(corsOptions));
 const upload = multer();
 
 connectDB();
