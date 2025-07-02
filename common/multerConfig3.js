@@ -50,31 +50,39 @@ const uploadToS3 = async (req, res, next) => {
   const s3 = await getS3Client();
 
   try {
-    if (!req.files) {
-      // console.log('No file');
+    if (!req.files || Object.keys(req.files).length === 0) {
       return next();
-
     }
-// console.log(req.files.image);
-    const mediaFiles = Array.isArray(req.files.files) ? req.files.files : [req.files.files];
-    console.log(mediaFiles);
-    const fileLocations = [];
+
+    // Combine all uploaded fields (image, files, etc.) into a single array
+    const allFiles = [];
+
+    for (const key in req.files) {
+      const value = req.files[key];
+      if (Array.isArray(value)) {
+        allFiles.push(...value);
+      } else {
+        allFiles.push(value);
+      }
+    }
 
     const allowedTypes = [
-  'image/jpeg', 'image/png', 'image/webp',
-  'video/mp4', 'video/quicktime', 'video/x-matroska',
-  'application/pdf',
-  'application/msword', 
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
-];
+      'image/jpeg', 'image/png', 'image/webp',
+      'video/mp4', 'video/quicktime', 'video/x-matroska',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
 
-    for (const file of mediaFiles) {
+    const fileLocations = [];
 
-      if (!allowedTypes.includes(file.mimetype)) {
-        return res.status(400).send(`Unsupported file type: ${file.mimetype}`);
+    for (const file of allFiles) {
+      if (!file || !allowedTypes.includes(file.mimetype)) {
+        return res.status(400).send(`Unsupported file type: ${file?.mimetype}`);
       }
+
       const params = {
-        Bucket:'tradehunters',
+        Bucket: 'tradehunters',
         Key: `${Date.now()}-${file.name}`,
         Body: file.data,
         ContentType: file.mimetype,
@@ -85,12 +93,14 @@ const uploadToS3 = async (req, res, next) => {
       fileLocations.push(fileUrl);
     }
 
+    // Attach file URLs to req.files
     req.files = fileLocations;
     next();
   } catch (uploadError) {
     return res.status(500).send(uploadError.message);
   }
 };
+
 
 module.exports={
   uploadToS3
