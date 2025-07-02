@@ -27,7 +27,7 @@ app.use(
 
 
 const corsOptions = {
-  origin: ['https://tradehunters.com.au', 'https://admin.tradehunters.com.au','http://tradehunters.com.au', 'http://admin.tradehunters.com.au'],
+  origin: ['https://tradehunters.com.au', 'https://admin.tradehunters.com.au','http://tradehunters.com.au', 'http://admin.tradehunters.com.au','http://18.209.91.97:7771','http://18.209.91.97:2366'],
   methods: ['OPTION', 'GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
   credentials: true,
   optionsSuccessStatus: 204
