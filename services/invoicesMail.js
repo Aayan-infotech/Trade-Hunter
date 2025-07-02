@@ -26,6 +26,8 @@ const invoicesEmail = async (recipient, subject, htmlMessage, attachments = []) 
       subject: subject,
       html:    htmlMessage,
       attachments,     
+
+      
     };
 
     const info = await transporter.sendMail(mailOptions);
