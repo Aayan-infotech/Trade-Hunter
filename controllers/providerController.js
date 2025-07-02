@@ -41,7 +41,7 @@ const upload = multer({
       cb(new Error("Error: Only images or PDF files are allowed!"));
     }
   },
-}).array("files", 10);
+}).array("file", 10);
 
 exports.uploadFile = async (req, res) => {
   const { description } = req.body;
@@ -70,9 +70,11 @@ exports.uploadFile = async (req, res) => {
         .status(400)
         .json({ status: 400, message: "Please upload at least one file." });
     }
-    const filesData = req.files.map((file) => ({
-      filename: file.key || file.filename,
-      path: file.location || file.path,
+    const fileObjects = req.uploadedFileObjects || [];
+
+    const filesData = fileObjects.map((file) => ({
+      filename: file.filename,
+      path: file.path,
       size: file.size,
       description: description || " ",
       uploadedAt: new Date(),
@@ -298,7 +300,7 @@ exports.getNearbyJobs = async (req, res) => {
       radius == null
     ) {
       return res.status(400).json({
-        status:  400,
+        status: 400,
         message: "providerId, latitude, longitude, and radius are all required",
       })
     }
@@ -364,7 +366,7 @@ exports.getNearbyJobs = async (req, res) => {
     combined.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
     // 7) Paginate
-    const startIndex    = (page - 1) * limit
+    const startIndex = (page - 1) * limit
     const paginatedJobs = combined.slice(startIndex, startIndex + limit)
 
     return res.status(200).json({
@@ -380,9 +382,9 @@ exports.getNearbyJobs = async (req, res) => {
   } catch (error) {
     console.error("Error fetching jobs:", error)
     return res.status(500).json({
-      status:  500,
+      status: 500,
       message: "Error fetching jobs",
-      error:   error.message || error,
+      error: error.message || error,
     })
   }
 }
@@ -993,7 +995,7 @@ exports.getAllProviders = async (req, res) => {
       message: "Providers fetched successfully",
       page,
       limit,
-      total: effectiveTotal,  
+      total: effectiveTotal,
       totalPages,
       data: providers,
     });

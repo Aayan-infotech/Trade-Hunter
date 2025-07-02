@@ -54,7 +54,6 @@ const uploadToS3 = async (req, res, next) => {
       return next();
     }
 
-    // Combine all uploaded fields (image, files, etc.) into a single array
     const allFiles = [];
 
     for (const key in req.files) {
@@ -74,32 +73,47 @@ const uploadToS3 = async (req, res, next) => {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
 
-    const fileLocations = [];
+    const fileUrls = [];
+    const uploadedFileObjects = [];
 
     for (const file of allFiles) {
       if (!file || !allowedTypes.includes(file.mimetype)) {
         return res.status(400).send(`Unsupported file type: ${file?.mimetype}`);
       }
 
+      const fileKey = `${Date.now()}-${file.name}`;
       const params = {
         Bucket: 'tradehunters',
-        Key: `${Date.now()}-${file.name}`,
+        Key: fileKey,
         Body: file.data,
         ContentType: file.mimetype,
       };
 
       await s3.putObject(params);
-      const fileUrl = `https://tradehunters.s3.us-east-1.amazonaws.com/${params.Key}`;
-      fileLocations.push(fileUrl);
+      const fileUrl = `https://tradehunters.s3.us-east-1.amazonaws.com/${fileKey}`;
+      fileUrls.push(fileUrl);
+
+      uploadedFileObjects.push({
+        filename: fileKey,
+        path: fileUrl,
+        size: file.size,
+        mimetype: file.mimetype,
+        originalname: file.name,
+      });
     }
 
-    // Attach file URLs to req.files
-    req.files = fileLocations;
+    // backward compatible
+    req.files = fileUrls;
+
+    // compatible for uploadFile controller
+    req.uploadedFileObjects = uploadedFileObjects;
+
     next();
   } catch (uploadError) {
     return res.status(500).send(uploadError.message);
   }
 };
+
 
 
 module.exports={

@@ -9,7 +9,7 @@ router.get('/getAllProviders', fileController.getAllProviders);
 router.get('/getVoucherUsers', fileController.getVoucherUsers);
 router.post('/getNearbyJobs', verifyUser,fileController.getNearbyJobs);
 router.post('/byBusinessType',verifyUser,  fileController.getProvidersByBusinessType)
-router.post('/upload/:providerId',verifyUser, uploadToS3, fileController.uploadFile);
+router.post('/upload/:providerId', uploadToS3, fileController.uploadFile);
 router.delete('/deleteFile/:fileId',verifyUser, fileController.deleteFile);
 router.post('/getProviderLocation', verifyUser, fileController.getProviderByUserLocation);
 router.post('/getNearbyJobs',verifyUser, fileController.getNearbyJobs);
