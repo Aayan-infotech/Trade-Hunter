@@ -399,12 +399,64 @@ exports.AllReadNotifications = async (req, res) => {
 
 exports.sendPushNotification2 = async (req, res) => {
   try {
-    const io = req.app.get("io"); // Step 1: get Socket.IO instance
-
+    const io = req.app.get("io");
     const { title, body, receiverId, notificationType, jobId } = req.body;
     const userId = req.user.userId;
+    
+    if (!title || !body || !receiverId || !notificationType) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Title, body, receiverId and notificationType are required.",
+        data: [],
+      });
+    }
 
-    const newNotification = new Notification({
+    const validTypes = [
+      "job_alert",
+      "voucher_update",
+      "job_accept",
+      "job_complete",
+    ];
+    if (!validTypes.includes(notificationType)) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Invalid notificationType. Allowed types: " + validTypes.join(", "),
+        data: [],
+      });
+    }
+
+    const device = await DeviceToken.findOne({ userId: receiverId });
+    let shouldSend = false;
+    let messageSent = false;
+
+    if (device) {
+      if (device.userType === "provider") {
+        const provider = await Provider.findById(receiverId);
+        if (provider?.isNotificationEnable) shouldSend = true;
+      } else if (device.userType === "hunter") {
+        const hunter = await Hunter.findById(receiverId);
+        if (hunter?.isNotificationEnable) shouldSend = true;
+      }
+
+      if (shouldSend && device.deviceToken) {
+        try {
+          const message = {
+            notification: { title, body },
+            token: device.deviceToken,
+          };
+          await admin.messaging().send(message);
+          messageSent = true;
+        } catch (fcmError) {
+          console.warn("FCM send error:", fcmError.message);
+        }
+      }
+    } else {
+      console.warn(`No device token found for user ${receiverId}`);
+    }
+
+    const newNotification = await Notification.create({
       userId,
       receiverId,
       title,
@@ -414,9 +466,6 @@ exports.sendPushNotification2 = async (req, res) => {
       createdAt: new Date(),
     });
 
-    await newNotification.save();
-
-    // Step 2: Emit a socket event to the receiver
     io.emit("newNotification", {
       _id: newNotification._id,
       userId,
@@ -432,16 +481,22 @@ exports.sendPushNotification2 = async (req, res) => {
     return res.status(201).json({
       status: 201,
       success: true,
-      message: "Notification sent successfully",
+      message: messageSent
+        ? "Notification sent via push and socket."
+        : "Notification saved and socket sent. Push skipped due to settings or token.",
       data: newNotification,
     });
   } catch (error) {
     console.error("Error sending notification:", error);
-    return res
-      .status(500)
-      .json({ message: "Server error", error: error.message });
+    return res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
+
 
 exports.sendAdminNotification = async (req, res) => {
   try {

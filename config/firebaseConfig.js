@@ -13,7 +13,7 @@ const secretsManagerClient = new SecretsManagerClient({
 
 const getFirebaseCredentials = async () => {
   try {
-    const command = new GetSecretValueCommand({ SecretId: "trade-hunters" });
+    const command = new GetSecretValueCommand({ SecretId: "trade-hunters-fire" });
     const data = await secretsManagerClient.send(command);
 
     if (!data.SecretString) {

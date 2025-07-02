@@ -5,38 +5,55 @@ const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const multer = require("multer");
+const fileUpload=require('express-fileupload');
 const connectDB = require("./config/db");
-
+const path = require('path');
+const JobPost = require('./models/jobpostModel');
 dotenv.config();
 
 const app = express();
-const server = http.createServer(app); // Create HTTP server
+const server = http.createServer(app);
+
+app.use(cors()); 
+app.options("*", cors()); 
+app.use(
+    cors({
+        origin: "*",
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+    })
+);
+
+
+
+const corsOptions = {
+  origin: ['https://tradehunters.com.au', 'https://admin.tradehunters.com.au','http://tradehunters.com.au', 'http://admin.tradehunters.com.au'],
+  methods: ['OPTION', 'GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+  credentials: true,
+  optionsSuccessStatus: 204
+};
+
 const io = new Server(server, {
-  cors: {
-    origin: "*", // Adjust as needed for security
-    methods: ["GET", "POST"]
-  }
+  cors: corsOptions 
 });
+
+
+
 
 const PORT = process.env.PORT || 7777;
 
-// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(cors());
+app.use(fileUpload());
+app.use(express.static(path.join(__dirname, 'public')));
+// app.use(cors(corsOptions));
 const upload = multer();
 
-// Connect DB
 connectDB();
-
-// 🔥 Import cron job
 require("./middlewares/cron");
-
-// Make io available in req.app.get("io")
 app.set("io", io);
 
-// Routes
 app.use("/api/authAdmin", require("./AdmRts/authAdmin"));
 app.use("/api/users", require("./AdmRts/userRoutes"));
 app.use("/api/Prvdr", require("./AdmRts/providerRts"));
@@ -63,16 +80,25 @@ app.use("/api/jobpost", require("./routes/jobpostRoutes"));
 app.use("/api/address", require("./routes/addressRoute"));
 app.use("/api/eway", require("./routes/ewayRoutes"));
 
-// Socket.IO setup
+app.get('/testmsg', (req,res) => {
+  res.send('Hello world 1234');
+});
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
-
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.id);
   });
+  socket.on('error', (err) => {
+    console.error(`Socket error from ${socket.id}:`, err);
+  });
+});
+io.use((socket, next) => {
+  console.log("Socket origin:", socket.handshake.headers.origin);
+  next();
 });
 
-// Start the server
+
+
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });

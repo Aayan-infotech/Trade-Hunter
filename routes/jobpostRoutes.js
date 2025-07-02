@@ -28,7 +28,7 @@ const router = express.Router();
 router.post(
   "/jobpost",
   verifyUser,
-  upload.array("documents"),
+  // upload.array("documents"),
   uploadToS3files, 
   createJobPost
 );
@@ -47,7 +47,7 @@ router.get("/businessTypes", businessTypes);
 router.get("/jobsByBusinessType", jobsByBusinessType);
 // router.put("/job/accept/:jobId", verifyUser,checkSubscriptionOrVoucher,incrementJobAcceptCount);
 router.put("/job/accept/:jobId", incrementJobAcceptCount);
-router.put("/:id",verifyUser,upload.array("documents"),uploadToS3files, updateJobPost);
+router.put("/:id",verifyUser,uploadToS3files, updateJobPost);
 router.put("/notifyCompletion/:jobId",verifyUser, completionNotified);
 
 

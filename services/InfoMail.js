@@ -15,7 +15,7 @@ const infoEmail = async (recipient, subject, htmlMessage, attachments = []) => {
       secure: false,
       auth: {
         user: process.env.EMAIL_USER_INFO,
-        pass: process.env.EMAIL_USER_INFO,
+        pass: process.env.EMAIL_PASS_INFO,
       },
       tls: { rejectUnauthorized: false },
     });

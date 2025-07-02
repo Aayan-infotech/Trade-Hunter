@@ -3,8 +3,6 @@ const ProviderPhoto = require("../models/providerPhotos");
 
 const uploadProviderImages = async (req, res) => {
   try {
-    console.log("Request body:", req.body);
-    console.log("Uploaded files (req.files):", req.files);
 
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: "No files uploaded" });
@@ -16,7 +14,7 @@ const uploadProviderImages = async (req, res) => {
     }
 
     const newFileObjects = req.files.map((file) => {
-      const url = file.location || file.path;
+      const url = file;
       if (!url) {
         throw new Error(`File ${file.originalname} did not return a valid URL.`);
       }
@@ -25,7 +23,7 @@ const uploadProviderImages = async (req, res) => {
         url,
       };
     });
-
+// const newFileObjects =  req.files;
     let providerPhoto = await ProviderPhoto.findOne({ userId });
     if (providerPhoto) {
       providerPhoto.files.push(...newFileObjects);
@@ -46,8 +44,7 @@ const uploadProviderImages = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Error in uploadProviderImages controller:", error);
-    return res.status(500).json({ message: "Server Error", error: error.message });
+    return res.status(500).json({ message: "Server Error1", error: error.message });
   }
 };
 

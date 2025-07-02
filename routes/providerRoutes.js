@@ -9,13 +9,13 @@ router.get('/getAllProviders', fileController.getAllProviders);
 router.get('/getVoucherUsers', fileController.getVoucherUsers);
 router.post('/getNearbyJobs', verifyUser,fileController.getNearbyJobs);
 router.post('/byBusinessType',verifyUser,  fileController.getProvidersByBusinessType)
-router.post('/upload/:providerId',verifyUser, uploadToS3, fileController.uploadFile);
+router.post('/upload/:providerId', uploadToS3, fileController.uploadFile);
 router.delete('/deleteFile/:fileId',verifyUser, fileController.deleteFile);
 router.post('/getProviderLocation', verifyUser, fileController.getProviderByUserLocation);
 router.post('/getNearbyJobs',verifyUser, fileController.getNearbyJobs);
 router.post('/getNearbyJobsForGuest', verifyUser,fileController.getNearbyJobsForGuest);   
 router.get('/getJobByIdForGuest/:jobId', verifyUser, fileController.getJobByIdForGuest);
-router.put('/updateById/:id',verifyUser, upload.single(), fileController.updateProviderById);
+router.put('/updateById/:id',verifyUser,  fileController.updateProviderById);
 router.get('/:providerId',verifyUser, fileController.getProviderProfile);
 router.post('/acceptCount/:providerId', fileController.jobAcceptCount);
 router.post('/completedCount/:providerId', fileController.jobCompleteCount)
