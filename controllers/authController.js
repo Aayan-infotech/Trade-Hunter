@@ -313,7 +313,7 @@ const login = async (req, res) => {
     if (!user) {
       return res.status(400).json({
         status: 400,
-        message: "Invalid credentials",
+        message: "User Doesn't Exists",
       });
     }
 
@@ -378,7 +378,7 @@ const login = async (req, res) => {
       return res.status(200).json({
         status: 200,
 
-        message: "you havee not subscribed to the service",
+        message: "You have not subscribed to the service",
         data: { token: token, user: user },
 
       });
