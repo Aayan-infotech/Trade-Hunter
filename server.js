@@ -8,7 +8,7 @@ const multer = require("multer");
 const fileUpload=require('express-fileupload');
 const connectDB = require("./config/db");
 const path = require('path');
-
+const JobPost = require('./models/jobpostModel');
 dotenv.config();
 
 const app = express();
@@ -28,16 +28,15 @@ app.use(
 
 const corsOptions = {
   origin: '*',
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,',
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
   credentials: true,
   optionsSuccessStatus: 204
 };
+
 const io = new Server(server, {
-  cors: {
-    corsOptions,
-    methods: ["GET", "POST"]
-  }
+  cors: corsOptions 
 });
+
 
 const PORT = process.env.PORT || 7777;
 
