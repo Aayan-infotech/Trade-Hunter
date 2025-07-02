@@ -27,8 +27,8 @@ app.use(
 
 
 const corsOptions = {
-  origin: '*',
-  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+  origin: ['https://tradehunters.com.au', 'https://admin.tradehunters.com.au','http://tradehunters.com.au', 'http://admin.tradehunters.com.au'],
+  methods: ['OPTION', 'GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
   credentials: true,
   optionsSuccessStatus: 204
 };
@@ -88,7 +88,16 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.id);
   });
+  socket.on('error', (err) => {
+    console.error(`Socket error from ${socket.id}:`, err);
+  });
 });
+io.use((socket, next) => {
+  console.log("Socket origin:", socket.handshake.headers.origin);
+  next();
+});
+
+
 
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
