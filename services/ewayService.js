@@ -1,31 +1,27 @@
 
-
+require('dotenv').config();
 const axios = require('axios');
-const { getSecrets } = require('../utils/awsSecrets');
 
-// Load secrets once
-let API_KEY, API_PASSWORD, API_URL;
+const { EWAY_API_KEY, EWAY_PASSWORD, EWAY_URL } = process.env;
 
-getSecrets().then((secrets) => {
-  API_KEY = secrets.EWAY_API_KEY;
-  API_PASSWORD = secrets.EWAY_PASSWORD;
-  API_URL = secrets.EWAY_URL;
-}).catch(err => {
-  console.error("Failed to load AWS secrets:", err);
-});
+if (!EWAY_API_KEY || !EWAY_PASSWORD || !EWAY_URL) {
+  console.error("❌ Missing one of EWAY_API_KEY, EWAY_PASSWORD, or EWAY_URL in .env");
+}
 
 const getAuthHeader = () => {
-  const credentials = `${API_KEY.trim()}:${API_PASSWORD.trim()}`;
-  return `Basic ${Buffer.from(credentials).toString('base64')}`;
+  const creds = `${EWAY_API_KEY.trim()}:${EWAY_PASSWORD.trim()}`;
+  return `Basic ${Buffer.from(creds).toString('base64')}`;
 };
 
 exports.createTransaction = async (paymentData) => {
   try {
-    if (!API_URL || !API_KEY || !API_PASSWORD) {
-      throw new Error("Secrets not loaded");
+    if (!EWAY_URL) {
+      throw new Error("eWAY API URL not set");
     }
 
-    const response = await axios.post(API_URL, paymentData, {
+    console.log("➡️ eWAY request payload:", JSON.stringify(paymentData, null, 2));
+
+    const response = await axios.post(EWAY_URL, paymentData, {
       headers: {
         Authorization: getAuthHeader(),
         'Content-Type': 'application/json',
@@ -34,13 +30,15 @@ exports.createTransaction = async (paymentData) => {
       timeout: 20000,
     });
 
+    console.log("⬅️ eWAY raw response:", JSON.stringify(response.data, null, 2));
+
     if (!response.data?.TransactionID) {
-      throw new Error('Invalid response from eWAY: Missing TransactionID');
+      return { error: "Missing TransactionID", raw: response.data };
     }
 
     return response.data;
-  } catch (error) {
-    console.error("eWAY transaction error:", error);
-    return { error: error.message };
+  } catch (err) {
+    console.error("❌ eWAY transaction error:", err.response?.data || err.message);
+    return { error: err.response?.data || err.message };
   }
 };

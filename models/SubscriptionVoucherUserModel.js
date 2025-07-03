@@ -13,18 +13,18 @@ const SubscriptionVoucherUserSchema = new mongoose.Schema({
   subscriptionPlanId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'SubscriptionPlan',
-    required: false 
+    required: false
   },
   voucherId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Voucher',
-    required: false 
+    required: false
   },
 
   code: {
     type: String,
     required: function () {
-      return this.voucherId ? true : false; 
+      return this.voucherId ? true : false;
     }
   },
   startDate: {
@@ -46,6 +46,20 @@ const SubscriptionVoucherUserSchema = new mongoose.Schema({
     required: true,
     default: 160
   },
+  ewayCustomerToken: {
+    type: String,
+    required: function () {
+      return (this.type === "Subscription" || this.type === "Advertising") && this.autopayActive;
+    }
+  },
+  nextPaymentDate: {
+    type: Date,
+  },
+  autopayActive: {
+    type: Boolean,
+    default: false,
+  },
+
   createdAt: {
     type: Date,
     default: Date.now
