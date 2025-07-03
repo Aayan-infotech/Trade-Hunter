@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>eWAY Encryption Test</title>
+  <script src="https://www.eway.com.au/gateway/javascript/eCrypt.js"></script>
+</head>
+<body>
+  <h1>eWAY Encryption</h1>
+  <button id="run">Encrypt Test Card</button>
+  <pre id="output"></pre>
+ 
+  <script>
+    document.getElementById('run').addEventListener('click', () => {
+      const clientKey = "09n/nrZ2RtlG9HWIuWmDq+w/KIv5E4BJwP413gyPZ5xnRFf6HvgS8P5q478oLsYQji+b2TuJVBdxRurAl6qZWioRjbI4uG2VAzxsuX5bnK8TkmU15MSZkSWd9m4wFYjnIFMkxbCPhKHOzwrVz7fZcxckY1d1is3K2D8J7NnDv3WmTxmYKnJkHZwxdeD7XgSCThcexrTJZEYBlaYftHbxfEOVHvcj4Cu1zKPcQfn+ZWlITm/QEjqgZHov957LeavJOhpzcGJAkK8X4o6W99PcQbj277Tus+S3qQsd7miz+H5dObjUSz7w/b7EMaD4GecVgKm18zdCoOraN3Cs3ON3nQ==";
+ 
+      if (typeof window.eCryptor === "undefined") {
+        alert("eCryptor not loaded!");
+        return;
+      }
+ 
+      const cryptor = new eCryptor(clientKey);
+ 
+      const card = {
+        Number: "4444333322221111",
+        ExpiryMonth: "09",
+        ExpiryYear: "25",
+        CVN: "123"
+      };
+ 
+      try {
+        const encrypted = cryptor.encrypt(card);
+        document.getElementById('output').textContent = encrypted;
+        console.log(" Encrypted Card Token:", encrypted);
+      } catch (err) {
+        console.error("Encryption failed:", err);
+        alert("Encryption failed. Check console.");
+      }
+    });
+  </script>
+</body>
+</html>
+ 
