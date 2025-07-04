@@ -129,7 +129,7 @@ const createJobPost = async (req, res) => {
 
 const getJobPostById = async (req, res) => {
   try {
-    const jobPost = await JobPost.findById(req.params.id).populate("user", "name email");
+    const jobPost = await JobPost.findById(req.params.id).populate("user", "name email").populate("provider", "contactName email").lean();
 
     if (!jobPost) {
       return apiResponse.error(res, "Job post not found.", 404);
@@ -140,7 +140,7 @@ const getJobPostById = async (req, res) => {
     return apiResponse.success(
       res,
       "Job post retrieved successfully.",
-      { jobPost, provider }
+      jobPost,
     );
   } catch (error) {
     return apiResponse.error(res, "Internal server error.", 500, {
