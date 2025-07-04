@@ -464,29 +464,21 @@ const verifyEmail = async (req, res) => {
     if (user.emailVerified) {
       return res
         .status(200)
-        .json({ status: 200, message: "User already verified.", data: {} });
+        .json({ status: 200, message: "User already verified." });
     }
 
     if (verificationOTP !== user.verificationOTP) {
       return res.status(401).json({ status: 401, message: "Invalid OTP." });
     }
 
-    const token = jwt.sign(
-      { userId: user._id, email: user.email, userType: user.userType },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
     user.emailVerified = true;
     user.verificationOTP = null;
     user.verificationOTPExpires = null;
-    user.token = token;
     await user.save();
 
     return res.status(200).json({
       status: 200,
-      message: "Email verified successfully",
-      data: { token, user },
+      message: "Email verified successfully"
     });
   } catch (err) {
     return res
@@ -494,6 +486,7 @@ const verifyEmail = async (req, res) => {
       .json({ status: 500, message: "Server error", error: err.message });
   }
 };
+
 
 const forgotPassword = async (req, res) => {
   const { email } = req.body;
