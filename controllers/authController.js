@@ -278,7 +278,6 @@ const signUp = async (req, res) => {
       status: 200,
       success: true,
       message: "Signup successful! An OTP has been sent to your email.",
-      user: savedUser,
     });
   } catch (error) {
     console.error(error);
@@ -293,7 +292,6 @@ const signUp = async (req, res) => {
 const login = async (req, res) => {
   const { email, password, userType, UID } = req.body;
 
-  // Step 1: Validate userType
   if (!["hunter", "provider"].includes(userType)) {
     return res.status(400).json({
       status: 400,
@@ -444,6 +442,7 @@ const logout = async (req, res) => {
   }
 };
 
+
 const verifyEmail = async (req, res) => {
   const { email, verificationOTP, userType } = req.body;
   let user;
@@ -464,29 +463,21 @@ const verifyEmail = async (req, res) => {
     if (user.emailVerified) {
       return res
         .status(200)
-        .json({ status: 200, message: "User already verified.", data: {} });
+        .json({ status: 200, message: "User already verified." });
     }
 
     if (verificationOTP !== user.verificationOTP) {
       return res.status(401).json({ status: 401, message: "Invalid OTP." });
     }
 
-    const token = jwt.sign(
-      { userId: user._id, email: user.email, userType: user.userType },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
     user.emailVerified = true;
     user.verificationOTP = null;
     user.verificationOTPExpires = null;
-    user.token = token;
     await user.save();
 
     return res.status(200).json({
       status: 200,
-      message: "Email verified successfully",
-      data: { token, user },
+      message: "Email verified successfully"
     });
   } catch (err) {
     return res
