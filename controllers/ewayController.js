@@ -9,6 +9,13 @@ const SubscriptionType = require("../models/SubscriptionTypeModel");
 const Provider = require("../models/providerModel");
 const generateInvoicePDF = require("../utils/generateInvoicePDF");
 
+const startOfDay = (d) => { d.setHours(0, 0, 0, 0); return d; };
+const monthsBetween = (start, end) => {
+  const s = new Date(start), e = new Date(end);
+  return Math.max(0, (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth()));
+};
+
+
 exports.initiatePayment = async (req, res) => {
   try {
     const requiredCustomerFields = ["FirstName", "LastName", "Email", "CardDetails"];
@@ -42,28 +49,28 @@ exports.initiatePayment = async (req, res) => {
 
     // Perform initial eWAY payment
     const paymentData = {
-  Customer: {
-    FirstName: Customer.FirstName,
-    LastName: Customer.LastName,
-    Email: Customer.Email,
-    CardDetails: {
-      Name: Customer.CardDetails.Name,
-      Number: Customer.CardDetails.Number.replace(/\s/g, ""),
-      ExpiryMonth: Customer.CardDetails.ExpiryMonth.padStart(2, "0"),
-      ExpiryYear: Customer.CardDetails.ExpiryYear.length === 2
-        ? `20${Customer.CardDetails.ExpiryYear}`
-        : Customer.CardDetails.ExpiryYear,
-      CVN: Customer.CardDetails.CVN
-    }
-  },
-  Payment: {
-    TotalAmount: Payment.TotalAmount,
-    CurrencyCode: Payment.CurrencyCode
-  },
-  TransactionType: "MOTO",
-  Capture: true,
-  CreateTokenCustomer: subscriptionPlan.validity === 365, // <-- ADD THIS LINE
-};
+      Customer: {
+        FirstName: Customer.FirstName,
+        LastName: Customer.LastName,
+        Email: Customer.Email,
+        CardDetails: {
+          Name: Customer.CardDetails.Name,
+          Number: Customer.CardDetails.Number.replace(/\s/g, ""),
+          ExpiryMonth: Customer.CardDetails.ExpiryMonth.padStart(2, "0"),
+          ExpiryYear: Customer.CardDetails.ExpiryYear.length === 2
+            ? `20${Customer.CardDetails.ExpiryYear}`
+            : Customer.CardDetails.ExpiryYear,
+          CVN: Customer.CardDetails.CVN
+        }
+      },
+      Payment: {
+        TotalAmount: Payment.TotalAmount,
+        CurrencyCode: Payment.CurrencyCode
+      },
+      TransactionType: "MOTO",
+      Capture: true,
+      CreateTokenCustomer: subscriptionPlan.validity === 365, // <-- ADD THIS LINE
+    };
     const ewayResponse = await ewayService.createTransaction(paymentData);
     const txId = ewayResponse.TransactionID;
     if (!txId || typeof txId !== "string" && typeof txId !== "number") {
@@ -393,3 +400,113 @@ exports.getSubscriptionByUserId = async (req, res) => {
     });
   }
 };
+
+
+exports.cancelSubscription = async (req, res) => {
+  try {
+    const sub = await SubscriptionVoucherUser.findById(req.params.id);
+    const plan = await SubscriptionPlan.findById(sub?.subscriptionPlanId);
+
+    if (
+      !sub ||
+      !plan ||
+      !["Advertising", "Subscription"].includes(sub.type) ||
+      plan.validity !== 365 ||
+      !sub.autopayActive
+    ) {
+      return res.status(400).json({ message: "Not cancellable. Must be yearly active subscription of valid type." });
+    }
+
+    const provider = await Provider.findById(sub.userId);
+    const type = await SubscriptionType.findById(plan.type);
+
+    const today = startOfDay(new Date());
+    const monthsRemaining = monthsBetween(today, sub.endDate);
+    const fullYearAmount = plan.amount; // already yearly
+    const proratedAmount = (monthsRemaining * fullYearAmount) / 12;
+    const roundedCents = Math.round(proratedAmount * 100);
+
+    const chargeResult = await ewayService.createTransaction({
+      Customer: { TokenCustomerID: sub.ewayCustomerToken },
+      Payment: {
+        TotalAmount: roundedCents,
+        CurrencyCode: plan.currency || "AUD"
+      },
+      TransactionType: "Recurring",
+      Capture: true
+    });
+
+    if (!chargeResult.TransactionID || !chargeResult.TransactionStatus) {
+      return res.status(500).json({
+        message: "eWAY charge failed",
+        gatewayResponse: chargeResult
+      });
+    }
+
+    const txn = new Transaction({
+      userId: sub.userId,
+      subscriptionPlanId: plan._id,
+      status: "completed",
+      amount: proratedAmount,
+      currency: plan.currency,
+      transaction: {
+        transactionPrice: proratedAmount,
+        transactionStatus: "Success",
+        transactionType: "Recurring",
+        authorisationCode: chargeResult.AuthorisationCode,
+        transactionId: chargeResult.TransactionID,
+        transactionDate: new Date()
+      },
+      payment: {
+        paymentSource: "eway",
+        totalAmount: proratedAmount,
+        countryCode: plan.currency
+      },
+      payer: {
+        payerId: sub.ewayCustomerToken,
+        payerName: provider.name || "Unknown",
+        payerEmail: provider.email || ""
+      }
+    });
+    await txn.save();
+
+    // Expire subscription
+    sub.autopayActive = false;
+    sub.endDate = today;
+    sub.status = "expired";
+    await sub.save();
+
+    // Email invoice
+    const invoiceBuffer = await generateInvoicePDF({
+      provider,
+      subscriptionPlan: plan,
+      subscriptionType: type,
+      transactionId: chargeResult.TransactionID,
+      invoiceDate: new Date(),
+      amountCharged: proratedAmount
+    });
+
+    try {
+      await sendEmail(
+        provider.email,
+        `Trade Hunters Subscription Cancelled - Invoice #${chargeResult.TransactionID}`,
+        `<p>Your subscription was cancelled. A final prorated amount of <strong>$${proratedAmount.toFixed(2)}</strong> has been charged.</p>`,
+        [{ filename: `invoice_${chargeResult.TransactionID}.pdf`, content: invoiceBuffer }]
+      );
+    } catch (err) {
+      console.error("Email failed:", err.message);
+    }
+
+    return res.json({
+      message: "Subscription cancelled, prorated charge successful",
+      transactionId: chargeResult.TransactionID,
+      amountCharged: `$${proratedAmount.toFixed(2)}`,
+      invoiceSent: true
+    });
+  } catch (err) {
+    console.error("Cancel subscription error:", err);
+    res.status(500).json({ message: "Internal error", error: err.message });
+  }
+};
+
+

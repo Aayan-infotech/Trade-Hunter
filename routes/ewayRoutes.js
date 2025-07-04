@@ -58,4 +58,6 @@ router.get('/getAllTransactions', ewayController.getAllTransactions);
 router.get('/totalRevenue', ewayController.getTotalSubscriptionRevenue);
 router.get('/getSusbcriptionById', verifyUser, ewayController.getSubscriptionByUserId);
 
+router.post("/cancelSubscriptions/:id", ewayController.cancelSubscription);
+
 module.exports = router;
