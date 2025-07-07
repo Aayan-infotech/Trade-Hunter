@@ -368,16 +368,38 @@ exports.sendSupportEmail = async (req, res) => {
 
 exports.sendJobAssignmentEmail = async (req, res) => {
   try {
-    const { businessName, providerEmail, contactName, title } = req.body;
+    const { providerId, contactName, title } = req.body;
 
-    if (!businessName || !providerEmail || !contactName || !title) {
+    // Step 1: Validate inputs
+    if (!providerId || !contactName || !title) {
       return res.status(400).json({
-        message: "All fields are required: businessName, providerEmail, contactName, title"
+        message: "All fields are required: providerId, contactName, title",
+        status: 400,
       });
     }
 
+    // Step 2: Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(providerId)) {
+      return res.status(400).json({
+        message: "Invalid providerId format",
+        status: 400,
+      });
+    }
+
+    // Step 3: Fetch provider details from DB
+    const provider = await providerModel.findById(providerId).select("businessName email");
+
+    if (!provider) {
+      return res.status(404).json({
+        message: "Provider not found with the given providerId",
+        status: 404,
+      });
+    }
+
+    const { businessName, email: providerEmail } = provider;
     const subject = "📩 Job Assigned to You";
 
+    // Step 4: Compose email
     const htmlMessage = `
     <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 30px; color: #2c3e50;">
       <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden;">
@@ -403,7 +425,7 @@ exports.sendJobAssignmentEmail = async (req, res) => {
 
           <!-- CTA Button -->
           <div style="margin: 30px 0;">
-            <a href="https:tradehunters.com.au" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #004aad; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            <a href="https://tradehunters.com.au" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #004aad; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
               View Job
             </a>
           </div>
@@ -418,23 +440,24 @@ exports.sendJobAssignmentEmail = async (req, res) => {
     </div>
     `;
 
+    // Step 5: Send email
     await sendEmail(providerEmail, subject, htmlMessage);
 
-    res.status(200).json({
+    return res.status(200).json({
       status: 200,
       success: true,
-      message: 'Job assignment email sent successfully to the provider.'
+      message: "Job assignment email sent successfully to the provider.",
     });
-
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       status: 500,
       success: false,
-      message: 'Failed to send job assignment email.',
-      error: error.message
+      message: "Failed to send job assignment email.",
+      error: error.message,
     });
   }
 };
+
 
 
 exports.sendDirectMessageEmail = async (req, res) => {
