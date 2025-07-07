@@ -366,3 +366,142 @@ exports.sendSupportEmail = async (req, res) => {
   }
 }
 
+exports.sendJobAssignmentEmail = async (req, res) => {
+  try {
+    const { businessName, providerEmail, contactName, title } = req.body;
+
+    if (!businessName || !providerEmail || !contactName || !title) {
+      return res.status(400).json({
+        message: "All fields are required: businessName, providerEmail, contactName, title"
+      });
+    }
+
+    const subject = "📩 Job Assigned to You";
+
+    const htmlMessage = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 30px; color: #2c3e50;">
+      <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden;">
+
+        <!-- Header -->
+        <div style="background-color: #004aad; color: white; padding: 20px;">
+          <h2 style="margin: 0;">📬 New Job Assignment</h2>
+        </div>
+
+        <!-- Body -->
+        <div style="padding: 25px;">
+          <p style="font-size: 16px;">Hi <strong>${businessName}</strong>,</p>
+
+          <p style="font-size: 15px; line-height: 1.6;">
+            You've been assigned a new job titled
+            <strong style="color: #27ae60;">${title}</strong> by
+            <strong style="color: #004aad;">${contactName}</strong>.
+          </p>
+
+          <p style="font-size: 15px;">
+            Please log in to your Trade Hunters account to view full details and respond.
+          </p>
+
+          <!-- CTA Button -->
+          <div style="margin: 30px 0;">
+            <a href="https:tradehunters.com.au" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #004aad; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
+              View Job
+            </a>
+          </div>
+
+          <hr style="border: none; border-top: 1px solid #e1e4e8;" />
+
+          <p style="font-size: 12px; color: #95a5a6; text-align: center; margin-top: 20px;">
+            This is an automated message from Trade Hunters. Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    </div>
+    `;
+
+    await sendEmail(providerEmail, subject, htmlMessage);
+
+    res.status(200).json({
+      status: 200,
+      success: true,
+      message: 'Job assignment email sent successfully to the provider.'
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      success: false,
+      message: 'Failed to send job assignment email.',
+      error: error.message
+    });
+  }
+};
+
+
+exports.sendDirectMessageEmail = async (req, res) => {
+  try {
+    const { businessName, providerEmail, contactName } = req.body;
+
+    if (!businessName || !providerEmail || !contactName) {
+      return res.status(400).json({
+        message: "All fields are required: businessName, providerEmail, contactName",
+        status: 400,
+      });
+    }
+
+    const subject = "📩 New Message from Hunter";
+
+    const htmlMessage = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 30px; color: #2c3e50;">
+      <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden;">
+
+        <!-- Header -->
+        <div style="background-color: #004aad; color: white; padding: 20px;">
+          <h2 style="margin: 0;">📬 Message from Hunter</h2>
+        </div>
+
+        <!-- Body -->
+        <div style="padding: 25px;">
+          <p style="font-size: 16px;">Hi <strong>${businessName}</strong>,</p>
+
+          <p style="font-size: 15px; line-height: 1.6;">
+            <strong style="color: #004aad;">${contactName}</strong> has sent you a message through Trade Hunters.
+          </p>
+
+          <p style="font-size: 15px;">
+            Please log in to your Trade Hunters account to view and respond to the message.
+          </p>
+
+          <!-- CTA Button -->
+          <div style="margin: 30px 0;">
+            <a href="https://tradehunters.com.au" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #004aad; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
+              Reply Now
+            </a>
+          </div>
+
+          <hr style="border: none; border-top: 1px solid #e1e4e8;" />
+
+          <p style="font-size: 12px; color: #95a5a6; text-align: center; margin-top: 20px;">
+            This is an automated message from Trade Hunters. Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    </div>
+    `;
+
+    await sendEmail(providerEmail, subject, htmlMessage);
+
+    res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Notification email sent successfully to the provider."
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      status: 500,
+      success: false,
+      message: "Failed to send email.",
+      error: error.message
+    });
+  }
+};

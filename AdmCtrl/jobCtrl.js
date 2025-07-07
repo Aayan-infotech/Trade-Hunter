@@ -216,7 +216,7 @@ const getJobStatusCounts = async (req, res) => {
 
 const getRecentJobPosts = async (req, res) => {
   try {
-    const recentJobs = await JobPost.find()
+    const recentJobs = await JobPost.find({ status: { $ne: "Completed" } })
       .sort({ createdAt: -1 })
       .limit(4)
       .populate({
@@ -244,6 +244,7 @@ const getRecentJobPosts = async (req, res) => {
     });
   }
 };
+
 
 const getJobPostsByStatus = async (req, res) => {
   let status = req.query.status;

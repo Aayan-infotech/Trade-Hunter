@@ -129,13 +129,13 @@ const createJobPost = async (req, res) => {
 
 const getJobPostById = async (req, res) => {
   try {
-    const jobPost = await JobPost.findById(req.params.id).populate("user", "name email").populate("provider", "contactName email").lean();
+    const jobPost = await JobPost.findById(req.params.id).populate("user", "name email").populate("provider", "contactName businessName email").lean();
 
     if (!jobPost) {
       return apiResponse.error(res, "Job post not found.", 404);
     }
 
-    const provider = await Provider.findById(jobPost.provider).select("contactName email").lean();
+    const provider = await Provider.findById(jobPost.provider).select("contactName businessName email").lean();
 
     return apiResponse.success(
       res,
