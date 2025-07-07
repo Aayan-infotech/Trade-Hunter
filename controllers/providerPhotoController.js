@@ -1,8 +1,11 @@
 const mongoose = require("mongoose");
-const ProviderPhoto = require("../models/providerPhotos"); 
+const ProviderPhoto = require("../models/providerPhotos");
 
 const uploadProviderImages = async (req, res) => {
   try {
+    const MAX_FILES = 10;
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; 
+    const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
 
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: "No files uploaded" });
@@ -13,17 +16,31 @@ const uploadProviderImages = async (req, res) => {
       return res.status(400).json({ message: "Missing userId" });
     }
 
-    const newFileObjects = req.files.map((file) => {
-      const url = file;
-      if (!url) {
-        throw new Error(`File ${file.originalname} did not return a valid URL.`);
+    if (req.files.length > MAX_FILES) {
+      return res.status(400).json({ message: `You can upload a maximum of ${MAX_FILES} files.` });
+    }
+
+    for (let file of req.files) {
+      if (!file.buffer && !file.location && !file.path) {
+        return res.status(400).json({ message: `File ${file.originalname} is invalid.` });
       }
+
+      if (file.size > MAX_FILE_SIZE) {
+        return res.status(400).json({ message: `File ${file.originalname} exceeds 5MB size limit.` });
+      }
+
+      if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+        return res.status(400).json({ message: `File ${file.originalname} has an unsupported format.` });
+      }
+    }
+
+    const newFileObjects = req.files.map((file) => {
       return {
         _id: new mongoose.Types.ObjectId(),
-        url,
+        url: file.location || file.path || file.buffer,
       };
     });
-// const newFileObjects =  req.files;
+
     let providerPhoto = await ProviderPhoto.findOne({ userId });
     if (providerPhoto) {
       providerPhoto.files.push(...newFileObjects);
@@ -44,7 +61,10 @@ const uploadProviderImages = async (req, res) => {
       });
     }
   } catch (error) {
-    return res.status(500).json({ message: "Server Error1", error: error.message });
+    return res.status(500).json({
+      message: "Server Error",
+      error: error.message,
+    });
   }
 };
 

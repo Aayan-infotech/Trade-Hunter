@@ -193,7 +193,7 @@ const signUp = async (req, res) => {
       
       <!-- Body -->
       <div style="padding: 25px 30px;">
-        <p style="font-size: 16px;">Hi <strong>${name}</strong>,</p>
+        <p style="font-size: 16px;">Hi <strong>${businessName || name}</strong>,</p>
         <p style="font-size: 15px;">Thanks for joining Trade Hunters! To verify your account, please use the OTP below:</p>
         
         <div style="margin: 20px 0; padding: 15px; background-color: #f0f4f8; text-align: center; border-left: 5px solid #004aad; border-radius: 5px;">
@@ -230,7 +230,7 @@ const signUp = async (req, res) => {
 
     await signupEmail(
   "signup.tradehunters@gmail.com",
-  `New ${userType} Signup - ${name}`,
+  `New ${userType} Signup - ${businessName || name}`,
   `
   <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9f9f9; padding: 30px;">
     <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); overflow: hidden;">
@@ -278,6 +278,7 @@ const signUp = async (req, res) => {
       status: 200,
       success: true,
       message: "Signup successful! An OTP has been sent to your email.",
+      user: savedUser,
     });
   } catch (error) {
     console.error(error);

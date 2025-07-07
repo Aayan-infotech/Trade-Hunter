@@ -135,7 +135,7 @@ const getJobPostById = async (req, res) => {
       return apiResponse.error(res, "Job post not found.", 404);
     }
 
-    const provider = await Provider.findById(jobPost.provider).select("contactName email").lean();
+    const provider = await Provider.findById(jobPost.provider).select("contactName businessName email").lean();
 
     return apiResponse.success(
       res,

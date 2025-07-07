@@ -12,4 +12,7 @@ router.patch('/updateRadius', verifyUser, hunterController.updateRadius);
 router.post('/send-job-email', hunterController.sendJobNotificationEmail);
 router.post('/sendSupportEmail', hunterController.sendSupportEmail);
 
+router.post('/sendMsgEmailProvider', hunterController.sendDirectMessageEmail);
+router.post('/jobAssignEmail', hunterController.sendJobAssignmentEmail);
+
 module.exports = router;
