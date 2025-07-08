@@ -457,72 +457,71 @@ exports.sendJobAssignmentEmail = async (req, res) => {
 
 
 
-
 exports.sendDirectMessageEmail = async (req, res) => {
   try {
     const { businessName, providerEmail, contactName } = req.body;
 
     if (!businessName || !providerEmail || !contactName) {
       return res.status(400).json({
-        message: "All fields are required: businessName, providerEmail, contactName",
-        status: 400,
+        "message": "All fields are required: businessName, providerEmail, contactName",
+        "status": 400
       });
     }
 
     const subject = "📩 Message Alert";
 
     const htmlMessage = `
-    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 30px; color: #2c3e50;">
-      <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden;">
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 30px; color: #2c3e50;">
+        <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden;">
 
-        <!-- Header -->
-        <div style="background-color: #004aad; color: white; padding: 20px;">
-          <h2 style="margin: 0;">📬 Message Alert</h2>
-        </div>
-
-        <!-- Body -->
-        <div style="padding: 25px;">
-          <p style="font-size: 16px;">Hi there,</p>
-
-          <p style="font-size: 15px; line-height: 1.6;">
-             You've Recieved a message from <strong style="color: #004aad;">${contactName}</strong>
-          </p>
-
-          <p style="font-size: 15px;">
-            To View and  respond to this message, please login to your Trade Hunters Account.
-          </p>
-
-          <!-- CTA Button -->
-          <div style="margin: 30px 0;">
-            <a href="https://tradehunters.com.au" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #004aad; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
-              View Message
-            </a>
+          <!-- Header -->
+          <div style="background-color: #004aad; color: white; padding: 20px;">
+            <h2 style="margin: 0;">📬 Message Alert</h2>
           </div>
 
-          <hr style="border: none; border-top: 1px solid #e1e4e8;" />
+          <!-- Body -->
+          <div style="padding: 25px;">
+            <p style="font-size: 16px;">Hi there,</p>
 
-          <p style="font-size: 12px; color: #95a5a6; text-align: center; margin-top: 20px;">
-            This is an automated message from Trade Hunters. Please do not reply to this email.
-          </p>
+            <p style="font-size: 15px; line-height: 1.6;">
+              You've received a message from <strong style="color: #004aad;">${contactName}</strong>
+            </p>
+
+            <p style="font-size: 15px;">
+              To view and respond to this message, please log in to your Trade Hunters account.
+            </p>
+
+            <!-- CTA Button -->
+            <div style="margin: 30px 0;">
+              <a href="https://tradehunters.com.au" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #004aad; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                View Message
+              </a>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid #e1e4e8;" />
+
+            <p style="font-size: 12px; color: #95a5a6; text-align: center; margin-top: 20px;">
+              This is an automated message from Trade Hunters. Please do not reply to this email.
+            </p>
+          </div>
         </div>
       </div>
-    </div>
     `;
 
     await sendEmail(providerEmail, subject, htmlMessage);
 
-    res.status(200).json({
-      status: 200,
-      success: true,
-      message: "Notification email sent successfully to the provider."
+    return res.status(200).json({
+      "status": 200,
+      "success": true,
+      "message": "Notification email sent successfully to the provider."
     });
 
   } catch (error) {
-    res.status(500).json({
-      status: 500,
-      success: false,
-      message: "Failed to send email.",
-      error: error.message
+    return res.status(500).json({
+      "status": 500,
+      "success": false,
+      "message": "Failed to send email.",
+      "error": error.message
     });
   }
 };
