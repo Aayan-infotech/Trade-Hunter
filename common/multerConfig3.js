@@ -1,20 +1,29 @@
 require("dotenv").config();
 
-const multer = require("multer");
-const multerS3 = require("multer-s3");
-const path = require("path");
-const { S3Client } = require("@aws-sdk/client-s3");
 const { S3 } = require("@aws-sdk/client-s3");
 const {
   SecretsManagerClient,
   GetSecretValueCommand,
 } = require("@aws-sdk/client-secrets-manager");
 
-const secretsManagerClient = new SecretsManagerClient({ region: 'us-east-1' });
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "video/mp4",
+  "video/quicktime",
+  "video/x-matroska",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+
+const secretsManagerClient = new SecretsManagerClient({ region: "us-east-1" });
 
 const getAwsCredentials = async () => {
   try {
-    const command = new GetSecretValueCommand({ SecretId:'aws-secret-curd' });
+    const command = new GetSecretValueCommand({ SecretId: "aws-secret-curd" });
     const data = await secretsManagerClient.send(command);
 
     if (data.SecretString) {
@@ -37,21 +46,20 @@ const getS3Client = async () => {
         accessKeyId: credentials.accessKeyId,
         secretAccessKey: credentials.secretAccessKey,
       },
-      region:'us-east-1',
+      region: "us-east-1",
     });
   } catch (error) {
-    console.error('Error initializing S3:', error.message);
+    console.error("Error initializing S3:", error.message);
     throw error;
   }
 };
 
-
 const uploadToS3 = async (req, res, next) => {
-  const s3 = await getS3Client();
-
   try {
+    const s3 = await getS3Client();
+
     if (!req.files || Object.keys(req.files).length === 0) {
-      return next();
+      return next(); // nothing to upload
     }
 
     const allFiles = [];
@@ -65,25 +73,29 @@ const uploadToS3 = async (req, res, next) => {
       }
     }
 
-    const allowedTypes = [
-      'image/jpeg', 'image/png', 'image/webp',
-      'video/mp4', 'video/quicktime', 'video/x-matroska',
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    ];
-
     const fileUrls = [];
     const uploadedFileObjects = [];
 
     for (const file of allFiles) {
-      if (!file || !allowedTypes.includes(file.mimetype)) {
-        return res.status(400).send(`Unsupported file type: ${file?.mimetype}`);
+      if (!file) continue;
+
+      // ✅ Check type
+      if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+        return res.status(400).json({
+          message: `Unsupported file type: ${file.mimetype}`,
+        });
+      }
+
+      // ✅ Check size
+      if (file.size > MAX_FILE_SIZE) {
+        return res.status(400).json({
+          message: `File "${file.name}" exceeds 5MB size limit.`,
+        });
       }
 
       const fileKey = `${Date.now()}-${file.name}`;
       const params = {
-        Bucket: 'tradehunters',
+        Bucket: "tradehunters",
         Key: fileKey,
         Body: file.data,
         ContentType: file.mimetype,
@@ -102,20 +114,18 @@ const uploadToS3 = async (req, res, next) => {
       });
     }
 
-    // backward compatible
+    // ✅ Backward compatibility
     req.files = fileUrls;
 
-    // compatible for uploadFile controller
+    // ✅ For use in controllers
     req.uploadedFileObjects = uploadedFileObjects;
 
     next();
   } catch (uploadError) {
-    return res.status(500).send(uploadError.message);
+    return res.status(500).json({ message: uploadError.message });
   }
 };
 
-
-
-module.exports={
-  uploadToS3
-}
+module.exports = {
+  uploadToS3,
+};
