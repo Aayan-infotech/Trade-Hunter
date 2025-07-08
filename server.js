@@ -25,8 +25,9 @@ app.use(
 );
 
 
+
 const corsOptions = {
-  origin: ['https://tradehunters.com.au', 'https://admin.tradehunters.com.au','http://tradehunters.com.au', 'http://admin.tradehunters.com.au','http://18.209.91.97:7771','http://18.209.91.97:2366'],
+  origin: ['https://tradehunters.com.au', 'https://admin.tradehunters.com.au','http://tradehunters.com.au', 'http://admin.tradehunters.com.au'],
   methods: ['OPTION', 'GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
   credentials: true,
   optionsSuccessStatus: 204
@@ -41,10 +42,14 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 7777;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(bodyParser.json());
-app.use(fileUpload());
+app.use(fileUpload({
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+  abortOnLimit: true,
+  responseOnLimit: "File size exceeds 5MB limit."
+}));
 app.use(express.static(path.join(__dirname, 'public')));
 // app.use(cors(corsOptions));
 const upload = multer();
@@ -95,7 +100,18 @@ io.use((socket, next) => {
   console.log("Socket origin:", socket.handshake.headers.origin);
   next();
 });
+app.use((err, req, res, next) => {
+  if (err.status === 413 || err.code === "LIMIT_FILE_SIZE") {
+    return res.status(413).json({
+      message: "Payload too large. Max file size is 5MB.",
+    });
+  }
 
+  return res.status(500).json({
+    message: "Internal server error",
+    error: err.message,
+  });
+});
 
 
 server.listen(PORT, () => {
