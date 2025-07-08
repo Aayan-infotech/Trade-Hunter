@@ -469,7 +469,7 @@ exports.sendDirectMessageEmail = async (req, res) => {
       });
     }
 
-    const subject = "📩 New Message from Hunter";
+    const subject = "📩 Message Alert";
 
     const htmlMessage = `
     <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 30px; color: #2c3e50;">
@@ -477,25 +477,25 @@ exports.sendDirectMessageEmail = async (req, res) => {
 
         <!-- Header -->
         <div style="background-color: #004aad; color: white; padding: 20px;">
-          <h2 style="margin: 0;">📬 Message from Hunter</h2>
+          <h2 style="margin: 0;">📬 Message Alert</h2>
         </div>
 
         <!-- Body -->
         <div style="padding: 25px;">
-          <p style="font-size: 16px;">Hi <strong>${businessName}</strong>,</p>
+          <p style="font-size: 16px;">Hi there,</p>
 
           <p style="font-size: 15px; line-height: 1.6;">
-            <strong style="color: #004aad;">${contactName}</strong> has sent you a message through Trade Hunters.
+             You've Recieved a message from <strong style="color: #004aad;">${contactName}</strong>
           </p>
 
           <p style="font-size: 15px;">
-            Please log in to your Trade Hunters account to view and respond to the message.
+            To View and  respond to this message, please login to your Trade Hunters Account.
           </p>
 
           <!-- CTA Button -->
           <div style="margin: 30px 0;">
             <a href="https://tradehunters.com.au" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #004aad; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
-              Reply Now
+              View Message
             </a>
           </div>
 
