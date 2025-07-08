@@ -4,54 +4,56 @@ const mongoose = require("mongoose");
 
 const getAllJobPosts = async (req, res) => {
   try {
-    const rawPage = parseInt(req.query.page, 10);
-    const rawLimit = parseInt(req.query.limit, 10);
-    const rawTotal = parseInt(req.query.total, 10);
+    const parsePositiveInt = (val, fallback) => {
+      const num = parseInt(val, 10);
+      return Number.isInteger(num) && num > 0 ? num : fallback;
+    };
 
-    const page = !isNaN(rawPage) && rawPage > 0 ? rawPage : 1;
-    const limit = !isNaN(rawLimit) && rawLimit > 0 ? rawLimit : 10;
-    const overrideTotal = !isNaN(rawTotal) && rawTotal > 0 ? rawTotal : 0;
-
-    const skip = (page - 1) * limit;
+    const page = parsePositiveInt(req.query.page, 1);
+    const limit = parsePositiveInt(req.query.limit, 10);
+    const overrideTotal = parsePositiveInt(req.query.total, 0);
+    const skip = Math.max(0, (page - 1) * limit);
     const search = req.query.search || "";
     const status = req.query.status || "";
 
     let pipeline = [];
 
-    pipeline.push({
-      $lookup: {
-        from: "hunters",
-        localField: "user",
-        foreignField: "_id",
-        as: "userDetails",
+    pipeline.push(
+      {
+        $lookup: {
+          from: "hunters",
+          localField: "user",
+          foreignField: "_id",
+          as: "userDetails",
+        },
       },
-    });
-    pipeline.push({
-      $unwind: {
-        path: "$userDetails",
-        preserveNullAndEmptyArrays: true,
+      {
+        $unwind: {
+          path: "$userDetails",
+          preserveNullAndEmptyArrays: true,
+        },
       },
-    });
+      {
+        $addFields: {
+          providerObjectId: { $toObjectId: "$provider" },
+        },
+      },
+      {
+        $lookup: {
+          from: "providers",
+          localField: "providerObjectId",
+          foreignField: "_id",
+          as: "providerDetails",
+        },
+      },
+      {
+        $unwind: {
+          path: "$providerDetails",
+          preserveNullAndEmptyArrays: true,
+        },
+      }
+    );
 
-    pipeline.push({
-      $addFields: {
-        providerObjectId: { $toObjectId: "$provider" },
-      },
-    });
-    pipeline.push({
-      $lookup: {
-        from: "providers",
-        localField: "providerObjectId",
-        foreignField: "_id",
-        as: "providerDetails",
-      },
-    });
-    pipeline.push({
-      $unwind: {
-        path: "$providerDetails",
-        preserveNullAndEmptyArrays: true,
-      },
-    });
     if (search.trim()) {
       pipeline.push({
         $match: {
@@ -70,6 +72,7 @@ const getAllJobPosts = async (req, res) => {
       });
     }
 
+    // Always exclude "Completed" jobs
     pipeline.push({
       $match: {
         jobStatus: { $ne: "Completed" },
@@ -83,12 +86,17 @@ const getAllJobPosts = async (req, res) => {
     let effectiveTotal = actualTotal;
     if (overrideTotal > 0) {
       effectiveTotal = Math.min(actualTotal, overrideTotal);
-      pipeline.push({ $limit: effectiveTotal });
+      if (effectiveTotal > 0) {
+        pipeline.push({ $limit: effectiveTotal });
+      }
     }
 
     pipeline.push({ $sort: { createdAt: -1 } });
     pipeline.push({ $skip: skip });
-    pipeline.push({ $limit: limit });
+
+    if (limit > 0) {
+      pipeline.push({ $limit: limit });
+    }
 
     pipeline.push({
       $project: {
@@ -136,7 +144,6 @@ const getAllJobPosts = async (req, res) => {
     });
   }
 };
-
 
 
 
