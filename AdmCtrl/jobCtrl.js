@@ -3,15 +3,21 @@ const apiResponse = require("../utils/responsehandler");
 const mongoose = require("mongoose");
 
 const getAllJobPosts = async (req, res) => {
-  const page = parseInt(req.query.page, 10) || 1;
-  const limit = parseInt(req.query.limit, 10) || 10;
-  const skip = (page - 1) * limit;
-  const search = req.query.search || "";
-  const status = req.query.status || "";
-  const overrideTotal = parseInt(req.query.total, 10) || 0;
-
   try {
+    const rawPage = parseInt(req.query.page, 10);
+    const rawLimit = parseInt(req.query.limit, 10);
+    const rawTotal = parseInt(req.query.total, 10);
+
+    const page = !isNaN(rawPage) && rawPage > 0 ? rawPage : 1;
+    const limit = !isNaN(rawLimit) && rawLimit > 0 ? rawLimit : 10;
+    const overrideTotal = !isNaN(rawTotal) && rawTotal > 0 ? rawTotal : 0;
+
+    const skip = (page - 1) * limit;
+    const search = req.query.search || "";
+    const status = req.query.status || "";
+
     let pipeline = [];
+
     pipeline.push({
       $lookup: {
         from: "hunters",
@@ -26,12 +32,12 @@ const getAllJobPosts = async (req, res) => {
         preserveNullAndEmptyArrays: true,
       },
     });
+
     pipeline.push({
       $addFields: {
         providerObjectId: { $toObjectId: "$provider" },
       },
     });
-
     pipeline.push({
       $lookup: {
         from: "providers",
@@ -46,7 +52,6 @@ const getAllJobPosts = async (req, res) => {
         preserveNullAndEmptyArrays: true,
       },
     });
-
     if (search.trim()) {
       pipeline.push({
         $match: {
@@ -78,9 +83,6 @@ const getAllJobPosts = async (req, res) => {
     let effectiveTotal = actualTotal;
     if (overrideTotal > 0) {
       effectiveTotal = Math.min(actualTotal, overrideTotal);
-    }
-
-    if (overrideTotal > 0) {
       pipeline.push({ $limit: effectiveTotal });
     }
 
@@ -134,6 +136,8 @@ const getAllJobPosts = async (req, res) => {
     });
   }
 };
+
+
 
 
 const deleteJobPost = async (req, res) => {

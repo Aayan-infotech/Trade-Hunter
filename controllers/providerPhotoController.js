@@ -4,47 +4,38 @@ const ProviderPhoto = require("../models/providerPhotos");
 const uploadProviderImages = async (req, res) => {
   try {
     const MAX_FILES = 10;
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; 
-    const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
-
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ message: "No files uploaded" });
-    }
 
     const { userId } = req.body;
+ 
     if (!userId) {
       return res.status(400).json({ message: "Missing userId" });
     }
 
-    if (req.files.length > MAX_FILES) {
-      return res.status(400).json({ message: `You can upload a maximum of ${MAX_FILES} files.` });
+    // Validate files after uploadToS3 middleware
+    const uploadedFiles = req.uploadedFileObjects || [];
+    if (uploadedFiles.length === 0) {
+      return res.status(400).json({ message: "No valid files uploaded" });
     }
 
-    for (let file of req.files) {
-      if (!file.buffer && !file.location && !file.path) {
-        return res.status(400).json({ message: `File ${file.originalname} is invalid.` });
-      }
-
-      if (file.size > MAX_FILE_SIZE) {
-        return res.status(400).json({ message: `File ${file.originalname} exceeds 5MB size limit.` });
-      }
-
-      if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-        return res.status(400).json({ message: `File ${file.originalname} has an unsupported format.` });
-      }
+    if (uploadedFiles.length > MAX_FILES) {
+      return res.status(400).json({
+        message: `You can upload a maximum of ${MAX_FILES} files.`,
+      });
     }
 
-    const newFileObjects = req.files.map((file) => {
-      return {
-        _id: new mongoose.Types.ObjectId(),
-        url: file.location || file.path || file.buffer,
-      };
-    });
+    // Prepare file entries for DB
+    const newFileObjects = uploadedFiles.map((file) => ({
+      _id: new mongoose.Types.ObjectId(),
+      url: file.path,
+    }));
 
+    // Check if provider already has photo record
     let providerPhoto = await ProviderPhoto.findOne({ userId });
+
     if (providerPhoto) {
       providerPhoto.files.push(...newFileObjects);
       await providerPhoto.save();
+
       return res.status(200).json({
         message: "Files added successfully",
         data: providerPhoto,
@@ -54,7 +45,9 @@ const uploadProviderImages = async (req, res) => {
         userId,
         files: newFileObjects,
       });
+
       await newProviderPhoto.save();
+
       return res.status(200).json({
         message: "Files uploaded and saved successfully",
         data: newProviderPhoto,
@@ -67,6 +60,7 @@ const uploadProviderImages = async (req, res) => {
     });
   }
 };
+
 
 const getProviderPhotoByUserId = async (req, res) => {
   try {
