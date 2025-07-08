@@ -11,9 +11,7 @@ const getAllJobPosts = async (req, res) => {
   const overrideTotal = parseInt(req.query.total, 10) || 0;
 
   try {
-    // 1) Build initial pipeline for lookups & filters
     let pipeline = [];
-
     pipeline.push({
       $lookup: {
         from: "hunters",
@@ -28,7 +26,6 @@ const getAllJobPosts = async (req, res) => {
         preserveNullAndEmptyArrays: true,
       },
     });
-
     pipeline.push({
       $addFields: {
         providerObjectId: { $toObjectId: "$provider" },
@@ -50,7 +47,6 @@ const getAllJobPosts = async (req, res) => {
       },
     });
 
-    // 1.1) Search filter
     if (search.trim()) {
       pipeline.push({
         $match: {
@@ -63,35 +59,35 @@ const getAllJobPosts = async (req, res) => {
       });
     }
 
-    // 1.2) Status filter
     if (status.trim()) {
       pipeline.push({
         $match: { jobStatus: status },
       });
     }
 
-    // 2) Count how many match so far
+    pipeline.push({
+      $match: {
+        jobStatus: { $ne: "Completed" },
+      },
+    });
+
     const countPipeline = [...pipeline, { $count: "totalJobs" }];
     const countResult = await JobPost.aggregate(countPipeline);
     const actualTotal = countResult[0] ? countResult[0].totalJobs : 0;
 
-    // 3) Decide effectiveTotal based on override
     let effectiveTotal = actualTotal;
     if (overrideTotal > 0) {
       effectiveTotal = Math.min(actualTotal, overrideTotal);
     }
 
-    // 4) If overrideTotal > 0, cap the pipeline
     if (overrideTotal > 0) {
       pipeline.push({ $limit: effectiveTotal });
     }
 
-    // 5) Sort & paginate
     pipeline.push({ $sort: { createdAt: -1 } });
     pipeline.push({ $skip: skip });
     pipeline.push({ $limit: limit });
 
-    // 6) Project fields
     pipeline.push({
       $project: {
         title: 1,
@@ -121,10 +117,8 @@ const getAllJobPosts = async (req, res) => {
       },
     });
 
-    // 7) Execute the aggregation
     const jobPosts = await JobPost.aggregate(pipeline);
 
-    // 8) Return response with pagination based on effectiveTotal
     return apiResponse.success(res, "Job posts retrieved successfully.", {
       pagination: {
         totalJobs: effectiveTotal,
@@ -140,13 +134,6 @@ const getAllJobPosts = async (req, res) => {
     });
   }
 };
-
-
-
-
-
-
-
 
 
 const deleteJobPost = async (req, res) => {
