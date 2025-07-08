@@ -204,7 +204,7 @@ const signUp = async (req, res) => {
         <p style="font-size: 14px;">Please do not share this OTP with anyone for your security.</p>
         
         <br />
-        <p style="font-size: 14px;">Warm regards,<br /><strong>Team Trade Hunters</strong></p>
+        <p style="font-size: 14px;">Warm regards,<br /><strong>Trade Hunters Team</strong></p>
         <p style="font-size: 11px; color: gray; text-align: center; margin-top: 30px;">
           This is an automated message. Please do not reply.
         </p>
@@ -528,7 +528,7 @@ const forgotPassword = async (req, res) => {
         <p style="font-size: 14px;">If you did not request this, please ignore this email or contact support.</p>
 
         <br />
-        <p style="font-size: 14px;">Regards,<br /><strong>Team Trade Hunters</strong></p>
+        <p style="font-size: 14px;">Regards,<br /><strong>Trade Hunters Team</strong></p>
         
         <p style="font-size: 11px; color: gray; text-align: center; margin-top: 30px;">
           This is an automated message. Please do not reply to this email.
@@ -801,7 +801,7 @@ const resendOTP = async (req, res) => {
 
         <p style="font-size: 14px;">⚠️ Please do not share this OTP with anyone for your account's security.</p>
         <br />
-        <p style="font-size: 14px;">Cheers,<br /><strong>Team Trade Hunters</strong></p>
+        <p style="font-size: 14px;">Cheers,<br /><strong>Trade Hunters Team</strong></p>
 
         <p style="font-size: 11px; color: gray; text-align: center; margin-top: 30px;">
           This is an automated message. Please do not reply to this email.
