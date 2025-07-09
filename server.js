@@ -24,8 +24,6 @@ app.use(
     })
 );
 
-
-
 const corsOptions = {
   origin: ['https://tradehunters.com.au', 'https://admin.tradehunters.com.au','http://tradehunters.com.au', 'http://admin.tradehunters.com.au'],
   methods: ['OPTION', 'GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
