@@ -23,7 +23,7 @@ const secretsManagerClient = new SecretsManagerClient({ region: "us-east-1" });
 
 const getAwsCredentials = async () => {
   try {
-    const command = new GetSecretValueCommand({ SecretId: "aws-secret-curd" });
+    const command = new GetSecretValueCommand({ SecretId: "trade-secrets" });
     const data = await secretsManagerClient.send(command);
 
     if (data.SecretString) {
