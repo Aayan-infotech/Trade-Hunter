@@ -302,9 +302,9 @@ const changeJobStatus = async (req, res) => {
 
 const myAcceptedJobs = async (req, res) => {
   try {
-    const page      = parseInt(req.query.page, 10) || 1;
-    const limit     = parseInt(req.query.limit, 10) || 10;
-    const { jobStatus, search } = req.query; 
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const { jobStatus, search } = req.query;
 
     const user = await Provider.findById(req.user.userId)
       .select('assignedJobs')
@@ -343,6 +343,7 @@ const myAcceptedJobs = async (req, res) => {
         $facet: {
           totalCount: [{ $count: 'count' }],
           paginatedResults: [
+            { $sort: { completionDate: 1 } },   // ✅ Sort jobs by most recent completionDate
             { $skip: (page - 1) * limit },
             { $limit: limit },
           ],
@@ -352,7 +353,7 @@ const myAcceptedJobs = async (req, res) => {
 
     const jobsAgg = await JobPost.aggregate(aggregation);
     const totalJobs = jobsAgg[0]?.totalCount[0]?.count || 0;
-    const jobs      = jobsAgg[0]?.paginatedResults || [];
+    const jobs = jobsAgg[0]?.paginatedResults || [];
 
     return res.status(200).json({
       status: 200,
@@ -370,7 +371,6 @@ const myAcceptedJobs = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
-
 
 
 const businessTypes = async (req, res) => {
