@@ -6,11 +6,12 @@ const {
   getJobStatusCounts,
   getRecentJobPosts,
   getJobPostsByStatus,
+  getAllJobPostsAdmin
 } = require("../AdmCtrl/jobCtrl");
 const router = express.Router();
 
 router.get("/", getAllJobPosts);
-
+router.get("/jobPostAdmin",getAllJobPostsAdmin)
 router.delete("/:id",verifyUser, deleteJobPost);
 router.get("/getCount",verifyUser, getJobStatusCounts);
 router.get("/getRecentJobs", getRecentJobPosts);
