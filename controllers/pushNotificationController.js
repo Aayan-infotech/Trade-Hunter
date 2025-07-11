@@ -513,6 +513,7 @@ exports.sendAdminNotification = async (req, res) => {
         data: [],
       });
     }
+
     const notificationData = await Notification.create({
       title,
       body,
@@ -521,11 +522,12 @@ exports.sendAdminNotification = async (req, res) => {
     });
 
     const device = await DeviceToken.findOne({ userId: receiverId });
-    if (!device) {
+
+    if (!device || !device.deviceToken || typeof device.deviceToken !== 'string' || device.deviceToken.trim() === "") {
       return res.status(200).json({
         status: 200,
         success: true,
-        message: "Notification saved but not sent (device token not found).",
+        message: "Notification saved but not sent (invalid or missing device token).",
         data: [notificationData],
       });
     }
