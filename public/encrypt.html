@@ -10,7 +10,6 @@
 
   <div id="info"></div>
 
-  <!-- IMPORTANT: Replace with your real eWAY client key -->
   <form data-eway-encrypt-key="09n/nrZ2RtlG9HWIuWmDq+w/KIv5E4BJwP413gyPZ5xnRFf6HvgS8P5q478oLsYQji+b2TuJVBdxRurAl6qZWioRjbI4uG2VAzxsuX5bnK8TkmU15MSZkSWd9m4wFYjnIFMkxbCPhKHOzwrVz7fZcxckY1d1is3K2D8J7NnDv3WmTxmYKnJkHZwxdeD7XgSCThcexrTJZEYBlaYftHbxfEOVHvcj4Cu1zKPcQfn+ZWlITm/QEjqgZHov957LeavJOhpzcGJAkK8X4o6W99PcQbj277Tus+S3qQsd7miz+H5dObjUSz7w/b7EMaD4GecVgKm18zdCoOraN3Cs3ON3nQ==">
     <label>Card Name</label>
     <input type="text" id="card_name" placeholder="John Doe" />
@@ -33,14 +32,12 @@
   <script type="text/javascript">
     $(document).ready(function () {
       $('#submit').click(function () {
-        // Step 1: Get values
         const cardName = $('#card_name').val();
         const cardNumber = $('#card_number').val();
         const cardCVN = $('#card_cvn').val();
         const expiryMonth = $('#expiry_month').val();
         const expiryYear = $('#expiry_year').val();
 
-        // Step 2: Check if eCrypt is loaded and cardNumber is valid
         if (typeof eCrypt.encryptValue !== 'function') {
           alert('Encryption library not loaded.');
           return;
@@ -51,18 +48,16 @@
           return;
         }
 
-        // Step 3: Encrypt required fields only
         const encryptedData = {
-          card_name: cardName, // plain text (DO NOT ENCRYPT)
+          card_name: cardName, 
           card_number: eCrypt.encryptValue(cardNumber),
           card_cvn: eCrypt.encryptValue(cardCVN),
           card_expiry_month: eCrypt.encryptValue(expiryMonth),
           card_expiry_year: eCrypt.encryptValue(expiryYear)
         };
 
-        // Step 4: POST encrypted data to your backend
         $.ajax({
-          url: 'http://localhost:7777/api/eway/pay', // <-- Update to your Express backend route
+          url: 'https:api.tradehunters.com.au/api/eway/pay', 
           type: 'POST',
           contentType: 'application/json',
           data: JSON.stringify(encryptedData),
