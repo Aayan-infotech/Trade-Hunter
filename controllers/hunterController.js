@@ -272,7 +272,7 @@ exports.sendJobNotificationEmail = async (req, res) => {
 
       <!-- Header -->
       <div style="background-color: #004aad; color: white; padding: 20px;">
-        <h2 style="margin: 0;">📬  Job Message Alert</h2>
+        <h2 style="margin: 0;">📬  Message Alert</h2>
       </div>
 
       <!-- Body -->
