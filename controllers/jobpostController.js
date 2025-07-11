@@ -343,7 +343,7 @@ const myAcceptedJobs = async (req, res) => {
         $facet: {
           totalCount: [{ $count: 'count' }],
           paginatedResults: [
-            { $sort: { completionDate: 1 } },   // ✅ Sort jobs by most recent completionDate
+            { $sort: { completionDate: -1 } },   // ✅ Sort jobs by most recent completionDate
             { $skip: (page - 1) * limit },
             { $limit: limit },
           ],
