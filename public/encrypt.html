@@ -1,43 +1,92 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>eWAY Encryption Test</title>
+  <title>eWAY Payment Form</title>
+  <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
   <script src="https://secure.ewaypayments.com/scripts/eCrypt.min.js"></script>
+  <link rel="icon" href="data:,">
 </head>
 <body>
-  <h1>eWAY Encryption</h1>
-  <button id="run">Encrypt Test Card</button>
-  <pre id="output"></pre>
- 
+
+  <div id="info"></div>
+
+  <form data-eway-encrypt-key="09n/nrZ2RtlG9HWIuWmDq+w/KIv5E4BJwP413gyPZ5xnRFf6HvgS8P5q478oLsYQji+b2TuJVBdxRurAl6qZWioRjbI4uG2VAzxsuX5bnK8TkmU15MSZkSWd9m4wFYjnIFMkxbCPhKHOzwrVz7fZcxckY1d1is3K2D8J7NnDv3WmTxmYKnJkHZwxdeD7XgSCThcexrTJZEYBlaYftHbxfEOVHvcj4Cu1zKPcQfn+ZWlITm/QEjqgZHov957LeavJOhpzcGJAkK8X4o6W99PcQbj277Tus+S3qQsd7miz+H5dObjUSz7w/b7EMaD4GecVgKm18zdCoOraN3Cs3ON3nQ==">
+    
+    <label>Card Holder Name</label>
+    <input type="text" id="card_name" placeholder="John Doe" required />
+
+    <label>Card Number</label>
+    <input type="text" id="card_number" placeholder="4444333322221111" required />
+
+    <label>CVV</label>
+    <input type="text" id="card_cvn" placeholder="123" required />
+
+    <label>Expiry Month</label>
+    <input type="text" id="expiry_month" placeholder="10" required />
+
+    <label>Expiry Year</label>
+    <input type="text" id="expiry_year" placeholder="26" required />
+
+    <input type="button" id="submit" value="Make Payment" />
+  </form>
+
   <script>
-    document.getElementById('run').addEventListener('click', () => {
-      const clientKey = "09n/nrZ2RtlG9HWIuWmDq+w/KIv5E4BJwP413gyPZ5xnRFf6HvgS8P5q478oLsYQji+b2TuJVBdxRurAl6qZWioRjbI4uG2VAzxsuX5bnK8TkmU15MSZkSWd9m4wFYjnIFMkxbCPhKHOzwrVz7fZcxckY1d1is3K2D8J7NnDv3WmTxmYKnJkHZwxdeD7XgSCThcexrTJZEYBlaYftHbxfEOVHvcj4Cu1zKPcQfn+ZWlITm/QEjqgZHov957LeavJOhpzcGJAkK8X4o6W99PcQbj277Tus+S3qQsd7miz+H5dObjUSz7w/b7EMaD4GecVgKm18zdCoOraN3Cs3ON3nQ==";
- 
-      if (typeof window.eCryptor === "undefined") {
-        alert("eCryptor not loaded!");
-        return;
-      }
- 
-      const cryptor = new eCryptor(clientKey);
- 
-      const card = {
-        Number: "4444333322221111",
-        ExpiryMonth: "09",
-        ExpiryYear: "25",
-        CVN: "123"
-      };
- 
-      try {
-        const encrypted = cryptor.encrypt(card);
-        document.getElementById('output').textContent = encrypted;
-        console.log(" Encrypted Card Token:", encrypted);
-      } catch (err) {
-        console.error("Encryption failed:", err);
-        alert("Encryption failed. Check console.");
-      }
+    $(document).ready(function () {
+      $('#submit').click(function () {
+        const cardName = $('#card_name').val();
+        const cardNumber = $('#card_number').val();
+        const cardCVN = $('#card_cvn').val();
+        const expiryMonth = $('#expiry_month').val();
+        const expiryYear = $('#expiry_year').val();
+
+        if (!eCrypt.encryptValue) {
+          alert('Encryption library not loaded.');
+          return;
+        }
+
+        if (!cardNumber || !cardCVN || !cardName || !expiryMonth || !expiryYear) {
+          alert('Please fill all card details.');
+          return;
+        }
+
+        const encryptedCard = {
+          Name: cardName,
+          Number: eCrypt.encryptValue(cardNumber),
+          CVN: eCrypt.encryptValue(cardCVN),
+          ExpiryMonth: expiryMonth,
+          ExpiryYear: expiryYear
+        };
+
+        const payload = {
+          userId: "686b5b63814e97b48c9f70bd",
+          subscriptionPlanId: "6867e2d7814e97b48c9f4578",
+          Customer: {
+            FirstName: "Rishabh",
+            LastName: "Sharma",
+            Email: "rishabh.sharma@aayaninfotech.com",
+            CardDetails: encryptedCard
+          },
+          Payment: {
+            TotalAmount: 50,  // 50 AUD in cents
+            CurrencyCode: "AUD"
+          }
+        };
+
+        $.ajax({
+          url: 'https://api.tradehunters.com.au/api/eway/pay',
+          type: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify(payload),
+          success: function (data) {
+            $('#info').html(`<pre>${JSON.stringify(data, null, 2)}</pre>`);
+          },
+          error: function (xhr) {
+            $('#info').html('Error: ' + xhr.responseText);
+          }
+        });
+      });
     });
   </script>
+
 </body>
 </html>
- 
