@@ -15,17 +15,18 @@ const monthsBetween = (start, end) => {
   return Math.max(0, (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth()));
 };
 
+
 exports.initiatePayment = async (req, res) => {
   try {
     const requiredCustomerFields = ["FirstName", "LastName", "Email", "CardDetails"];
-    const requiredCardFields = ["Name", "EncryptedCard"];
+    const requiredCardFields = ["Name", "Number", "ExpiryMonth", "ExpiryYear", "CVN"];
     const requiredPaymentFields = ["TotalAmount", "CurrencyCode"];
     const { Customer, Payment, userId, subscriptionPlanId } = req.body;
 
+    // Validate presence
     if (!Customer || !Payment) {
       return res.status(400).json({ message: "Missing Customer or Payment object" });
     }
-
     const missingCustomer = requiredCustomerFields.filter(f => !Customer[f]);
     const missingCard = requiredCardFields.filter(f => !Customer.CardDetails?.[f]);
     const missingPayment = requiredPaymentFields.filter(f => !Payment[f]);
@@ -36,16 +37,17 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
+    // Fetch data
     const provider = await Provider.findById(userId).lean();
     const subscriptionPlan = await SubscriptionPlan.findById(subscriptionPlanId).lean();
     const subscriptionType = subscriptionPlan
       ? await SubscriptionType.findById(subscriptionPlan.type).lean()
       : null;
-
     if (!provider) return res.status(404).json({ message: "Provider not found" });
     if (!subscriptionPlan) return res.status(404).json({ message: "Subscription Plan not found" });
     if (!subscriptionType) return res.status(404).json({ message: "Subscription Type not found" });
 
+    // Perform initial eWAY payment
     const paymentData = {
       Customer: {
         FirstName: Customer.FirstName,
@@ -53,44 +55,48 @@ exports.initiatePayment = async (req, res) => {
         Email: Customer.Email,
         CardDetails: {
           Name: Customer.CardDetails.Name,
-          EncryptedCard: Customer.CardDetails.EncryptedCard
+          Number: Customer.CardDetails.Number,
+          ExpiryMonth: Customer.CardDetails.ExpiryMonth.padStart(2, "0"),
+          ExpiryYear: Customer.CardDetails.ExpiryYear.length === 2
+            ? `20${Customer.CardDetails.ExpiryYear}`
+            : Customer.CardDetails.ExpiryYear,
+          CVN: Customer.CardDetails.CVN
         }
       },
       Payment: {
         TotalAmount: Payment.TotalAmount,
         CurrencyCode: Payment.CurrencyCode
       },
-      TransactionType: "Purchase",
+      TransactionType: "MOTO",
       Capture: true,
-      CreateTokenCustomer: subscriptionPlan.validity === 365
+      CreateTokenCustomer: subscriptionPlan.validity === 365, // <-- ADD THIS LINE
     };
-
     const ewayResponse = await ewayService.createTransaction(paymentData);
     const txId = ewayResponse.TransactionID;
-    const transactionSuccess = ewayResponse.TransactionStatus === true && ewayResponse.ResponseCode === "00" && ewayResponse.AuthorisationCode !== "000000";
-
-    if (!transactionSuccess) {
+    if (!txId || typeof txId !== "string" && typeof txId !== "number") {
       return res.status(400).json({
-        message: "Payment failed",
-        transactionId: txId || null,
-        ewayResponse
+        message: "Invalid or missing TransactionID from eWAY response.",
+        details: ewayResponse,
       });
     }
 
     const tokenCustomerId = ewayResponse.Customer?.TokenCustomerID;
+
+    // Calculate amounts
     const amountCharged = (Payment.TotalAmount || 0) / 100;
     const subTotal = +(amountCharged / 1.1).toFixed(2);
     const gst = +(amountCharged - subTotal).toFixed(2);
 
+    // Save transaction record
     const txn = new Transaction({
       userId,
       subscriptionPlanId,
-      status: "completed",
+      status: ewayResponse.TransactionStatus ? "completed" : "failed",
       amount: amountCharged,
       currency: Payment.CurrencyCode,
       transaction: {
         transactionPrice: amountCharged,
-        transactionStatus: "Success",
+        transactionStatus: ewayResponse.TransactionStatus ? "Success" : "Failed",
         transactionType: ewayResponse.TransactionType,
         authorisationCode: ewayResponse.AuthorisationCode,
         transactionDate: new Date(),
@@ -105,6 +111,7 @@ exports.initiatePayment = async (req, res) => {
     });
     await txn.save();
 
+    // Determine subscription dates
     const setToMidnight = d => { d.setHours(0, 0, 0, 0); return d; };
     const todayMidnight = setToMidnight(new Date());
     const existingActive = await SubscriptionVoucherUser.findOne({ userId, status: "active" }).sort({ startDate: -1 });
@@ -135,6 +142,7 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
+    // Create subscription voucher entry
     const newSubscription = new SubscriptionVoucherUser({
       userId,
       type: subscriptionType.type,
@@ -159,6 +167,7 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
+    // Generate PDF & send email
     const invoiceBuffer = await generateInvoicePDF({
       provider,
       subscriptionPlan,
@@ -167,7 +176,6 @@ exports.initiatePayment = async (req, res) => {
       invoiceDate: new Date(),
       amountCharged
     });
-
     let emailSent = false;
     try {
       await sendEmail(
@@ -187,7 +195,7 @@ exports.initiatePayment = async (req, res) => {
       subscriptionPlanId,
       subscriptionType: subscriptionType.type,
       transactionId: txId,
-      status: true,
+      status: ewayResponse.TransactionStatus,
       amountCharged: `$${amountCharged.toFixed(2)}`,
       subTotal: `$${subTotal.toFixed(2)}`,
       gst: `$${gst.toFixed(2)}`,
@@ -207,7 +215,6 @@ exports.initiatePayment = async (req, res) => {
     });
   }
 };
-
 
 exports.getAllTransactions = async (req, res) => {
   try {
