@@ -8,24 +8,24 @@
 </head>
 <body>
 
-  <h2>eWAY Payment Demo</h2>
   <div id="info"></div>
 
-  <form>
-    <label>Card Holder Name</label><br />
-    <input type="text" id="card_name" placeholder="John Doe" required /><br /><br />
+  <form data-eway-encrypt-key="09n/nrZ2RtlG9HWIuWmDq+w/KIv5E4BJwP413gyPZ5xnRFf6HvgS8P5q478oLsYQji+b2TuJVBdxRurAl6qZWioRjbI4uG2VAzxsuX5bnK8TkmU15MSZkSWd9m4wFYjnIFMkxbCPhKHOzwrVz7fZcxckY1d1is3K2D8J7NnDv3WmTxmYKnJkHZwxdeD7XgSCThcexrTJZEYBlaYftHbxfEOVHvcj4Cu1zKPcQfn+ZWlITm/QEjqgZHov957LeavJOhpzcGJAkK8X4o6W99PcQbj277Tus+S3qQsd7miz+H5dObjUSz7w/b7EMaD4GecVgKm18zdCoOraN3Cs3ON3nQ==">
+    
+    <label>Card Holder Name</label>
+    <input type="text" id="card_name" placeholder="John Doe" required />
 
-    <label>Card Number</label><br />
-    <input type="text" id="card_number" placeholder="4444333322221111" required /><br /><br />
+    <label>Card Number</label>
+    <input type="text" id="card_number" placeholder="4444333322221111" required />
 
-    <label>CVV</label><br />
-    <input type="text" id="card_cvn" placeholder="123" required /><br /><br />
+    <label>CVV</label>
+    <input type="text" id="card_cvn" placeholder="123" required />
 
-    <label>Expiry Month</label><br />
-    <input type="text" id="expiry_month" placeholder="10" required /><br /><br />
+    <label>Expiry Month</label>
+    <input type="text" id="expiry_month" placeholder="10" required />
 
-    <label>Expiry Year</label><br />
-    <input type="text" id="expiry_year" placeholder="26" required /><br /><br />
+    <label>Expiry Year</label>
+    <input type="text" id="expiry_year" placeholder="26" required />
 
     <input type="button" id="submit" value="Make Payment" />
   </form>
@@ -49,11 +49,12 @@
           return;
         }
 
-        const encryptedCardData = {
+        const encryptedCard = {
+          Name: cardName,
           Number: eCrypt.encryptValue(cardNumber),
           CVN: eCrypt.encryptValue(cardCVN),
-          ExpiryMonth: eCrypt.encryptValue(expiryMonth),
-          ExpiryYear: eCrypt.encryptValue(expiryYear)
+          ExpiryMonth: expiryMonth,
+          ExpiryYear: expiryYear
         };
 
         const payload = {
@@ -63,13 +64,10 @@
             FirstName: "Rishabh",
             LastName: "Sharma",
             Email: "rishabh.sharma@aayaninfotech.com",
-            CardDetails: {
-              Name: cardName,
-              EncryptedCard: JSON.stringify(encryptedCardData)
-            }
+            CardDetails: encryptedCard
           },
           Payment: {
-            TotalAmount: 50,  // 50 cents = $0.50 AUD
+            TotalAmount: 50,  // 50 AUD in cents
             CurrencyCode: "AUD"
           }
         };

@@ -9,13 +9,6 @@ const SubscriptionType = require("../models/SubscriptionTypeModel");
 const Provider = require("../models/providerModel");
 const generateInvoicePDF = require("../utils/generateInvoicePDF");
 
-const startOfDay = (d) => { d.setHours(0, 0, 0, 0); return d; };
-const monthsBetween = (start, end) => {
-  const s = new Date(start), e = new Date(end);
-  return Math.max(0, (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth()));
-};
-
-
 exports.initiatePayment = async (req, res) => {
   try {
     const requiredCustomerFields = ["FirstName", "LastName", "Email", "CardDetails"];
@@ -23,13 +16,14 @@ exports.initiatePayment = async (req, res) => {
     const requiredPaymentFields = ["TotalAmount", "CurrencyCode"];
     const { Customer, Payment, userId, subscriptionPlanId } = req.body;
 
-    // Validate presence
     if (!Customer || !Payment) {
       return res.status(400).json({ message: "Missing Customer or Payment object" });
     }
+
     const missingCustomer = requiredCustomerFields.filter(f => !Customer[f]);
     const missingCard = requiredCardFields.filter(f => !Customer.CardDetails?.[f]);
     const missingPayment = requiredPaymentFields.filter(f => !Payment[f]);
+
     if (missingCustomer.length || missingCard.length || missingPayment.length) {
       return res.status(400).json({
         message: "Missing required fields",
@@ -37,17 +31,16 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
-    // Fetch data
     const provider = await Provider.findById(userId).lean();
     const subscriptionPlan = await SubscriptionPlan.findById(subscriptionPlanId).lean();
     const subscriptionType = subscriptionPlan
       ? await SubscriptionType.findById(subscriptionPlan.type).lean()
       : null;
+
     if (!provider) return res.status(404).json({ message: "Provider not found" });
     if (!subscriptionPlan) return res.status(404).json({ message: "Subscription Plan not found" });
     if (!subscriptionType) return res.status(404).json({ message: "Subscription Type not found" });
 
-    // Perform initial eWAY payment
     const paymentData = {
       Customer: {
         FirstName: Customer.FirstName,
@@ -69,34 +62,35 @@ exports.initiatePayment = async (req, res) => {
       },
       TransactionType: "MOTO",
       Capture: true,
-      CreateTokenCustomer: subscriptionPlan.validity === 365, // <-- ADD THIS LINE
+      CreateTokenCustomer: subscriptionPlan.validity === 365
     };
+
     const ewayResponse = await ewayService.createTransaction(paymentData);
-    const txId = ewayResponse.TransactionID;
-    if (!txId || typeof txId !== "string" && typeof txId !== "number") {
+
+    if (!ewayResponse.TransactionID || !ewayResponse.TransactionStatus) {
       return res.status(400).json({
-        message: "Invalid or missing TransactionID from eWAY response.",
-        details: ewayResponse,
+        message: "Payment failed",
+        reason: ewayResponse.ResponseMessage || "TransactionStatus was false",
+        transactionId: ewayResponse.TransactionID,
+        gatewayResponse: ewayResponse
       });
     }
 
     const tokenCustomerId = ewayResponse.Customer?.TokenCustomerID;
-
-    // Calculate amounts
+    const txId = ewayResponse.TransactionID;
     const amountCharged = (Payment.TotalAmount || 0) / 100;
     const subTotal = +(amountCharged / 1.1).toFixed(2);
     const gst = +(amountCharged - subTotal).toFixed(2);
 
-    // Save transaction record
     const txn = new Transaction({
       userId,
       subscriptionPlanId,
-      status: ewayResponse.TransactionStatus ? "completed" : "failed",
+      status: "completed",
       amount: amountCharged,
       currency: Payment.CurrencyCode,
       transaction: {
         transactionPrice: amountCharged,
-        transactionStatus: ewayResponse.TransactionStatus ? "Success" : "Failed",
+        transactionStatus: "Success",
         transactionType: ewayResponse.TransactionType,
         authorisationCode: ewayResponse.AuthorisationCode,
         transactionDate: new Date(),
@@ -109,12 +103,13 @@ exports.initiatePayment = async (req, res) => {
         payerEmail: Customer.Email
       }
     });
+
     await txn.save();
 
-    // Determine subscription dates
-    const setToMidnight = d => { d.setHours(0, 0, 0, 0); return d; };
-    const todayMidnight = setToMidnight(new Date());
+    const todayMidnight = new Date();
+    todayMidnight.setHours(0, 0, 0, 0);
     const existingActive = await SubscriptionVoucherUser.findOne({ userId, status: "active" }).sort({ startDate: -1 });
+
     let newStartDate, newStatus;
     if (existingActive && existingActive.type !== "Subscription") {
       existingActive.status = "expired";
@@ -125,13 +120,15 @@ exports.initiatePayment = async (req, res) => {
     } else {
       const latestSub = await SubscriptionVoucherUser.findOne({ userId, status: { $in: ["active", "upcoming"] } }).sort({ endDate: -1 });
       if (latestSub) {
-        newStartDate = setToMidnight(new Date(latestSub.endDate));
+        newStartDate = new Date(latestSub.endDate);
+        newStartDate.setHours(0, 0, 0, 0);
         newStatus = "upcoming";
       } else {
         newStartDate = todayMidnight;
         newStatus = "active";
       }
     }
+
     const newEndDate = new Date(newStartDate);
     newEndDate.setDate(newEndDate.getDate() + subscriptionPlan.validity);
 
@@ -142,7 +139,6 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
-    // Create subscription voucher entry
     const newSubscription = new SubscriptionVoucherUser({
       userId,
       type: subscriptionType.type,
@@ -167,7 +163,6 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
-    // Generate PDF & send email
     const invoiceBuffer = await generateInvoicePDF({
       provider,
       subscriptionPlan,
@@ -176,6 +171,7 @@ exports.initiatePayment = async (req, res) => {
       invoiceDate: new Date(),
       amountCharged
     });
+
     let emailSent = false;
     try {
       await sendEmail(
@@ -195,7 +191,7 @@ exports.initiatePayment = async (req, res) => {
       subscriptionPlanId,
       subscriptionType: subscriptionType.type,
       transactionId: txId,
-      status: ewayResponse.TransactionStatus,
+      status: true,
       amountCharged: `$${amountCharged.toFixed(2)}`,
       subTotal: `$${subTotal.toFixed(2)}`,
       gst: `$${gst.toFixed(2)}`,
@@ -206,15 +202,15 @@ exports.initiatePayment = async (req, res) => {
     });
   } catch (error) {
     console.error("Payment Processing Error:", error);
-    const details = error.response?.data;
     return res.status(500).json({
       message: "Payment initiation failed",
       error: error.message,
-      details,
+      details: error.response?.data,
       stack: process.env.NODE_ENV === "development" ? error.stack : undefined
     });
   }
 };
+
 
 exports.getAllTransactions = async (req, res) => {
   try {
