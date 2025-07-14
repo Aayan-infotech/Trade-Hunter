@@ -11,25 +11,26 @@
   <div id="info"></div>
 
   <form data-eway-encrypt-key="09n/nrZ2RtlG9HWIuWmDq+w/KIv5E4BJwP413gyPZ5xnRFf6HvgS8P5q478oLsYQji+b2TuJVBdxRurAl6qZWioRjbI4uG2VAzxsuX5bnK8TkmU15MSZkSWd9m4wFYjnIFMkxbCPhKHOzwrVz7fZcxckY1d1is3K2D8J7NnDv3WmTxmYKnJkHZwxdeD7XgSCThcexrTJZEYBlaYftHbxfEOVHvcj4Cu1zKPcQfn+ZWlITm/QEjqgZHov957LeavJOhpzcGJAkK8X4o6W99PcQbj277Tus+S3qQsd7miz+H5dObjUSz7w/b7EMaD4GecVgKm18zdCoOraN3Cs3ON3nQ==">
-    <label>Card Name</label>
-    <input type="text" id="card_name" placeholder="John Doe" />
     
+    <label>Card Holder Name</label>
+    <input type="text" id="card_name" placeholder="John Doe" required />
+
     <label>Card Number</label>
-    <input type="text" id="card_number" placeholder="4444333322221111" />
+    <input type="text" id="card_number" placeholder="4444333322221111" required />
 
     <label>CVV</label>
-    <input type="text" id="card_cvn" placeholder="123" />
+    <input type="text" id="card_cvn" placeholder="123" required />
 
     <label>Expiry Month</label>
-    <input type="text" id="expiry_month" placeholder="09" />
+    <input type="text" id="expiry_month" placeholder="10" required />
 
     <label>Expiry Year</label>
-    <input type="text" id="expiry_year" placeholder="25" />
+    <input type="text" id="expiry_year" placeholder="26" required />
 
     <input type="button" id="submit" value="Make Payment" />
   </form>
 
-  <script type="text/javascript">
+  <script>
     $(document).ready(function () {
       $('#submit').click(function () {
         const cardName = $('#card_name').val();
@@ -38,29 +39,44 @@
         const expiryMonth = $('#expiry_month').val();
         const expiryYear = $('#expiry_year').val();
 
-        if (typeof eCrypt.encryptValue !== 'function') {
+        if (!eCrypt.encryptValue) {
           alert('Encryption library not loaded.');
           return;
         }
 
-        if (!cardNumber) {
-          alert('Card number is empty!');
+        if (!cardNumber || !cardCVN || !cardName || !expiryMonth || !expiryYear) {
+          alert('Please fill all card details.');
           return;
         }
 
-        const encryptedData = {
-          card_name: cardName, 
-          card_number: eCrypt.encryptValue(cardNumber),
-          card_cvn: eCrypt.encryptValue(cardCVN),
-          card_expiry_month: eCrypt.encryptValue(expiryMonth),
-          card_expiry_year: eCrypt.encryptValue(expiryYear)
+        const encryptedCard = {
+          Name: cardName,
+          Number: eCrypt.encryptValue(cardNumber),
+          CVN: eCrypt.encryptValue(cardCVN),
+          ExpiryMonth: expiryMonth,
+          ExpiryYear: expiryYear
+        };
+
+        const payload = {
+          userId: "686b5b63814e97b48c9f70bd",
+          subscriptionPlanId: "6867e2d7814e97b48c9f4578",
+          Customer: {
+            FirstName: "Rishabh",
+            LastName: "Sharma",
+            Email: "rishabh.sharma@aayaninfotech.com",
+            CardDetails: encryptedCard
+          },
+          Payment: {
+            TotalAmount: 50,  // 50 AUD in cents
+            CurrencyCode: "AUD"
+          }
         };
 
         $.ajax({
-          url: 'https:api.tradehunters.com.au/api/eway/pay', 
+          url: 'https://api.tradehunters.com.au/api/eway/pay',
           type: 'POST',
           contentType: 'application/json',
-          data: JSON.stringify(encryptedData),
+          data: JSON.stringify(payload),
           success: function (data) {
             $('#info').html(`<pre>${JSON.stringify(data, null, 2)}</pre>`);
           },
