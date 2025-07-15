@@ -54,7 +54,7 @@ const upload = multer();
 
 connectDB();
 require("./middlewares/cron");
-require("./middlewares/rebillCron");
+
 app.set("io", io);
 
 
