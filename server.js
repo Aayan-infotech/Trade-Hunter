@@ -54,9 +54,10 @@ const upload = multer();
 
 connectDB();
 require("./middlewares/cron");
+require("./middlewares/rebillCron");
 app.set("io", io);
 
-require("./middlewares/rebillCron");
+
 
 app.use("/api/authAdmin", require("./AdmRts/authAdmin"));
 app.use("/api/users", require("./AdmRts/userRoutes"));
