@@ -15,6 +15,6 @@ router.delete('/deleteNotification/:notificationId',verifyUser, notificationCont
 router.patch("/notification/:type/:id", notificationController.updateNotificationStatus);
 router.get('/expiring-soon',verifyUser, notificationController.getExpiringSoonVouchers);
 router.delete('/deleteforUser/:notificationId', verifyUser, notificationController.deleteNotificationByIdforUser);
-
+router.get("/unread-count/:userType", verifyUser, notificationController.getUnreadNotificationCount);
 
 module.exports = router;

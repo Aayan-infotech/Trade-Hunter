@@ -58,8 +58,8 @@
         };
 
         const payload = {
-          userId: "686b5b63814e97b48c9f70bd",
-          subscriptionPlanId: "6867e2d7814e97b48c9f4578",
+          userId: "6865192084fa42094eb11a51",
+          subscriptionPlanId: "68653113e0db21fb21f13ab9",
           Customer: {
             FirstName: "Rishabh",
             LastName: "Sharma",
@@ -73,7 +73,7 @@
         };
 
         $.ajax({
-          url: 'https://api.tradehunters.com.au/api/eway/pay',
+          url: 'http://localhost:7777/api/eway/pay',
           type: 'POST',
           contentType: 'application/json',
           data: JSON.stringify(payload),
