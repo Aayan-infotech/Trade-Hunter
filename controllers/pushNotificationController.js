@@ -780,3 +780,53 @@ exports.getExpiringSoonVouchers = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+exports.getUnreadNotificationCount = async (req, res) => {
+  try {
+    const receiverId = req.user.userId;
+    const userType = req.params.userType;
+
+    if (!mongoose.Types.ObjectId.isValid(receiverId)) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Invalid user ID format.",
+      });
+    }
+
+    const ObjectId = mongoose.Types.ObjectId;
+
+    const personalUnreadCount = await Notification.countDocuments({
+      receiverId: new ObjectId(receiverId),
+      deletedBy: { $ne: new ObjectId(receiverId) },
+      isRead: { $ne: true },
+    });
+    const joinRecord =
+      userType === "provider"
+        ? await Provider.findById(receiverId).select("createdAt").lean()
+        : await Hunter.findById(receiverId).select("createdAt").lean();
+    const joinDate = joinRecord?.createdAt || new Date(0);
+
+    const massUnreadCount = await massNotification.countDocuments({
+      userType,
+      createdAt: { $gte: joinDate },
+      readBy: { $ne: new ObjectId(receiverId) },
+    });
+
+    const unreadCount = personalUnreadCount + massUnreadCount;
+
+    return res.status(200).json({
+      status: 200,
+      success: true,
+      unreadCount,
+      message: "Fetched unread notification count successfully!",
+    });
+  } catch (error) {
+    console.error("Error in getUnreadNotificationCount:", error);
+    return res.status(500).json({
+      status: 500,
+      success: false,
+      message: error.message,
+    });
+  }
+};
