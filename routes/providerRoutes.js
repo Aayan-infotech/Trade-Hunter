@@ -5,6 +5,8 @@ const { uploadToS3 } = require("../common/multerConfig3");
 const { verifyUser } = require("../middlewares/auth");
 const multer = require("multer");
 const upload = multer();
+
+
 router.get('/getAllProviders', fileController.getAllProviders);
 router.get('/getVoucherUsers', fileController.getVoucherUsers);
 router.post('/getNearbyJobs', verifyUser,fileController.getNearbyJobs);
