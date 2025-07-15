@@ -1,220 +1,216 @@
-// 📁 controllers/paymentController.js
-
+const fs = require("fs");
+const path = require("path");
+const sendEmail = require("../services/invoicesMail");
 const ewayService = require("../services/ewayService");
-const soapService = require("../services/ewaySoapService");
 const Transaction = require("../models/TransactionModelNew");
 const SubscriptionVoucherUser = require("../models/SubscriptionVoucherUserModel");
 const SubscriptionPlan = require("../models/SubscriptionPlanModel");
 const SubscriptionType = require("../models/SubscriptionTypeModel");
 const Provider = require("../models/providerModel");
 const generateInvoicePDF = require("../utils/generateInvoicePDF");
-const sendEmail = require("../services/invoicesMail");
 
 exports.initiatePayment = async (req, res) => {
   try {
+    const requiredCustomerFields = ["FirstName", "LastName", "Email", "CardDetails"];
+    const requiredCardFields = ["Name", "Number", "ExpiryMonth", "ExpiryYear", "CVN"];
+    const requiredPaymentFields = ["TotalAmount", "CurrencyCode"];
     const { Customer, Payment, userId, subscriptionPlanId } = req.body;
-    const plan = await SubscriptionPlan.findById(subscriptionPlanId).lean();
-    if (!plan) return res.status(404).json({ message: "Subscription Plan not found" });
 
-    const type = await SubscriptionType.findById(plan.type).lean();
-    const provider = await Provider.findById(userId).lean();
-    if (!type || !provider) return res.status(404).json({ message: "Invalid provider or subscription type" });
+    if (!Customer || !Payment) {
+      return res.status(400).json({ message: "Missing Customer or Payment object" });
+    }
 
-    const isRecurring = plan.validity === 365;
-    const totalAmount = Payment.TotalAmount;
+    const missingCustomer = requiredCustomerFields.filter(f => !Customer[f]);
+    const missingCard = requiredCardFields.filter(f => !Customer.CardDetails?.[f]);
+    const missingPayment = requiredPaymentFields.filter(f => !Payment[f]);
 
-    if (!Customer || !Customer.CardDetails) return res.status(400).json({ message: "Missing Customer.CardDetails" });
-
-    // 🔁 Recurring Plan (365 Days)
-    if (isRecurring) {
-      const monthlyAmount = Math.round(totalAmount / 12);
-
-      // 1️⃣ Step 1: Create Recurring Customer in SOAP
-      const soapCustomerResult = await soapService.createRebillCustomer({
-        ...Customer,
-        CardDetails: Customer.CardDetails
-      });
-      if (!soapCustomerResult.success) {
-        return res.status(400).json({ message: "SOAP Customer creation failed", error: soapCustomerResult });
-      }
-
-      const rebillCustomerID = soapCustomerResult.rebillCustomerID;
-
-      // 2️⃣ Step 2: Trigger first payment immediately
-      const firstPaymentResult = await soapService.triggerInitialRebillPayment({
-        rebillCustomerID,
-        amount: monthlyAmount
-      });
-
-      if (!firstPaymentResult.success) {
-        return res.status(400).json({ message: "Initial SOAP payment failed", error: firstPaymentResult });
-      }
-
-      // 3️⃣ Step 3: Create Rebill Schedule
-      const rebillScheduleResult = await soapService.createRebillSchedule({
-        rebillCustomerID,
-        startDate: new Date(),
-        intervalMonths: 1,
-        occurrences: 12,
-        amount: monthlyAmount
-      });
-
-      if (!rebillScheduleResult.success) {
-        return res.status(400).json({ message: "Rebill schedule failed", error: rebillScheduleResult });
-      }
-
-      // ✅ Save DB Record
-      await new Transaction({
-        userId,
-        subscriptionPlanId,
-        status: "completed",
-        amount: monthlyAmount / 100,
-        transaction: {
-          transactionPrice: monthlyAmount / 100,
-          transactionStatus: "Success",
-          transactionType: "Recurring",
-          transactionId: firstPaymentResult.transactionId,
-          transactionDate: new Date()
-        },
-        payer: {
-          payerId: rebillCustomerID,
-          payerName: Customer.CardDetails.Name,
-          payerEmail: Customer.Email
-        },
-        payment: {
-          paymentSource: "eway-soap",
-          totalAmount: monthlyAmount / 100,
-          countryCode: Payment.CurrencyCode
-        }
-      }).save();
-
-      const today = new Date();
-      const end = new Date(today);
-      end.setFullYear(end.getFullYear() + 1);
-
-      await new SubscriptionVoucherUser({
-        userId,
-        type: type.type,
-        subscriptionPlanId,
-        startDate: today,
-        endDate: end,
-        status: "active",
-        kmRadius: plan.kmRadius,
-        autopayActive: true,
-        ewayCustomerToken: rebillCustomerID,
-        nextPaymentDate: rebillScheduleResult.nextDate
-      }).save();
-
-      await Provider.findByIdAndUpdate(userId, {
-        subscriptionStatus: 1,
-        isGuestMode: false,
-        subscriptionType: type.type,
-        subscriptionPlanId,
-        "address.radius": plan.kmRadius * 1000
-      });
-
-      return res.status(200).json({
-        message: "Recurring payment and schedule created successfully",
-        rebillCustomerID,
-        monthlyCharge: monthlyAmount / 100,
-        scheduleStart: today,
-        scheduleEnd: end
+    if (missingCustomer.length || missingCard.length || missingPayment.length) {
+      return res.status(400).json({
+        message: "Missing required fields",
+        missingFields: { Customer: missingCustomer, CardDetails: missingCard, Payment: missingPayment }
       });
     }
 
-    // 💳 One-time direct payment via Rapid API
-    const rapidResponse = await ewayService.createTransaction({
-      Customer,
-      Payment,
+    const provider = await Provider.findById(userId).lean();
+    const subscriptionPlan = await SubscriptionPlan.findById(subscriptionPlanId).lean();
+    const subscriptionType = subscriptionPlan
+      ? await SubscriptionType.findById(subscriptionPlan.type).lean()
+      : null;
+
+    if (!provider) return res.status(404).json({ message: "Provider not found" });
+    if (!subscriptionPlan) return res.status(404).json({ message: "Subscription Plan not found" });
+    if (!subscriptionType) return res.status(404).json({ message: "Subscription Type not found" });
+
+    const paymentData = {
+      Customer: {
+        FirstName: Customer.FirstName,
+        LastName: Customer.LastName,
+        Email: Customer.Email,
+        CardDetails: {
+          Name: Customer.CardDetails.Name,
+          Number: Customer.CardDetails.Number,
+          ExpiryMonth: Customer.CardDetails.ExpiryMonth.padStart(2, "0"),
+          ExpiryYear: Customer.CardDetails.ExpiryYear.length === 2
+            ? `20${Customer.CardDetails.ExpiryYear}`
+            : Customer.CardDetails.ExpiryYear,
+          CVN: Customer.CardDetails.CVN
+        }
+      },
+      Payment: {
+        TotalAmount: Payment.TotalAmount,
+        CurrencyCode: Payment.CurrencyCode
+      },
       TransactionType: "MOTO",
       Capture: true,
-      CreateTokenCustomer: false
-    });
+      CreateTokenCustomer: subscriptionPlan.validity === 365
+    };
 
-    if (!rapidResponse.TransactionStatus || !rapidResponse.TransactionID) {
-      return res.status(400).json({ message: "Rapid API payment failed", details: rapidResponse });
+    const ewayResponse = await ewayService.createTransaction(paymentData);
+
+    if (!ewayResponse.TransactionID || !ewayResponse.TransactionStatus) {
+      return res.status(400).json({
+        message: "Payment failed",
+        reason: ewayResponse.ResponseMessage || "TransactionStatus was false",
+        transactionId: ewayResponse.TransactionID,
+        gatewayResponse: ewayResponse
+      });
     }
 
-    const txId = rapidResponse.TransactionID;
-    const amountCharged = Payment.TotalAmount / 100;
+    const tokenCustomerId = ewayResponse.Customer?.TokenCustomerID;
+    const txId = ewayResponse.TransactionID;
+    const amountCharged = (Payment.TotalAmount || 0) / 100;
     const subTotal = +(amountCharged / 1.1).toFixed(2);
     const gst = +(amountCharged - subTotal).toFixed(2);
 
-    await new Transaction({
+    const txn = new Transaction({
       userId,
       subscriptionPlanId,
       status: "completed",
       amount: amountCharged,
+      currency: Payment.CurrencyCode,
       transaction: {
         transactionPrice: amountCharged,
         transactionStatus: "Success",
-        transactionType: "One-Time",
-        transactionId: txId,
-        transactionDate: new Date()
+        transactionType: ewayResponse.TransactionType,
+        authorisationCode: ewayResponse.AuthorisationCode,
+        transactionDate: new Date(),
+        transactionId: txId
       },
+      payment: { paymentSource: "eway", totalAmount: amountCharged, countryCode: Payment.CurrencyCode },
       payer: {
+        payerId: tokenCustomerId || "",
         payerName: Customer.CardDetails.Name,
         payerEmail: Customer.Email
-      },
-      payment: {
-        paymentSource: "eway-rapid",
-        totalAmount: amountCharged,
-        countryCode: Payment.CurrencyCode
       }
-    }).save();
-
-    const today = new Date();
-    const end = new Date(today);
-    end.setDate(end.getDate() + plan.validity);
-
-    await new SubscriptionVoucherUser({
-      userId,
-      type: type.type,
-      subscriptionPlanId,
-      startDate: today,
-      endDate: end,
-      status: "active",
-      kmRadius: plan.kmRadius,
-      autopayActive: false
-    }).save();
-
-    await Provider.findByIdAndUpdate(userId, {
-      subscriptionStatus: 1,
-      isGuestMode: false,
-      subscriptionType: type.type,
-      subscriptionPlanId,
-      "address.radius": plan.kmRadius * 1000
     });
+
+    await txn.save();
+
+    const todayMidnight = new Date();
+    todayMidnight.setHours(0, 0, 0, 0);
+    const existingActive = await SubscriptionVoucherUser.findOne({ userId, status: "active" }).sort({ startDate: -1 });
+
+    let newStartDate, newStatus;
+    if (existingActive && existingActive.type !== "Subscription") {
+      existingActive.status = "expired";
+      existingActive.endDate = todayMidnight;
+      await existingActive.save();
+      newStartDate = todayMidnight;
+      newStatus = "active";
+    } else {
+      const latestSub = await SubscriptionVoucherUser.findOne({ userId, status: { $in: ["active", "upcoming"] } }).sort({ endDate: -1 });
+      if (latestSub) {
+        newStartDate = new Date(latestSub.endDate);
+        newStartDate.setHours(0, 0, 0, 0);
+        newStatus = "upcoming";
+      } else {
+        newStartDate = todayMidnight;
+        newStatus = "active";
+      }
+    }
+
+    const newEndDate = new Date(newStartDate);
+    newEndDate.setDate(newEndDate.getDate() + subscriptionPlan.validity);
+
+    if (!tokenCustomerId && subscriptionPlan.validity === 365) {
+      return res.status(400).json({
+        message: "Recurring TokenCustomerID missing from eWAY for yearly plan.",
+        details: ewayResponse
+      });
+    }
+
+    const newSubscription = new SubscriptionVoucherUser({
+      userId,
+      type: subscriptionType.type,
+      subscriptionPlanId,
+      startDate: newStartDate,
+      endDate: newEndDate,
+      status: newStatus,
+      kmRadius: subscriptionPlan.kmRadius,
+      autopayActive: subscriptionPlan.validity === 365,
+      ewayCustomerToken: subscriptionPlan.validity === 365 ? tokenCustomerId : undefined,
+      nextPaymentDate: subscriptionPlan.validity === 365 ? newEndDate : undefined
+    });
+    await newSubscription.save();
+
+    if (newStatus === "active") {
+      await Provider.findByIdAndUpdate(userId, {
+        subscriptionStatus: 1,
+        isGuestMode: false,
+        subscriptionType: subscriptionType.type,
+        subscriptionPlanId,
+        "address.radius": subscriptionPlan.kmRadius * 1000
+      });
+    }
 
     const invoiceBuffer = await generateInvoicePDF({
       provider,
-      subscriptionPlan: plan,
-      subscriptionType: type,
+      subscriptionPlan,
+      subscriptionType,
       transactionId: txId,
       invoiceDate: new Date(),
       amountCharged
     });
 
-    await sendEmail(
-      Customer.Email,
-      `Your Invoice #${txId} - Trade Hunters`,
-      `<p>Hi ${Customer.FirstName},</p><p>Thank you for your payment of <strong>$${amountCharged.toFixed(2)}</strong>.</p><p>Invoice #${txId} attached.</p>`,
-      [{ filename: `invoice_${txId}.pdf`, content: invoiceBuffer }]
-    );
+    let emailSent = false;
+    try {
+      await sendEmail(
+        Customer.Email,
+        `Your Invoice #${txId} - Trade Hunters`,
+        `<p>Hi ${Customer.FirstName},</p><p>Thank you for your payment of <strong>$${amountCharged.toFixed(2)}</strong>.</p><p>Invoice #${txId} attached.</p>`,
+        [{ filename: `invoice_${txId}.pdf`, content: invoiceBuffer, contentType: "application/pdf" }]
+      );
+      emailSent = true;
+    } catch (err) {
+      console.error("Email sending failed:", err);
+    }
 
     return res.status(200).json({
-      message: "Direct payment completed successfully",
+      message: "Payment processed successfully",
+      userId,
+      subscriptionPlanId,
+      subscriptionType: subscriptionType.type,
       transactionId: txId,
-      amountCharged,
-      gst,
-      subTotal,
-      autopayActive: false
+      status: true,
+      amountCharged: `$${amountCharged.toFixed(2)}`,
+      subTotal: `$${subTotal.toFixed(2)}`,
+      gst: `$${gst.toFixed(2)}`,
+      autopayActive: newSubscription.autopayActive,
+      pdfGenerated: !!invoiceBuffer,
+      emailSent,
+      gatewayResponse: ewayResponse
     });
-  } catch (err) {
-    console.error("Payment Error:", err);
-    return res.status(500).json({ message: "Payment error", error: err.message });
+  } catch (error) {
+    console.error("Payment Processing Error:", error);
+    return res.status(500).json({
+      message: "Payment initiation failed",
+      error: error.message,
+      details: error.response?.data,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
+    });
   }
 };
+
 
 exports.getAllTransactions = async (req, res) => {
   try {
@@ -400,7 +396,6 @@ exports.getSubscriptionByUserId = async (req, res) => {
     });
   }
 };
-
 
 
 
