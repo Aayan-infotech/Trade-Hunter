@@ -56,6 +56,8 @@ connectDB();
 require("./middlewares/cron");
 app.set("io", io);
 
+require("./middlewares/rebillCron");
+
 app.use("/api/authAdmin", require("./AdmRts/authAdmin"));
 app.use("/api/users", require("./AdmRts/userRoutes"));
 app.use("/api/Prvdr", require("./AdmRts/providerRts"));
