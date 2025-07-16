@@ -1,6 +1,7 @@
-// services/sendMail.js
-require('dotenv').config();
 const nodemailer = require('nodemailer');
+const { getSecrets } = require('../utils/awsSecrets');
+
+let cachedSecrets;
 
 /**
  * @param {string} recipient    – the “to” address
@@ -10,29 +11,41 @@ const nodemailer = require('nodemailer');
  */
 const sendEmail = async (recipient, subject, htmlMessage, attachments = []) => {
   try {
+    if (!cachedSecrets) {
+      cachedSecrets = await getSecrets();
+    }
+
+    const mailHost = cachedSecrets.MAIL_HOST || process.env.MAIL_HOST;
+    const emailUser = cachedSecrets.EMAIL_USER || process.env.EMAIL_USER;
+    const emailPass = cachedSecrets.EMAIL_PASS || process.env.EMAIL_PASS;
+
+    if (!mailHost || !emailUser || !emailPass) {
+      throw new Error("❌ Missing EMAIL_USER, EMAIL_PASS, or MAIL_HOST");
+    }
+
     const transporter = nodemailer.createTransport({
-      host: process.env.MAIL_HOST,
+      host: mailHost,
       port: 587,
       secure: false,
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: emailUser,
+        pass: emailPass,
       },
       tls: { rejectUnauthorized: false },
     });
 
     const mailOptions = {
-      from:    '"Trade Hunters" <verification@tradehunters.com.au>',
-      to:      recipient,
-      subject: subject,
-      html:    htmlMessage,
-      attachments,     
+      from: '"Trade Hunters" <verification@tradehunters.com.au>',
+      to: recipient,
+      subject,
+      html: htmlMessage,
+      attachments,
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent:', info.response);
+    console.log('📨 Email sent:', info.response);
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('❌ Error sending email:', error.message);
     throw new Error('Email sending failed');
   }
 };

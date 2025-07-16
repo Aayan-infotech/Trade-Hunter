@@ -1,27 +1,35 @@
-
-require('dotenv').config();
 const axios = require('axios');
+const { getSecrets } = require('../utils/awsSecrets'); // Your existing AWS secrets loader
 
-const { EWAY_API_KEY, EWAY_PASSWORD, EWAY_URL } = process.env;
-
-if (!EWAY_API_KEY || !EWAY_PASSWORD || !EWAY_URL) {
-  console.error("❌ Missing one of EWAY_API_KEY, EWAY_PASSWORD, or EWAY_URL in .env");
-}
+let cachedSecrets;
 
 const getAuthHeader = () => {
-  const creds = `${EWAY_API_KEY.trim()}:${EWAY_PASSWORD.trim()}`;
+  const apiKey = cachedSecrets?.EWAY_API_KEY || process.env.EWAY_API_KEY;
+  const password = cachedSecrets?.EWAY_PASSWORD || process.env.EWAY_PASSWORD;
+
+  if (!apiKey || !password) {
+    throw new Error("Missing EWAY credentials from secrets or env");
+  }
+
+  const creds = `${apiKey.trim()}:${password.trim()}`;
   return `Basic ${Buffer.from(creds).toString('base64')}`;
 };
 
 exports.createTransaction = async (paymentData) => {
   try {
-    if (!EWAY_URL) {
-      throw new Error("eWAY API URL not set");
+    if (!cachedSecrets) {
+      cachedSecrets = await getSecrets(); // Load once
+    }
+
+    const ewayUrl = cachedSecrets?.EWAY_URL || process.env.EWAY_URL;
+
+    if (!ewayUrl) {
+      throw new Error("EWAY_URL not set in secrets or env");
     }
 
     console.log("➡️ eWAY request payload:", JSON.stringify(paymentData, null, 2));
 
-    const response = await axios.post(EWAY_URL, paymentData, {
+    const response = await axios.post(ewayUrl, paymentData, {
       headers: {
         Authorization: getAuthHeader(),
         'Content-Type': 'application/json',

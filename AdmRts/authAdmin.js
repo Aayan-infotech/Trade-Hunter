@@ -1,21 +1,38 @@
 const express = require("express");
-require('dotenv').config();
 const jwt = require("jsonwebtoken");
+const { getSecrets } = require("../utils/awsSecrets");
 const router = express.Router();
 
-const HARD_EMAIL = process.env.ADMIN_EMAIL;
-const HARD_PASSWORD = process.env.ADMIN_PASSWORD;
 const AdminId = "YWF5YW5pbmZvdGVjaEBnbWFpbC5jb20=";
+
+let secrets; // this will hold the AWS secrets
+
+(async () => {
+  try {
+    secrets = await getSecrets();
+    if (!secrets?.ADMIN_EMAIL || !secrets?.ADMIN_PASSWORD || !secrets?.JWT_SECRET) {
+      console.error("❌ Missing secrets from AWS");
+    } else {
+      console.log("✅ AWS secrets loaded successfully");
+    }
+  } catch (err) {
+    console.error("❌ Error loading AWS secrets:", err);
+  }
+})();
 
 router.post("/login", (req, res) => {
   const { email, password } = req.body;
 
-  if (email !== HARD_EMAIL || password !== HARD_PASSWORD) {
+  if (!secrets) {
+    return res.status(500).json({ message: "Secrets not initialized" });
+  }
+
+  if (email !== secrets.ADMIN_EMAIL || password !== secrets.ADMIN_PASSWORD) {
     return res.status(401).json({ message: "Invalid credentials" });
   }
 
   const payload = { email };
-  const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "100d" });
+  const token = jwt.sign(payload, secrets.JWT_SECRET, { expiresIn: "100d" });
 
   res.json({ token, adminId: AdminId });
 });
