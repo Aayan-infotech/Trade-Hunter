@@ -10,7 +10,7 @@ const connectDB = require("./config/db");
 const path = require('path');
 const JobPost = require('./models/jobpostModel');
 dotenv.config();
-import { getSecrets } from "./awsSecrets.js";
+import { getSecrets } from "./utils/awsSecrets";
 const secrets = await getSecrets();
 const app = express();
 const server = http.createServer(app);
