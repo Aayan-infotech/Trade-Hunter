@@ -10,7 +10,8 @@ const connectDB = require("./config/db");
 const path = require('path');
 const JobPost = require('./models/jobpostModel');
 dotenv.config();
-
+import { getSecrets } from "./awsSecrets.js";
+const secrets = await getSecrets();
 const app = express();
 const server = http.createServer(app);
 
@@ -23,8 +24,6 @@ app.use(
         allowedHeaders: ["Content-Type", "Authorization"],
     })
 );
-
-
 
 const corsOptions = {
   origin: ['https://tradehunters.com.au', 'https://admin.tradehunters.com.au','http://tradehunters.com.au', 'http://admin.tradehunters.com.au'],
@@ -40,7 +39,7 @@ const io = new Server(server, {
 
 
 
-const PORT = process.env.PORT || 7777;
+const PORT = secrets.PORT || 7777;
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
@@ -56,7 +55,10 @@ const upload = multer();
 
 connectDB();
 require("./middlewares/cron");
+
 app.set("io", io);
+
+
 
 app.use("/api/authAdmin", require("./AdmRts/authAdmin"));
 app.use("/api/users", require("./AdmRts/userRoutes"));

@@ -1,15 +1,17 @@
 const soap = require('soap');
-require('dotenv').config();
+const { getSecrets } = require("../utils/awsSecrets");
+
+const secrets = await getSecrets(); // You must ensure this is awaited in an async context
 
 const {
   EWAY_SOAP_WSDL_URL,
   EWAY_CUSTOMERID,
   EWAY_USERNAME,
   EWAY_USERPASSWORD
-} = process.env;
+} = secrets;
 
 if (!EWAY_SOAP_WSDL_URL || !EWAY_CUSTOMERID || !EWAY_USERNAME || !EWAY_USERPASSWORD) {
-  throw new Error('Missing SOAP credentials in .env');
+  throw new Error('Missing SOAP credentials in AWS Secrets');
 }
 
 const createSoapClient = async () => {
@@ -62,7 +64,7 @@ const triggerInitialRebillPayment = async ({ rebillCustomerID, amount }) => {
   const args = {
     CustomerID: EWAY_CUSTOMERID,
     RebillCustomerID: rebillCustomerID,
-    Amount: amount, 
+    Amount: amount,
     Currency: 'AUD',
     InvoiceDescription: 'Initial Subscription Payment',
     InvoiceReference: `INIT-${Date.now()}`
@@ -84,7 +86,7 @@ const triggerInitialRebillPayment = async ({ rebillCustomerID, amount }) => {
 const createRebillSchedule = async ({ rebillCustomerID, startDate, intervalMonths = 1, occurrences = 12, amount }) => {
   const client = await createSoapClient();
 
-  const formattedDate = startDate.toISOString().split('T')[0]; 
+  const formattedDate = startDate.toISOString().split('T')[0];
 
   const args = {
     CustomerID: EWAY_CUSTOMERID,

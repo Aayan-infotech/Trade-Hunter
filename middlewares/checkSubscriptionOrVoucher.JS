@@ -1,6 +1,8 @@
 const SubscriptionVoucherUser = require('../models/SubscriptionVoucherUserModel');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
+import { getSecrets } from "../utils/awsSecrets";
+const secrets = await getSecrets();
 
 const checkSubscriptionOrVoucher = async (req, res, next) => {
     try {
@@ -9,7 +11,7 @@ const checkSubscriptionOrVoucher = async (req, res, next) => {
             return res.status(401).json({ success: false, message: 'Authorization token required' });
         }
 
-        const decoded = jwt.verify(token.split(' ')[1], process.env.JWT_SECRET);
+        const decoded = jwt.verify(token.split(' ')[1], secrets.JWT_SECRET);
         const userId = decoded.userId;
 
         if (!mongoose.Types.ObjectId.isValid(userId)) {

@@ -1,11 +1,13 @@
 const jwt = require("jsonwebtoken");
 const Hunter = require("../models/hunterModel");
 const Provider = require("../models/providerModel");
+import { getSecrets } from "../utils/awsSecrets";
+const secrets = await getSecrets();
 
 const verifyUser = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ message: "No token provided" });
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+  jwt.verify(token, secrets.JWT_SECRET, (err, decoded) => {
     if (err) return res.status(401).json({err, message: "Invalid token" });
     req.user = decoded;
     next();
@@ -25,7 +27,7 @@ const authenticateUser = (req, res, next) => {
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const decoded = jwt.verify(token, secrets.ACCESS_TOKEN_SECRET);
 
     req.user = {
       id: decoded._id,
@@ -48,7 +50,7 @@ const refreshToken = async (req, res) => {
       return res.status(400).json({ status: 400, message: ["Missing required fields."] });
     }
 
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    const decoded = jwt.verify(refreshToken, secrets.REFRESH_TOKEN_SECRET);
     let userModel = userType === "hunter" ? Hunter : Provider;
     
     const user = await userModel.findOne({ _id: decoded.userId, refreshToken });
@@ -61,7 +63,7 @@ const refreshToken = async (req, res) => {
 
     const newAccessToken = jwt.sign(
       { id: user._id, email: user.email },
-      process.env.JWT_SECRET,
+      secrets.JWT_SECRET,
       { expiresIn: "24h" }
     );
 

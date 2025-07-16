@@ -1,6 +1,19 @@
-// services/sendMail.js
-require('dotenv').config();
 const nodemailer = require('nodemailer');
+const { getSecrets } = require('../utils/awsSecrets');
+
+let secrets;
+
+// Load secrets from AWS Secrets Manager
+(async () => {
+  try {
+    secrets = await getSecrets();
+    if (!secrets.MAIL_HOST || !secrets.EMAIL_USER || !secrets.EMAIL_PASS) {
+      console.error("❌ Missing MAIL_HOST, EMAIL_USER, or EMAIL_PASS in AWS Secrets");
+    }
+  } catch (err) {
+    console.error("❌ Failed to load email secrets from AWS:", err);
+  }
+})();
 
 /**
  * @param {string} recipient    – the “to” address
@@ -10,30 +23,34 @@ const nodemailer = require('nodemailer');
  */
 const sendEmail = async (recipient, subject, htmlMessage, attachments = []) => {
   try {
+    if (!secrets || !secrets.MAIL_HOST || !secrets.EMAIL_USER || !secrets.EMAIL_PASS) {
+      throw new Error('General email secrets not loaded or incomplete');
+    }
+
     const transporter = nodemailer.createTransport({
-      host: process.env.MAIL_HOST,
+      host: secrets.MAIL_HOST,
       port: 587,
       secure: false,
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: secrets.EMAIL_USER,
+        pass: secrets.EMAIL_PASS,
       },
       tls: { rejectUnauthorized: false },
     });
 
     const mailOptions = {
-      from:    '"Trade Hunters" <verification@tradehunters.com.au>',
-      to:      recipient,
+      from: '"Trade Hunters" <verification@tradehunters.com.au>',
+      to: recipient,
       subject: subject,
-      html:    htmlMessage,
-      attachments,     
+      html: htmlMessage,
+      attachments,
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent:', info.response);
+    console.log('📧 General email sent:', info.response);
   } catch (error) {
-    console.error('Error sending email:', error);
-    throw new Error('Email sending failed');
+    console.error('❌ Error sending general email:', error);
+    throw new Error('General email sending failed');
   }
 };
 

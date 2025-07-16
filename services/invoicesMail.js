@@ -1,5 +1,19 @@
-require('dotenv').config();
 const nodemailer = require('nodemailer');
+const { getSecrets } = require('../utils/awsSecrets');
+
+let secrets;
+
+// Load secrets from AWS Secrets Manager
+(async () => {
+  try {
+    secrets = await getSecrets();
+    if (!secrets.MAIL_HOST || !secrets.EMAIL_USER_INVOICE || !secrets.EMAIL_PASS_INVOICE) {
+      console.error("❌ Missing MAIL_HOST, EMAIL_USER_INVOICE, or EMAIL_PASS_INVOICE in AWS Secrets");
+    }
+  } catch (err) {
+    console.error("❌ Failed to load invoice email secrets from AWS:", err);
+  }
+})();
 
 /**
  * @param {string} recipient    – the “to” address
@@ -9,30 +23,34 @@ const nodemailer = require('nodemailer');
  */
 const invoicesEmail = async (recipient, subject, htmlMessage, attachments = []) => {
   try {
+    if (!secrets || !secrets.MAIL_HOST || !secrets.EMAIL_USER_INVOICE || !secrets.EMAIL_PASS_INVOICE) {
+      throw new Error('Invoice email secrets not loaded or incomplete');
+    }
+
     const transporter = nodemailer.createTransport({
-      host: process.env.MAIL_HOST,
+      host: secrets.MAIL_HOST,
       port: 587,
       secure: false,
       auth: {
-        user: process.env.EMAIL_USER_INVOICE,
-        pass: process.env.EMAIL_PASS_INVOICE,
+        user: secrets.EMAIL_USER_INVOICE,
+        pass: secrets.EMAIL_PASS_INVOICE,
       },
       tls: { rejectUnauthorized: false },
     });
 
     const mailOptions = {
-      from:    '"Trade Hunters" <invoices.tradehunters@gmail.com>',
-      to:      recipient,
+      from: '"Trade Hunters" <invoices.tradehunters@gmail.com>',
+      to: recipient,
       subject: subject,
-      html:    htmlMessage,
-      attachments,     
+      html: htmlMessage,
+      attachments,
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent:', info.response);
+    console.log('📧 Invoice email sent:', info.response);
   } catch (error) {
-    console.error('Error sending email:', error);
-    throw new Error('Email sending failed');
+    console.error('❌ Error sending invoice email:', error);
+    throw new Error('Invoice email sending failed');
   }
 };
 

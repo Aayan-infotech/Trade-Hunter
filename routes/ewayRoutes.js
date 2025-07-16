@@ -28,14 +28,15 @@ const router = express.Router();
 const ewayController = require('../controllers/ewayController');
 const { verifyUser } = require("../middlewares/auth");
 const { getSecrets } = require('../utils/awsSecrets');
+const secrets = await getSecrets();
 
 // Load secrets on startup
 let API_KEY, API_PASSWORD, API_URL;
 
 getSecrets().then((secrets) => {
-  API_KEY = process.env.EWAY_API_KEY;
-  API_PASSWORD = process.env.EWAY_PASSWORD;
-  API_URL = process.env.EWAY_URL;
+  API_KEY = secrets.EWAY_API_KEY;
+  API_PASSWORD = secrets.EWAY_PASSWORD;
+  API_URL = secrets.EWAY_URL;
 }).catch(err => {
   console.error("Failed to load AWS secrets:", err);
 });
@@ -58,6 +59,5 @@ router.get('/getAllTransactions', ewayController.getAllTransactions);
 router.get('/totalRevenue', ewayController.getTotalSubscriptionRevenue);
 router.get('/getSusbcriptionById', verifyUser, ewayController.getSubscriptionByUserId);
 
-router.post("/cancelSubscriptions/:id", ewayController.cancelSubscription);
 
 module.exports = router;

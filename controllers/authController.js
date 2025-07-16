@@ -10,6 +10,8 @@ const Provider = require("../models/providerModel");
 const Hunter = require("../models/hunterModel");
 const Address = require("../models/addressModel");
 const DeviceToken = require('../models/devicetokenModel');
+const { getSecrets } = require("../utils/awsSecrets");
+const secrets = await getSecrets();
 
 const signUp = async (req, res) => {
   try {
@@ -293,7 +295,6 @@ const signUp = async (req, res) => {
 const login = async (req, res) => {
   const { email, password, userType, UID } = req.body;
 
-  // Step 1: Validate userType
   if (!["hunter", "provider"].includes(userType)) {
     return res.status(400).json({
       status: 400,
@@ -329,12 +330,12 @@ const login = async (req, res) => {
     // Step 4: Generate tokens
     const token = jwt.sign(
       { userId: user._id, email: user.email },
-      process.env.JWT_SECRET,
+      secrets.JWT_SECRET,
       { expiresIn: "24h" }
     );
     const refreshToken = jwt.sign(
       { userId: user._id, email: user.email },
-      process.env.REFRESH_TOKEN_SECRET,
+      secrets.REFRESH_TOKEN_SECRET,
       { expiresIn: "7d" }
     );
 
@@ -444,6 +445,7 @@ const logout = async (req, res) => {
   }
 };
 
+
 const verifyEmail = async (req, res) => {
   const { email, verificationOTP, userType } = req.body;
   let user;
@@ -486,7 +488,6 @@ const verifyEmail = async (req, res) => {
       .json({ status: 500, message: "Server error", error: err.message });
   }
 };
-
 
 const forgotPassword = async (req, res) => {
   const { email } = req.body;
