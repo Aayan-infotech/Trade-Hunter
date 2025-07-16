@@ -10,8 +10,7 @@ const connectDB = require("./config/db");
 const path = require('path');
 const JobPost = require('./models/jobpostModel');
 dotenv.config();
-import { getSecrets } from "./utils/awsSecrets";
-const secrets = await getSecrets();
+
 const app = express();
 const server = http.createServer(app);
 
@@ -39,7 +38,7 @@ const io = new Server(server, {
 
 
 
-const PORT = secrets.PORT || 7777;
+const PORT = process.env.PORT || 7777;
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));

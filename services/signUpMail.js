@@ -1,19 +1,7 @@
 const nodemailer = require('nodemailer');
 const { getSecrets } = require('../utils/awsSecrets');
 
-let secrets;
-
-// Load secrets from AWS Secrets Manager
-(async () => {
-  try {
-    secrets = await getSecrets();
-    if (!secrets.MAIL_HOST || !secrets.EMAIL_USER_SIGNUP || !secrets.EMAIL_PASS_SIGNUP) {
-      console.error("❌ Missing MAIL_HOST, EMAIL_USER_SIGNUP, or EMAIL_PASS_SIGNUP in AWS Secrets");
-    }
-  } catch (err) {
-    console.error("❌ Failed to load signup email secrets from AWS:", err);
-  }
-})();
+let cachedSecrets;
 
 /**
  * @param {string} recipient    – the “to” address
@@ -23,17 +11,25 @@ let secrets;
  */
 const signUpEmail = async (recipient, subject, htmlMessage, attachments = []) => {
   try {
-    if (!secrets || !secrets.MAIL_HOST || !secrets.EMAIL_USER_SIGNUP || !secrets.EMAIL_PASS_SIGNUP) {
-      throw new Error('Signup email secrets not loaded or incomplete');
+    if (!cachedSecrets) {
+      cachedSecrets = await getSecrets();
+    }
+
+    const mailHost = cachedSecrets.MAIL_HOST || process.env.MAIL_HOST;
+    const emailUser = cachedSecrets.EMAIL_USER_SIGNUP || process.env.EMAIL_USER_SIGNUP;
+    const emailPass = cachedSecrets.EMAIL_PASS_SIGNUP || process.env.EMAIL_PASS_SIGNUP;
+
+    if (!mailHost || !emailUser || !emailPass) {
+      throw new Error("❌ Missing MAIL_HOST, EMAIL_USER_SIGNUP, or EMAIL_PASS_SIGNUP");
     }
 
     const transporter = nodemailer.createTransport({
-      host: secrets.MAIL_HOST,
+      host: mailHost,
       port: 587,
       secure: false,
       auth: {
-        user: secrets.EMAIL_USER_SIGNUP,
-        pass: secrets.EMAIL_PASS_SIGNUP,
+        user: emailUser,
+        pass: emailPass,
       },
       tls: { rejectUnauthorized: false },
     });
@@ -41,15 +37,15 @@ const signUpEmail = async (recipient, subject, htmlMessage, attachments = []) =>
     const mailOptions = {
       from: '"Trade Hunters" <signup.tradehunters@gmail.com>',
       to: recipient,
-      subject: subject,
+      subject,
       html: htmlMessage,
       attachments,
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('📧 Signup email sent:', info.response);
+    console.log('📨 Signup Email sent:', info.response);
   } catch (error) {
-    console.error('❌ Error sending signup email:', error);
+    console.error('❌ Error sending signup email:', error.message);
     throw new Error('Signup email sending failed');
   }
 };

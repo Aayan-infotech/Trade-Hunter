@@ -1,19 +1,7 @@
 const nodemailer = require('nodemailer');
 const { getSecrets } = require('../utils/awsSecrets');
 
-let secrets;
-
-// Load secrets from AWS Secrets Manager
-(async () => {
-  try {
-    secrets = await getSecrets();
-    if (!secrets.MAIL_HOST || !secrets.EMAIL_USER_INFO || !secrets.EMAIL_PASS_INFO) {
-      console.error("❌ Missing MAIL_HOST, EMAIL_USER_INFO, or EMAIL_PASS_INFO in AWS Secrets");
-    }
-  } catch (err) {
-    console.error("❌ Failed to load email secrets from AWS:", err);
-  }
-})();
+let cachedSecrets;
 
 /**
  * @param {string} recipient    – the “to” address
@@ -23,33 +11,41 @@ let secrets;
  */
 const infoEmail = async (recipient, subject, htmlMessage, attachments = []) => {
   try {
-    if (!secrets || !secrets.MAIL_HOST || !secrets.EMAIL_USER_INFO || !secrets.EMAIL_PASS_INFO) {
-      throw new Error('Email secrets not loaded or incomplete');
+    if (!cachedSecrets) {
+      cachedSecrets = await getSecrets();
+    }
+
+    const mailHost = cachedSecrets.MAIL_HOST || process.env.MAIL_HOST;
+    const emailUser = cachedSecrets.EMAIL_USER_INFO || process.env.EMAIL_USER_INFO;
+    const emailPass = cachedSecrets.EMAIL_PASS_INFO || process.env.EMAIL_PASS_INFO;
+
+    if (!mailHost || !emailUser || !emailPass) {
+      throw new Error("❌ Missing EMAIL_USER_INFO, EMAIL_PASS_INFO, or MAIL_HOST");
     }
 
     const transporter = nodemailer.createTransport({
-      host: secrets.MAIL_HOST,
+      host: mailHost,
       port: 587,
       secure: false,
       auth: {
-        user: secrets.EMAIL_USER_INFO,
-        pass: secrets.EMAIL_PASS_INFO,
+        user: emailUser,
+        pass: emailPass,
       },
       tls: { rejectUnauthorized: false },
     });
 
     const mailOptions = {
-      from: '"Trade Hunters" <info.tradehunters@gmail.com>',
+      from: `"Trade Hunters" <${emailUser}>`,
       to: recipient,
-      subject: subject,
+      subject,
       html: htmlMessage,
       attachments,
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('📧 Email sent:', info.response);
+    console.log('📬 Email sent:', info.response);
   } catch (error) {
-    console.error('❌ Error sending email:', error);
+    console.error('❌ Error sending email:', error.message);
     throw new Error('Email sending failed');
   }
 };

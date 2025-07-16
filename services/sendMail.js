@@ -1,19 +1,7 @@
 const nodemailer = require('nodemailer');
 const { getSecrets } = require('../utils/awsSecrets');
 
-let secrets;
-
-// Load secrets from AWS Secrets Manager
-(async () => {
-  try {
-    secrets = await getSecrets();
-    if (!secrets.MAIL_HOST || !secrets.EMAIL_USER || !secrets.EMAIL_PASS) {
-      console.error("❌ Missing MAIL_HOST, EMAIL_USER, or EMAIL_PASS in AWS Secrets");
-    }
-  } catch (err) {
-    console.error("❌ Failed to load email secrets from AWS:", err);
-  }
-})();
+let cachedSecrets;
 
 /**
  * @param {string} recipient    – the “to” address
@@ -23,17 +11,25 @@ let secrets;
  */
 const sendEmail = async (recipient, subject, htmlMessage, attachments = []) => {
   try {
-    if (!secrets || !secrets.MAIL_HOST || !secrets.EMAIL_USER || !secrets.EMAIL_PASS) {
-      throw new Error('General email secrets not loaded or incomplete');
+    if (!cachedSecrets) {
+      cachedSecrets = await getSecrets();
+    }
+
+    const mailHost = cachedSecrets.MAIL_HOST || process.env.MAIL_HOST;
+    const emailUser = cachedSecrets.EMAIL_USER || process.env.EMAIL_USER;
+    const emailPass = cachedSecrets.EMAIL_PASS || process.env.EMAIL_PASS;
+
+    if (!mailHost || !emailUser || !emailPass) {
+      throw new Error("❌ Missing EMAIL_USER, EMAIL_PASS, or MAIL_HOST");
     }
 
     const transporter = nodemailer.createTransport({
-      host: secrets.MAIL_HOST,
+      host: mailHost,
       port: 587,
       secure: false,
       auth: {
-        user: secrets.EMAIL_USER,
-        pass: secrets.EMAIL_PASS,
+        user: emailUser,
+        pass: emailPass,
       },
       tls: { rejectUnauthorized: false },
     });
@@ -41,16 +37,16 @@ const sendEmail = async (recipient, subject, htmlMessage, attachments = []) => {
     const mailOptions = {
       from: '"Trade Hunters" <verification@tradehunters.com.au>',
       to: recipient,
-      subject: subject,
+      subject,
       html: htmlMessage,
       attachments,
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('📧 General email sent:', info.response);
+    console.log('📨 Email sent:', info.response);
   } catch (error) {
-    console.error('❌ Error sending general email:', error);
-    throw new Error('General email sending failed');
+    console.error('❌ Error sending email:', error.message);
+    throw new Error('Email sending failed');
   }
 };
 

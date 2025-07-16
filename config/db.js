@@ -1,13 +1,19 @@
 const mongoose = require('mongoose');
+const dotenv = require('dotenv');
 const { getSecrets } = require('../utils/awsSecrets');
+
+dotenv.config();
 
 const connectDB = async () => {
   try {
     const secrets = await getSecrets();
 
-    const mongoURI = secrets.MONGODB_URI;
+    const mongoURI =
+      secrets?.MONGODB_URI ||
+      process.env.MONGODB_URI;
+
     if (!mongoURI) {
-      throw new Error("MONGODB_URI not found in AWS Secrets");
+      throw new Error("❌ MONGODB_URI not found in AWS Secrets or .env");
     }
 
     await mongoose.connect(mongoURI, {

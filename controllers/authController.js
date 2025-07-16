@@ -10,8 +10,6 @@ const Provider = require("../models/providerModel");
 const Hunter = require("../models/hunterModel");
 const Address = require("../models/addressModel");
 const DeviceToken = require('../models/devicetokenModel');
-const { getSecrets } = require("../utils/awsSecrets");
-const secrets = await getSecrets();
 
 const signUp = async (req, res) => {
   try {
@@ -330,12 +328,12 @@ const login = async (req, res) => {
     // Step 4: Generate tokens
     const token = jwt.sign(
       { userId: user._id, email: user.email },
-      secrets.JWT_SECRET,
+      process.env.JWT_SECRET,
       { expiresIn: "24h" }
     );
     const refreshToken = jwt.sign(
       { userId: user._id, email: user.email },
-      secrets.REFRESH_TOKEN_SECRET,
+      process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: "7d" }
     );
 

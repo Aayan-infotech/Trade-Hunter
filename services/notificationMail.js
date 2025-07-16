@@ -1,19 +1,7 @@
 const nodemailer = require('nodemailer');
 const { getSecrets } = require('../utils/awsSecrets');
 
-let secrets;
-
-// Load secrets from AWS Secrets Manager
-(async () => {
-  try {
-    secrets = await getSecrets();
-    if (!secrets.MAIL_HOST || !secrets.EMAIL_USER_NOTIFICATION || !secrets.EMAIL_PASS_NOTIFICATION) {
-      console.error("❌ Missing MAIL_HOST, EMAIL_USER_NOTIFICATION, or EMAIL_PASS_NOTIFICATION in AWS Secrets");
-    }
-  } catch (err) {
-    console.error("❌ Failed to load notification email secrets from AWS:", err);
-  }
-})();
+let cachedSecrets;
 
 /**
  * @param {string} recipient    – the “to” address
@@ -23,34 +11,42 @@ let secrets;
  */
 const notificationEmail = async (recipient, subject, htmlMessage, attachments = []) => {
   try {
-    if (!secrets || !secrets.MAIL_HOST || !secrets.EMAIL_USER_NOTIFICATION || !secrets.EMAIL_PASS_NOTIFICATION) {
-      throw new Error('Notification email secrets not loaded or incomplete');
+    if (!cachedSecrets) {
+      cachedSecrets = await getSecrets();
+    }
+
+    const mailHost = cachedSecrets.MAIL_HOST || process.env.MAIL_HOST;
+    const emailUser = cachedSecrets.EMAIL_USER_NOTIFICATION || process.env.EMAIL_USER_NOTIFICATION;
+    const emailPass = cachedSecrets.EMAIL_PASS_NOTIFICATION || process.env.EMAIL_PASS_NOTIFICATION;
+
+    if (!mailHost || !emailUser || !emailPass) {
+      throw new Error("❌ Missing EMAIL_USER_NOTIFICATION, EMAIL_PASS_NOTIFICATION, or MAIL_HOST");
     }
 
     const transporter = nodemailer.createTransport({
-      host: secrets.MAIL_HOST,
+      host: mailHost,
       port: 587,
       secure: false,
       auth: {
-        user: secrets.EMAIL_USER_NOTIFICATION,
-        pass: secrets.EMAIL_PASS_NOTIFICATION,
+        user: emailUser,
+        pass: emailPass,
       },
       tls: { rejectUnauthorized: false },
     });
 
     const mailOptions = {
-      from: '"Trade Hunters" <notifications.tradehunters@gmail.com>',
+      from: `"Trade Hunters" <${emailUser}>`,
       to: recipient,
-      subject: subject,
+      subject,
       html: htmlMessage,
       attachments,
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('📧 Notification email sent:', info.response);
+    console.log('📨 Notification email sent:', info.response);
   } catch (error) {
-    console.error('❌ Error sending notification email:', error);
-    throw new Error('Notification email sending failed');
+    console.error('❌ Error sending notification email:', error.message);
+    throw new Error('Email sending failed');
   }
 };
 

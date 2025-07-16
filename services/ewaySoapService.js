@@ -1,20 +1,20 @@
 const soap = require('soap');
 const { getSecrets } = require("../utils/awsSecrets");
 
-const secrets = await getSecrets(); // You must ensure this is awaited in an async context
-
-const {
-  EWAY_SOAP_WSDL_URL,
-  EWAY_CUSTOMERID,
-  EWAY_USERNAME,
-  EWAY_USERPASSWORD
-} = secrets;
-
-if (!EWAY_SOAP_WSDL_URL || !EWAY_CUSTOMERID || !EWAY_USERNAME || !EWAY_USERPASSWORD) {
-  throw new Error('Missing SOAP credentials in AWS Secrets');
-}
-
+// Create SOAP client with AWS secrets
 const createSoapClient = async () => {
+  const secrets = await getSecrets(); // Must be awaited in each call
+
+  const {
+    EWAY_SOAP_WSDL_URL,
+    EWAY_USERNAME,
+    EWAY_USERPASSWORD,
+  } = secrets;
+
+  if (!EWAY_SOAP_WSDL_URL || !EWAY_USERNAME || !EWAY_USERPASSWORD) {
+    throw new Error('Missing SOAP credentials in AWS Secrets');
+  }
+
   return new Promise((resolve, reject) => {
     soap.createClient(EWAY_SOAP_WSDL_URL, (err, client) => {
       if (err) return reject(err);
@@ -24,11 +24,13 @@ const createSoapClient = async () => {
   });
 };
 
+// Create Rebill Customer
 const createRebillCustomer = async (customer) => {
+  const secrets = await getSecrets();
   const client = await createSoapClient();
 
   const args = {
-    CustomerID: EWAY_CUSTOMERID,
+    CustomerID: secrets.EWAY_CUSTOMERID,
     Title: customer.title || '',
     FirstName: customer.FirstName || customer.firstName,
     LastName: customer.LastName || customer.lastName,
@@ -58,11 +60,13 @@ const createRebillCustomer = async (customer) => {
   }
 };
 
+// Trigger first payment
 const triggerInitialRebillPayment = async ({ rebillCustomerID, amount }) => {
+  const secrets = await getSecrets();
   const client = await createSoapClient();
 
   const args = {
-    CustomerID: EWAY_CUSTOMERID,
+    CustomerID: secrets.EWAY_CUSTOMERID,
     RebillCustomerID: rebillCustomerID,
     Amount: amount,
     Currency: 'AUD',
@@ -83,18 +87,20 @@ const triggerInitialRebillPayment = async ({ rebillCustomerID, amount }) => {
   }
 };
 
+// Create recurring schedule
 const createRebillSchedule = async ({ rebillCustomerID, startDate, intervalMonths = 1, occurrences = 12, amount }) => {
+  const secrets = await getSecrets();
   const client = await createSoapClient();
 
   const formattedDate = startDate.toISOString().split('T')[0];
 
   const args = {
-    CustomerID: EWAY_CUSTOMERID,
+    CustomerID: secrets.EWAY_CUSTOMERID,
     RebillCustomerID: rebillCustomerID,
     RebillInitDate: formattedDate,
     RebillInterval: intervalMonths,
     RebillIntervalType: 'monthly',
-    RebillEndDate: '',
+    RebillEndDate: '', // Optional – empty means indefinite or controlled by occurrences
     RebillAmount: amount,
     RebillCurrency: 'AUD'
   };
