@@ -5,6 +5,7 @@ const Provider = require("../models/providerModel");
 const Notification = require("../models/massNotification");
 const admin = require("../config/firebaseConfig");
 const deviceTokenModel = require("../models/devicetokenModel");
+const massEmail = require("../services/massNotificationMail")
 const mongoose = require("mongoose");
 
 const pushNotification = async (subject, message, deviceToken) => {
@@ -40,6 +41,7 @@ exports.sendMassNotification = async (req, res) => {
       return res.status(400).json({ error: "Missing userType or message." });
     }
 
+    // Save the mass notification to DB
     const notification = new Notification({
       userType,
       title: subject,
@@ -47,45 +49,61 @@ exports.sendMassNotification = async (req, res) => {
     });
     await notification.save();
 
-    const aggregation = [];
-
-    aggregation.push({
-      $match: {
-        userType: userType,
-      },
-    });
-
+    // Get all deviceToken records for the given userType
+    const aggregation = [{ $match: { userType: userType } }];
     const users = await deviceTokenModel.aggregate(aggregation);
+
+    const emailAddresses = [];
 
     for (const user of users) {
       const userId = user.userId;
       const deviceToken = user.deviceToken;
 
+      // Send push if deviceToken exists
       if (deviceToken) {
-        const promise = await pushNotification(
-          subject,
-          message,
-          deviceToken
-        ).catch((error) => {
+        const promise = await pushNotification(subject, message, deviceToken).catch((error) => {
           console.error(error);
         });
-
         notificationsPromises.push(promise);
-      } else {
-        console.warn(`User with ID ${userId} does not have a deviceToken.`);
+      }
+
+      // Fetch email regardless of deviceToken
+      let email = null;
+
+      if (userType === "hunter") {
+        const hunter = await Hunter.findById(userId).select("email");
+        if (hunter && hunter.email) email = hunter.email;
+      } else if (userType === "provider") {
+        const provider = await Provider.findById(userId).select("email");
+        if (provider && provider.email) email = provider.email;
+      }
+
+      if (email) {
+        emailAddresses.push(email);
       }
     }
 
+    // Wait for all push notifications to be sent
     await Promise.all(notificationsPromises);
+
+    // Send one mass email to all collected addresses
+    if (emailAddresses.length > 0) {
+      const emailHTML = `<h3>${subject}</h3><p>${message}</p>`;
+      await massEmail(emailAddresses, subject, emailHTML);
+      console.log("Mass email sent successfully to all users.");
+    }
+
     res.status(200).json({
       status: 200,
-      message: "Notifications sent successfully",
+      message: "Push notifications sent to device users, and email sent to all users.",
     });
   } catch (error) {
     console.error("Error in sending notifications:", error);
     return res.status(500).json({ error: "Internal server error." });
   }
 };
+
+
 
 exports.getMassNotifications = async (req, res) => {
   try {
@@ -157,3 +175,5 @@ exports.deleteForUser = async (req, res) => {
     return res.status(500).json({ error: "Internal server error." });
   }
 };
+
+
