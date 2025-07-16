@@ -5,6 +5,7 @@ const Provider = require("../models/providerModel");
 const Notification = require("../models/massNotification");
 const admin = require("../config/firebaseConfig");
 const deviceTokenModel = require("../models/devicetokenModel");
+const massEmail = require("../services/massNotificationMail")
 const mongoose = require("mongoose");
 
 const pushNotification = async (subject, message, deviceToken) => {
@@ -47,45 +48,58 @@ exports.sendMassNotification = async (req, res) => {
     });
     await notification.save();
 
-    const aggregation = [];
-
-    aggregation.push({
-      $match: {
-        userType: userType,
-      },
-    });
-
+    const aggregation = [{ $match: { userType: userType } }];
     const users = await deviceTokenModel.aggregate(aggregation);
+
+    const emailAddresses = [];
 
     for (const user of users) {
       const userId = user.userId;
       const deviceToken = user.deviceToken;
 
+      // Collect email based on userType (Hunter or Provider)
+      let email = null;
+
+      if (userType === "hunter") {
+        const hunter = await Hunter.findById(userId).select("email");
+        if (hunter && hunter.email) email = hunter.email;
+      } else if (userType === "provider") {
+        const provider = await Provider.findById(userId).select("email");
+        if (provider && provider.email) email = provider.email;
+      }
+
+      if (email) {
+        emailAddresses.push(email);
+      }
+
+      // Send push notification if deviceToken exists
       if (deviceToken) {
-        const promise = await pushNotification(
-          subject,
-          message,
-          deviceToken
-        ).catch((error) => {
+        const promise = await pushNotification(subject, message, deviceToken).catch((error) => {
           console.error(error);
         });
-
         notificationsPromises.push(promise);
       } else {
         console.warn(`User with ID ${userId} does not have a deviceToken.`);
       }
     }
-
     await Promise.all(notificationsPromises);
+
+    if (emailAddresses.length > 0) {
+      const emailHTML = `<h3>${subject}</h3><p>${message}</p>`;
+      await massEmail(emailAddresses, subject, emailHTML); 
+      console.log("Mass email sent successfully.");
+    }
+
     res.status(200).json({
       status: 200,
-      message: "Notifications sent successfully",
+      message: "Push and Email notifications sent successfully",
     });
   } catch (error) {
     console.error("Error in sending notifications:", error);
     return res.status(500).json({ error: "Internal server error." });
   }
 };
+
 
 exports.getMassNotifications = async (req, res) => {
   try {
@@ -157,3 +171,5 @@ exports.deleteForUser = async (req, res) => {
     return res.status(500).json({ error: "Internal server error." });
   }
 };
+
+
