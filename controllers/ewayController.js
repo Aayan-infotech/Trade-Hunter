@@ -31,11 +31,9 @@ exports.initiatePayment = async (req, res) => {
 
     if (!Customer || !Customer.CardDetails) return res.status(400).json({ message: "Missing Customer.CardDetails" });
 
-    // 🔁 Recurring Plan (365 Days)
     if (isRecurring) {
       const monthlyAmount = Math.round(totalAmount / 12);
 
-      // 1️⃣ Step 1: Create Recurring Customer in SOAP
       const soapCustomerResult = await soapService.createRebillCustomer({
         ...Customer,
         CardDetails: Customer.CardDetails
@@ -46,7 +44,6 @@ exports.initiatePayment = async (req, res) => {
 
       const rebillCustomerID = soapCustomerResult.rebillCustomerID;
 
-      // 2️⃣ Step 2: Trigger first payment immediately
       const firstPaymentResult = await soapService.triggerInitialRebillPayment({
         rebillCustomerID,
         amount: monthlyAmount
@@ -56,7 +53,6 @@ exports.initiatePayment = async (req, res) => {
         return res.status(400).json({ message: "Initial SOAP payment failed", error: firstPaymentResult });
       }
 
-      // 3️⃣ Step 3: Create Rebill Schedule
       const rebillScheduleResult = await soapService.createRebillSchedule({
         rebillCustomerID,
         startDate: new Date(),
@@ -69,7 +65,6 @@ exports.initiatePayment = async (req, res) => {
         return res.status(400).json({ message: "Rebill schedule failed", error: rebillScheduleResult });
       }
 
-      // ✅ Save DB Record
       await new Transaction({
         userId,
         subscriptionPlanId,
@@ -128,7 +123,6 @@ exports.initiatePayment = async (req, res) => {
       });
     }
 
-    // 💳 One-time direct payment via Rapid API
     const rapidResponse = await ewayService.createTransaction({
       Customer,
       Payment,

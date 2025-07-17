@@ -35,10 +35,9 @@ const pushNotification = async (subject, message, deviceToken) => {
 exports.sendMassNotification = async (req, res) => {
   try {
     const { userType, subject, message } = req.body;
-    const notificationsPromises = [];
 
     if (!userType || !subject || !message) {
-      return res.status(400).json({ error: "Missing userType or message." });
+      return res.status(400).json({ error: "Missing userType, subject, or message." });
     }
 
     const notification = new Notification({
@@ -48,57 +47,85 @@ exports.sendMassNotification = async (req, res) => {
     });
     await notification.save();
 
-    const aggregation = [{ $match: { userType: userType } }];
-    const users = await deviceTokenModel.aggregate(aggregation);
-
-    const emailAddresses = [];
-
-    for (const user of users) {
-      const userId = user.userId;
-      const deviceToken = user.deviceToken;
-
-      // Collect email based on userType (Hunter or Provider)
-      let email = null;
-
-      if (userType === "hunter") {
-        const hunter = await Hunter.findById(userId).select("email");
-        if (hunter && hunter.email) email = hunter.email;
-      } else if (userType === "provider") {
-        const provider = await Provider.findById(userId).select("email");
-        if (provider && provider.email) email = provider.email;
-      }
-
-      if (email) {
-        emailAddresses.push(email);
-      }
-
-      // Send push notification if deviceToken exists
-      if (deviceToken) {
-        const promise = await pushNotification(subject, message, deviceToken).catch((error) => {
-          console.error(error);
-        });
-        notificationsPromises.push(promise);
-      } else {
-        console.warn(`User with ID ${userId} does not have a deviceToken.`);
-      }
-    }
-    await Promise.all(notificationsPromises);
-
-    if (emailAddresses.length > 0) {
-      const emailHTML = `<h3>${subject}</h3><p>${message}</p>`;
-      await massEmail(emailAddresses, subject, emailHTML); 
-      console.log("Mass email sent successfully.");
-    }
-
     res.status(200).json({
       status: 200,
-      message: "Push and Email notifications sent successfully",
+      message: "Notification created. Push and email are being processed in background.",
     });
+
+    setImmediate(async () => {
+      try {
+        const deviceTokenEntries = await deviceTokenModel.find({ userType });
+        const pushPromises = [];
+
+        for (const entry of deviceTokenEntries) {
+          if (entry.deviceToken) {
+            const push = pushNotification(subject, message, entry.deviceToken).catch(console.error);
+            pushPromises.push(push);
+          }
+        }
+
+        await Promise.all(pushPromises);
+        console.log("Push notifications sent successfully.");
+
+        let users = [];
+        if (userType === "hunter") {
+          users = await Hunter.find({}, "email");
+        } else if (userType === "provider") {
+          users = await Provider.find({}, "email");
+        }
+
+        const emailAddresses = users
+          .map(user => user.email)
+          .filter(email => !!email); 
+
+        if (emailAddresses.length > 0) {
+          const htmlContent = `
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 30px; color: #2c3e50;">
+              <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden;">
+                <div style="background-color: #004aad; color: white; padding: 20px;">
+                  <h2 style="margin: 0;"> Trade Hunters MassNotification</h2>
+                </div>
+                <div style="padding: 25px;">
+                  <p style="font-size: 16px;">Hello,</p>
+                  <p style="font-size: 15px; line-height: 1.6;">
+                    You’ve received a Mass Notification from <strong style="color: #004aad;">Trade Hunters</strong>.
+                  </p>
+                  <p style="font-size: 15px; margin-top: 20px; line-height: 1.6;">
+                    <strong>Subject:</strong> ${subject}<br />
+                    <strong>Message:</strong><br />
+                    ${message}
+                  </p>
+                  <div style="margin: 30px 0;">
+                    <a href="https://tradehunters.com.au" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #004aad; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                      Visit Trade Hunters
+                    </a>
+                  </div>
+                  <hr style="border: none; border-top: 1px solid #e1e4e8;" />
+                  <p style="font-size: 12px; color: #95a5a6; text-align: center; margin-top: 20px;">
+                    This is an automated notification from Trade Hunters. Please do not reply to this email.
+                  </p>
+                </div>
+              </div>
+            </div>
+          `;
+
+          await massEmail(emailAddresses, subject, htmlContent);
+          console.log("Mass email sent successfully to all users.");
+        } else {
+          console.warn("No email addresses found.");
+        }
+
+      } catch (bgError) {
+        console.error("Error during background processing:", bgError);
+      }
+    });
+
   } catch (error) {
-    console.error("Error in sending notifications:", error);
+    console.error("Error in sendMassNotification:", error);
     return res.status(500).json({ error: "Internal server error." });
   }
 };
+
 
 
 exports.getMassNotifications = async (req, res) => {

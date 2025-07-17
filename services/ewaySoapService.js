@@ -1,9 +1,8 @@
 const soap = require('soap');
 const { getSecrets } = require("../utils/awsSecrets");
 
-// Create SOAP client with AWS secrets
 const createSoapClient = async () => {
-  const secrets = await getSecrets(); // Must be awaited in each call
+  const secrets = await getSecrets(); 
 
   const {
     EWAY_SOAP_WSDL_URL,
@@ -24,7 +23,6 @@ const createSoapClient = async () => {
   });
 };
 
-// Create Rebill Customer
 const createRebillCustomer = async (customer) => {
   const secrets = await getSecrets();
   const client = await createSoapClient();
@@ -60,7 +58,6 @@ const createRebillCustomer = async (customer) => {
   }
 };
 
-// Trigger first payment
 const triggerInitialRebillPayment = async ({ rebillCustomerID, amount }) => {
   const secrets = await getSecrets();
   const client = await createSoapClient();
@@ -100,7 +97,7 @@ const createRebillSchedule = async ({ rebillCustomerID, startDate, intervalMonth
     RebillInitDate: formattedDate,
     RebillInterval: intervalMonths,
     RebillIntervalType: 'monthly',
-    RebillEndDate: '', // Optional – empty means indefinite or controlled by occurrences
+    RebillEndDate: '', 
     RebillAmount: amount,
     RebillCurrency: 'AUD'
   };
