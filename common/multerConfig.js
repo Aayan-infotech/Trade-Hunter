@@ -14,7 +14,7 @@ const secretsManagerClient = new SecretsManagerClient({ region: 'us-east-1' });
 
 const getAwsCredentials = async () => {
   try {
-    const command = new GetSecretValueCommand({ SecretId:'trade-secrets' });
+    const command = new GetSecretValueCommand({ SecretId:'aws-secret-curd' });
     const data = await secretsManagerClient.send(command);
 
     if (data.SecretString) {
@@ -68,7 +68,7 @@ const uploadToS3 = async (req, res, next) => {
         return res.status(400).send(`Unsupported file type: ${file.mimetype}`);
       }
       const params = {
-        Bucket:'tradehunters',
+        Bucket:'internal-n0wsvav8',
         Key: `${Date.now()}-${file.name}`,
         Body: file.data,
         ContentType: file.mimetype,
