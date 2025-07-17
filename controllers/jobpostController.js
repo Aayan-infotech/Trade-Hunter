@@ -7,125 +7,140 @@ const {Types} = require("mongoose");
 const Provider = require("../models/providerModel");
 const BusinessType = require("../models/serviceModel");
 
+require('dotenv').config();
+const massEmail = require('../services/massNotificationMail');
+
+
+function toRad(deg) { return (deg * Math.PI) / 180; }
+function haversineDistance([lon1, lat1], [lon2, lat2]) {
+  const R = 6371000;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat/2)**2
+    + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))
+    * Math.sin(dLon/2)**2;
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 const createJobPost = async (req, res) => {
   try {
     let {
-      title,
-      longitude,
-      latitude,
-      jobRadius,
-      city,
-      jobAddressLine,
-      estimatedBudget,
-      businessType,
-      requirements,
-      date,
+      title, longitude, latitude, jobRadius,
+      city, jobAddressLine, estimatedBudget,
+      businessType, requirements, date
     } = req.body;
+    if (businessType == null)
+      return res.status(400).json({ message: "Missing required field: businessType" });
+    businessType = Array.isArray(businessType) ? businessType : [businessType];
+    if (businessType.length === 0)
+      return res.status(400).json({ message: "Provide at least one businessType" });
 
-    // 1) Require businessType in payload
-    if (businessType == null) {
-      return res.status(400).json({
-        message: "Missing required field: businessType",
-      });
-    }
-
-    // 2) Normalize businessType into an array
-    businessType = Array.isArray(businessType)
-      ? businessType
-      : [businessType];
-
-    // 3) Verify at least one businessType value
-    if (businessType.length === 0) {
-      return res.status(400).json({
-        message: "businessType must contain at least one value",
-      });
-    }
-
-    const userId   = req.user.userId;
-    const documents = req.files || [];
-
-    // 4) Ensure hunter exists and is active
+    const userId = req.user.userId;
     const hunter = await Hunter.findById(userId);
-    if (!hunter) {
-      return res.status(404).json({ message: "Hunter not found" });
-    }
-    if (hunter.userType !== "hunter" || hunter.userStatus !== "Active") {
-      return res
-        .status(403)
-        .json({ message: "Unauthorized or inactive hunter account" });
-    }
+    if (!hunter || hunter.userType!=='hunter' || hunter.userStatus!=='Active')
+      return res.status(hunter ? 403 : 404).json({ message: hunter ? "Inactive hunter" : "Hunter not found" });
 
-    // 5) Build GeoJSON location
     const jobLocation = {
       city,
       location: {
         type: "Point",
-        coordinates: [
-          parseFloat(longitude),
-          parseFloat(latitude),
-        ],
+        coordinates: [parseFloat(longitude), parseFloat(latitude)]
       },
       jobAddressLine,
-      jobRadius: parseFloat(jobRadius),
+      jobRadius: parseFloat(jobRadius)
     };
 
-    // 6) Parse timeframe if provided
-    const timeframeRaw = req.body.timeframe;
-    const timeframe =
-      timeframeRaw?.from && timeframeRaw?.to
-        ? {
-            from: Number(timeframeRaw.from),
-            to:   Number(timeframeRaw.to),
-          }
-        : null;
-
-    // 7) Validate all other required fields
-    if (
-      !title ||
-      isNaN(jobLocation.location.coordinates[0]) ||
-      isNaN(jobLocation.location.coordinates[1]) ||
-      !jobAddressLine ||
-      isNaN(jobLocation.jobRadius) ||
-      !city ||
-      !date ||
-      !requirements
+    if (!title || isNaN(jobLocation.location.coordinates[0]) ||
+        isNaN(jobLocation.location.coordinates[1]) ||
+        !jobAddressLine || isNaN(jobLocation.jobRadius) ||
+        !city || !date || !requirements
     ) {
       return res.status(400).json({
-        message:
-          "Missing required field(s): title, longitude, latitude, jobAddressLine, jobRadius, city, date, or requirements",
+        message: "Missing or invalid: title, longitude, latitude, jobAddressLine, jobRadius, city, date, or requirements"
       });
     }
 
-    // 8) Create and save the job post
     const jobPost = new JobPost({
       title,
       jobLocation,
       estimatedBudget: estimatedBudget || null,
       businessType,
-      timeframe,
-      documents: req.fileLocations || [],
       requirements,
       user: userId,
       jobStatus: "Pending",
-      date: new Date(date),
+      date: new Date(date)
     });
-
     await jobPost.save();
 
-    // 9) Emit real-time update
-    const io = req.app.get("io");
-    io.emit("new Job", { jobId: jobPost._id });
+    req.app.get("io").emit("new Job", { jobId: jobPost._id });
+
+    const [jobLng, jobLat] = jobPost.jobLocation.location.coordinates;
+
+    let providers = await Provider.find({
+      businessType: { $in: businessType },
+      userStatus: "Active"
+    }).lean();
+
+    providers = providers.filter(prov => {
+      const dist = haversineDistance(
+        [prov.address.location.coordinates[0], prov.address.location.coordinates[1]],
+        [jobLng, jobLat]
+      );
+      return dist <= (prov.address.radius || 0);
+    });
+
+    const subject = `New Job: ${jobPost.title} in ${jobPost.jobLocation.city}`;
+    const htmlMessage = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 30px; color: #2c3e50;">
+        <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden;">
+          <div style="background-color: #004aad; color: white; padding: 20px;">
+            <h2 style="margin: 0;">New Job Opportunity</h2>
+          </div>
+          <div style="padding: 25px;">
+            <p style="font-size: 16px;">Hello <strong>${'{providerName}'}</strong>,</p>
+            <p style="font-size: 15px; line-height: 1.6;">
+              A new job that matches your services just went live:
+            </p>
+            <ul style="font-size: 15px; line-height: 1.6;">
+              <li><strong>Title:</strong> ${jobPost.title}</li>
+              <li><strong>City:</strong> ${jobPost.jobLocation.city}</li>
+              <li><strong>Budget:</strong> ${jobPost.estimatedBudget || 'N/A'}</li>
+              <li><strong>Date:</strong> ${jobPost.date.toDateString()}</li>
+            </ul>
+            <p style="margin: 20px 0;">
+              <a href="${process.env.APP_URL}/jobs/${jobPost._id}" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #004aad; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                View Job Details
+              </a>
+            </p>
+            <hr style="border: none; border-top: 1px solid #e1e4e8;" />
+            <p style="font-size: 12px; color: #95a5a6; text-align: center;">
+              You are receiving this because your profile matches the job’s requirements.
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+
+    await Promise.all(providers.map(prov =>
+      massEmail(
+        prov.email,
+        subject,
+        htmlMessage.replace('{providerName}', prov.contactName),
+        []
+      )
+    ));
 
     return res.status(201).json({
-      message: "Job post created successfully.",
+      message: "Job post created & notifications sent.",
       jobPost,
+      notifiedCount: providers.length
     });
-  } catch (error) {
+  }
+  catch (error) {
     console.error("createJobPost error:", error);
     return res.status(500).json({ error: error.message });
   }
 };
-
 
 const getJobPostById = async (req, res) => {
   try {
