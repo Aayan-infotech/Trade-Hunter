@@ -90,11 +90,6 @@ exports.sendMassNotification = async (req, res) => {
                   <p style="font-size: 15px; line-height: 1.6;">
                     You’ve received a Mass Notification from <strong style="color: #004aad;">Trade Hunters</strong>.
                   </p>
-                  <p style="font-size: 15px; margin-top: 20px; line-height: 1.6;">
-                    <strong>Subject:</strong> ${subject}<br />
-                    <strong>Message:</strong><br />
-                    ${message}
-                  </p>
                   <div style="margin: 30px 0;">
                     <a href="https://tradehunters.com.au" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #004aad; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
                       Visit Trade Hunters
