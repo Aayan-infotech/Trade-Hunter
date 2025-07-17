@@ -41,7 +41,6 @@ const signUpEmail = async (recipient, subject, htmlMessage, attachments = []) =>
       html: htmlMessage,
       attachments,
     };
-
     const info = await transporter.sendMail(mailOptions);
     console.log('📨 Signup Email sent:', info.response);
   } catch (error) {
