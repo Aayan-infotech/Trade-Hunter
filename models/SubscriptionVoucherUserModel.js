@@ -12,15 +12,12 @@ const SubscriptionVoucherUserSchema = new mongoose.Schema({
   },
   subscriptionPlanId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'SubscriptionPlan',
-    required: false
+    ref: 'SubscriptionPlan'
   },
   voucherId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Voucher',
-    required: false
+    ref: 'Voucher'
   },
-
   code: {
     type: String,
     required: function () {
@@ -46,20 +43,39 @@ const SubscriptionVoucherUserSchema = new mongoose.Schema({
     required: true,
     default: 160
   },
-  ewayCustomerToken: {
-    type: String,
-    required: function () {
-      return (this.type === "Subscription" || this.type === "Advertising") && this.autopayActive;
-    }
-  },
-  nextPaymentDate: {
-    type: Date,
-  },
   autopayActive: {
     type: Boolean,
-    default: false,
+    default: false
   },
-
+  subscriptionId: {
+    type: String // Stripe subscription ID
+  },
+  paymentCount: {
+    type: Number,
+    default: 1 // First payment done at initiation
+  },
+  retryCount: {
+    type: Number,
+    default: 0
+  },
+  nextPaymentDate: {
+    type: Date
+  },
+  retryCount: {
+    type: Number,
+    default: 0
+  },
+  lastFailedAttempt: {
+    type: Date
+  },
+  monthlyAmount: {
+    type: Number,
+    required: false // Ensure this is set at creation for 365-day plans
+  },
+  installmentCount: {
+    type: Number,
+    default: 0
+  },
   createdAt: {
     type: Date,
     default: Date.now

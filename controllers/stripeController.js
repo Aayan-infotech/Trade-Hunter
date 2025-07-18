@@ -7,8 +7,17 @@ const SubscriptionPlan = require("../models/SubscriptionPlanModel");
 const SubscriptionType = require("../models/SubscriptionTypeModel");
 const Provider = require("../models/providerModel");
 const generateInvoicePDF = require("../utils/generateInvoicePDF");
-const stripe = require("../services/stripeService");
+const getStripe = require('../services/stripeService');
+const mongoose = require("mongoose");
+let stripe;
 
+(async () => {
+  try {
+    stripe = await getStripe(); 
+  } catch (err) {
+    console.error("Stripe not ready:", err.message);
+  }
+})();
 const startOfDay = (d) => { d.setHours(0, 0, 0, 0); return d; };
 const monthsBetween = (start, end) => {
   const s = new Date(start), e = new Date(end);
@@ -497,55 +506,44 @@ exports.cancelStripeSubscription = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    // Step 1: Validate provider
-    const provider = await Provider.findById(userId);
-    if (!provider) {
-      return res.status(404).json({ success: false, message: "Provider not found" });
-    }
-
-    // Step 2: Find active subscription
-    const currentSubscription = await SubscriptionVoucherUser.findOne({
-      userId,
-      status: "active",
-    }).sort({ startDate: -1 });
-
-    if (!currentSubscription) {
-      return res.status(404).json({ success: false, message: "No active subscription found." });
-    }
-
-    // Step 3: Extract stripe subscription ID safely
-    const stripeSubId = currentSubscription.stripeSubscriptionId || currentSubscription.subscriptionId;
-
-    if (!stripeSubId) {
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({
         success: false,
-        message: "Missing Stripe subscription ID in the database. Cannot cancel.",
+        message: "Invalid userId in request params"
       });
     }
 
-    // Step 4: Cancel Stripe subscription at period end
-    await stripe.subscriptions.update(stripeSubId, {
-      cancel_at_period_end: true,
+    const activeSub = await SubscriptionVoucherUser.findOne({
+      userId: new mongoose.Types.ObjectId(userId), 
+      status: "active"
+    }).sort({ startDate: -1 });
+
+    if (!activeSub) {
+      return res.status(404).json({
+        success: false,
+        message: "No active subscription found to cancel"
+      });
+    }
+
+    activeSub.autopayActive = false;
+    await activeSub.save();
+
+    await Provider.findByIdAndUpdate(userId, {
+      subscriptionStatus: 0
     });
-
-    // Step 5: Update subscription document and provider
-    currentSubscription.autopayActive = false;
-    await currentSubscription.save();
-
-    provider.subscriptionStatus = 0;
-    await provider.save();
 
     return res.status(200).json({
       success: true,
-      message: "Subscription cancelled. Will remain active until period end.",
-      subscription: currentSubscription,
+      message: "Autopay disabled. Subscription will expire at end of current period.",
+      subscription: activeSub
     });
-  } catch (error) {
-    console.error("Error cancelling subscription:", error);
+
+  } catch (err) {
+    console.error("Error cancelling subscription:", err);
     return res.status(500).json({
       success: false,
-      message: "Error cancelling subscription",
-      error: error.message,
+      message: "Internal server error while cancelling subscription",
+      error: err.message
     });
   }
 };

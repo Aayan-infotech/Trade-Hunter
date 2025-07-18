@@ -41,5 +41,6 @@ router.post('/pay', (req, res) => {
 router.get('/getAllTransactions', ewayController.getAllTransactions);
 router.get('/totalRevenue', ewayController.getTotalSubscriptionRevenue);
 router.get('/getSusbcriptionById', verifyUser, ewayController.getSubscriptionByUserId);
-
+router.get("/stripe/session/:sessionId", ewayController.getStripeSessionDetails);
+router.post('/cancel-subscription/:userId', ewayController.cancelStripeSubscription);
 module.exports = router;

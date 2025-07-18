@@ -3,15 +3,18 @@ const path = require("path");
 const fs = require("fs");
 
 module.exports = async function generateInvoicePDF({
-  provider,
-  subscriptionPlan,
-  subscriptionType,
-  transactionId,
-  invoiceDate,
-  amountCharged
+  provider = {},
+  subscriptionPlan = {},
+  subscriptionType = {},
+  transactionId = "N/A",
+  invoiceDate = new Date(),
+  amountCharged = 0
 }) {
   return new Promise((resolve, reject) => {
     try {
+      amountCharged = Number(amountCharged);
+      if (isNaN(amountCharged)) amountCharged = 0;
+
       const doc = new PDFDocument({ margin: 50 });
       const buffers = [];
 
@@ -21,8 +24,11 @@ module.exports = async function generateInvoicePDF({
         resolve(pdfBuffer);
       });
 
-      const txIdSafe = (transactionId ?? "N/A").toString();
-      const nowDate = invoiceDate?.toLocaleDateString() ?? new Date().toLocaleDateString();
+      // Only show last 6 digits/characters of the transaction ID
+      const txIdRaw = transactionId?.toString() ?? "N/A";
+      const txIdSafe = txIdRaw.length > 6 ? txIdRaw.slice(-6) : txIdRaw;
+
+      const nowDate = new Date(invoiceDate).toLocaleDateString();
       const subTotal = +(amountCharged / 1.1).toFixed(2);
       const gst = +(amountCharged - subTotal).toFixed(2);
 
@@ -34,10 +40,10 @@ module.exports = async function generateInvoicePDF({
 
       const logoPath = path.join(__dirname, "tredhunter.jpg");
 
-      // Header
       if (fs.existsSync(logoPath)) {
         doc.image(logoPath, leftX, y - 10, { width: 50 });
       }
+
       doc
         .font("Helvetica-Bold")
         .fontSize(18)
@@ -54,7 +60,6 @@ module.exports = async function generateInvoicePDF({
         .stroke();
       y += 15;
 
-      // Business Info
       doc
         .fontSize(11)
         .fillColor("#003366")
@@ -76,7 +81,7 @@ module.exports = async function generateInvoicePDF({
       doc
         .fillColor("#003366")
         .font("Helvetica-Bold")
-        .text("Invoice No.:", rightX + 50, y - 20)
+        .text("Invoice No.:", rightX + 45, y - 20)
         .font("Helvetica")
         .fillColor("black")
         .text(txIdSafe, rightX + 130, y - 20);
@@ -84,10 +89,10 @@ module.exports = async function generateInvoicePDF({
       doc
         .fillColor("#003366")
         .font("Helvetica-Bold")
-        .text("Invoice Date:", rightX + 50, y)
+        .text("Invoice Date:", rightX + 50, y + 10)
         .font("Helvetica")
         .fillColor("black")
-        .text(nowDate, rightX + 130, y);
+        .text(nowDate, rightX + 130, y + 10);
 
       y += 60;
 
@@ -128,7 +133,7 @@ module.exports = async function generateInvoicePDF({
         .text("Amount:", rightX + 80, y)
         .fillColor("black")
         .font("Helvetica")
-        .text(`$${subscriptionPlan?.amount ?? "0.00"}`, rightX + 150, y);
+        .text(`$${subscriptionPlan?.amount?.toFixed(2) ?? "0.00"}`, rightX + 150, y);
 
       y += lineHeight * 2;
 
