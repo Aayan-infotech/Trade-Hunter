@@ -84,6 +84,7 @@ app.use("/api/provider", require("./routes/providerRoutes"));
 app.use("/api/jobpost", require("./routes/jobpostRoutes"));
 app.use("/api/address", require("./routes/addressRoute"));
 app.use("/api/eway", require("./routes/ewayRoutes"));
+app.use("/api/stripe", require("./routes/stripeRoutes"))
 
 app.get('/testmsg', (req,res) => {
   res.send('Hello world 1234');
