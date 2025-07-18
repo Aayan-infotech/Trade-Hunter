@@ -1,5 +1,6 @@
 const express = require("express");
 const http = require("http");
+const cron = require("node-cron")
 const { Server } = require("socket.io");
 const bodyParser = require("body-parser");
 const dotenv = require("dotenv");
@@ -9,6 +10,7 @@ const fileUpload=require('express-fileupload');
 const connectDB = require("./config/db");
 const path = require('path');
 const JobPost = require('./models/jobpostModel');
+const runStripeRecurringBillingCron = require("./middlewares/stripeRecurringPayment");
 dotenv.config();
 
 const app = express();
@@ -114,6 +116,12 @@ app.use((err, req, res, next) => {
     error: err.message,
   });
 });
+
+
+cron.schedule("0 2 * * *", runStripeRecurringBillingCron);
+
+// Every hour
+cron.schedule("0 * * * *", runStripeRecurringBillingCron);
 
 
 server.listen(PORT, () => {
