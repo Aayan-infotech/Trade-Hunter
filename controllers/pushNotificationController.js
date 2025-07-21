@@ -185,14 +185,13 @@ exports.getNotificationsByUserId = async (req, res) => {
     // 1) Fetch personal notifications (EXCLUDE deletedBy user)
     const personalNotifs = await Notification.find({
       receiverId: new ObjectId(receiverId),
-      deletedBy: { $ne: new ObjectId(receiverId) },
+      deletedBy: { $ne: new ObjectId(receiverId) }
     }).lean();
 
     // 2) Enrich personal notifications
     const enrichedPersonal = await Promise.all(
       personalNotifs.map(async (notif) => {
         let userName = null;
-
         if (notif.notificationType === "admin_message") {
           userName = "Admin";
         } else if (notif.userId) {
@@ -222,32 +221,33 @@ exports.getNotificationsByUserId = async (req, res) => {
           userName,
           isRead: !!notif.isRead,
           jobDetails,
+          type: 'push',
         };
       })
     );
 
     // 3) Find join date
-    const joinRecord =
-      userType === "provider"
-        ? await Provider.findById(receiverId).select("createdAt").lean()
-        : await Hunter.findById(receiverId).select("createdAt").lean();
+    const joinModel = userType === "provider" ? Provider : Hunter;
+    const joinRecord = await joinModel.findById(receiverId).select("createdAt").lean();
     const joinDate = joinRecord?.createdAt || new Date(0);
 
-    // 4) Fetch mass notifications (EXCLUDE deleted + read)
+    // 4) Fetch mass notifications (EXCLUDE read, EXCLUDE deletedBy user)
     const massNotifs = await massNotification.find({
       userType,
       createdAt: { $gte: joinDate },
       readBy: { $ne: new ObjectId(receiverId) },
+      deletedBy: { $ne: new ObjectId(receiverId) } // <-- this line ensures soft deleted mass notifications are not shown
     }).lean();
 
     const formattedMass = massNotifs.map((mn) => ({
       ...mn,
       isRead: mn.readBy?.some((id) => id.toString() === receiverId),
+      type: 'mass',
     }));
 
     // 5) Combine, paginate, return
     const allNotifs = [...enrichedPersonal, ...formattedMass].sort(
-      (a, b) => b.createdAt - a.createdAt
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt) // Make sure sorting treats dates as Date
     );
 
     const total = allNotifs.length;
@@ -646,9 +646,9 @@ exports.deleteNotificationById = async (req, res) => {
   }
 };
 
-exports.deleteNotificationByIdforUser = async (req, res) => {
+exports.deleteNotificationByIdForUser = async (req, res) => {
   try {
-    const { notificationId } = req.params;
+    const { notificationId, type } = req.params; // type: 'push' or 'mass'
     const userId = req.user.userId;
 
     if (!notificationId || !userId) {
@@ -660,28 +660,55 @@ exports.deleteNotificationByIdforUser = async (req, res) => {
       });
     }
 
-    const notification = await Notification.findById(notificationId);
-
-    if (!notification) {
-      return res.status(404).json({
-        status: 404,
+    if (type === "push") {
+      const notification = await Notification.findById(notificationId);
+      if (!notification) {
+        return res.status(404).json({
+          status: 404,
+          success: false,
+          message: "Notification not found.",
+          data: [],
+        });
+      }
+      if (!notification.deletedBy || notification.deletedBy.toString() !== userId) {
+        notification.deletedBy = userId;
+        await notification.save();
+      }
+      return res.status(200).json({
+        status: 200,
+        success: true,
+        message: "Notification deleted from user view.",
+        data: [notification],
+      });
+    } else if (type === "mass") {
+      const notification = await massNotification.findById(notificationId);
+      if (!notification) {
+        return res.status(404).json({
+          status: 404,
+          success: false,
+          message: "Mass notification not found.",
+          data: [],
+        });
+      }
+      if (!notification.deletedBy) notification.deletedBy = [];
+      if (!notification.deletedBy.map(id => id.toString()).includes(userId)) {
+        notification.deletedBy.push(userId);
+        await notification.save();
+      }
+      return res.status(200).json({
+        status: 200,
+        success: true,
+        message: "Mass notification deleted from user view.",
+        data: [notification],
+      });
+    } else {
+      return res.status(400).json({
+        status: 400,
         success: false,
-        message: "Notification not found.",
+        message: "Invalid notification type.",
         data: [],
       });
     }
-
-    if (!notification.deletedBy || notification.deletedBy.toString() !== userId) {
-      notification.deletedBy = userId;
-      await notification.save();
-    }
-
-    return res.status(200).json({
-      status: 200,
-      success: true,
-      message: "Notification deleted from user view.",
-      data: [notification],
-    });
   } catch (error) {
     console.error("Error deleting notification:", error);
     return res.status(500).json({
