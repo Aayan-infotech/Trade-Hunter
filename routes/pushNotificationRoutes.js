@@ -14,7 +14,7 @@ router.get('/getAdminNotification/:receiverId',verifyUser,  notificationControll
 router.delete('/deleteNotification/:notificationId',verifyUser, notificationController.deleteNotificationById);
 router.patch("/notification/:type/:id", notificationController.updateNotificationStatus);
 router.get('/expiring-soon',verifyUser, notificationController.getExpiringSoonVouchers);
-router.delete('/deleteforUser/:notificationId', verifyUser, notificationController.deleteNotificationByIdforUser);
+router.delete('/deleteforUser/:notificationId', verifyUser, notificationController.deleteNotificationByIdForUser);
 // In routes/notificationRoutes.js or wherever your routes are defined
 router.get("/unread-count/:userType", verifyUser, notificationController.getUnreadNotificationCount);
 
