@@ -354,6 +354,7 @@ exports.getStripeSessionDetails = async (req, res) => {
     const todayMidnight = new Date();
     todayMidnight.setHours(0, 0, 0, 0);
 
+   
     const existingActive = await SubscriptionVoucherUser.findOne({
       userId,
       status: "active"
@@ -363,6 +364,7 @@ exports.getStripeSessionDetails = async (req, res) => {
     if (existingActive && existingActive.type !== "Subscription") {
       existingActive.status = "expired";
       existingActive.endDate = todayMidnight;
+      existingActive.autopayActive = false;      
       await existingActive.save();
       newStartDate = todayMidnight;
       newStatus = "active";
@@ -451,8 +453,8 @@ exports.getStripeSessionDetails = async (req, res) => {
     await Provider.findByIdAndUpdate(userId, {
       subscriptionStatus: 1,
       currentSubscription: newSub._id,
-      isGuestMode:false,
-      subscriptionPlanId:subscriptionPlanId
+      isGuestMode: false,
+      subscriptionPlanId: subscriptionPlanId
     });
 
     const amountCharged = amountPaid / 100;
