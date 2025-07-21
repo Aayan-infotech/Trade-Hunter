@@ -41,7 +41,7 @@ router.post("/logout", verifyUser, logout);
 router.post("/verify-email", verifyEmail);
 router.post("/verify-otp", verifyOtp);
 router.post("/forgot-password", forgotPassword);
-router.post("/reset-password-with-otp", resetPasswordWithOTP);
+router.post("/reset-password-with-otp/:userId", resetPasswordWithOTP);
 router.post("/changePassword/:id", changePassword);
 router.post("/refreshtoken", refreshToken);
 router.get("/getProviderProfile", verifyUser, getProviderProfile);

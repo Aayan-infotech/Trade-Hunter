@@ -586,11 +586,21 @@ const verifyOtp = async (req, res) => {
 };
 
 const resetPasswordWithOTP = async (req, res) => {
-  const { email, newPassword } = req.body;
-
   try {
-    const passwordRegex =
-      /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+    const { newPassword, email } = req.body;
+    const userId = req.params.userId; // extract from URL params
+
+    // Require either userId or email (for safety)
+    if (!userId && !email) {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "userId (as param) or email (in body) is required.",
+      });
+    }
+
+    // Validate new password strength
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
     if (!passwordRegex.test(newPassword)) {
       return res.status(400).json({
         status: 400,
@@ -600,15 +610,22 @@ const resetPasswordWithOTP = async (req, res) => {
       });
     }
 
-    let user = await User.findOne({ email });
-    if (!user) user = await Provider.findOne({ email });
-
-    if (!user) {
-      return res.status(404).json({ status: 404, message: "Invalid Email" });
+    // Find user in User (Hunter) model or Provider model by userId or email
+    let user = null;
+    if (userId) {
+      user = await User.findById(userId);
+      if (!user) user = await Provider.findById(userId);
+    } else if (email) {
+      user = await User.findOne({ email });
+      if (!user) user = await Provider.findOne({ email });
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
+    if (!user) {
+      return res.status(404).json({ status: 404, message: "User not found" });
+    }
+
+    // Hash and set the new password
+    user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
 
     return res
