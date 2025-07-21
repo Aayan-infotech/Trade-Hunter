@@ -587,19 +587,32 @@ const verifyOtp = async (req, res) => {
 
 const resetPasswordWithOTP = async (req, res) => {
   try {
-    const { newPassword, email } = req.body;
-    const userId = req.params.userId; // extract from URL params
+    const { email, newPassword } = req.body;
+    const role = (req.params.role || '').toLowerCase();
 
-    // Require either userId or email (for safety)
-    if (!userId && !email) {
+    if (!role || !email || !newPassword) {
       return res.status(400).json({
         status: 400,
         success: false,
-        message: "userId (as param) or email (in body) is required.",
+        message: "role (as param), email and newPassword (in body) are required."
       });
     }
 
-    // Validate new password strength
+    // Validate role and pick model
+    let Model;
+    if (role === "hunter") {
+      Model = User;
+    } else if (role === "provider") {
+      Model = Provider;
+    } else {
+      return res.status(400).json({
+        status: 400,
+        success: false,
+        message: "Invalid role: must be 'hunter' or 'provider'."
+      });
+    }
+
+    // Password validation
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
     if (!passwordRegex.test(newPassword)) {
       return res.status(400).json({
@@ -610,31 +623,24 @@ const resetPasswordWithOTP = async (req, res) => {
       });
     }
 
-    // Find user in User (Hunter) model or Provider model by userId or email
-    let user = null;
-    if (userId) {
-      user = await User.findById(userId);
-      if (!user) user = await Provider.findById(userId);
-    } else if (email) {
-      user = await User.findOne({ email });
-      if (!user) user = await Provider.findOne({ email });
-    }
+    // Find user by email in the selected model
+    const user = await Model.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({ status: 404, message: "User not found" });
+      return res.status(404).json({ status: 404, success: false, message: "User not found" });
     }
 
-    // Hash and set the new password
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
 
     return res
       .status(200)
-      .json({ status: 200, message: "Password reset successfully" });
+      .json({ status: 200, success: true, message: "Password reset successfully" });
+
   } catch (err) {
     return res
       .status(500)
-      .json({ status: 500, message: "Server error", error: err.message });
+      .json({ status: 500, success: false, message: "Server error", error: err.message });
   }
 };
 
