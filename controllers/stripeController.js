@@ -450,7 +450,9 @@ exports.getStripeSessionDetails = async (req, res) => {
 
     await Provider.findByIdAndUpdate(userId, {
       subscriptionStatus: 1,
-      currentSubscription: newSub._id
+      currentSubscription: newSub._id,
+      isGuestMode:false,
+      subscriptionPlanId:subscriptionPlanId
     });
 
     const amountCharged = amountPaid / 100;

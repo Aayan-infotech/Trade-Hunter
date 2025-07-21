@@ -109,13 +109,10 @@ const createJobPost = async (req, res) => {
             <ul style="font-size: 15px; line-height: 1.6;">
               <li><strong>Title:</strong> ${jobPost.title}</li>
               <li><strong>City:</strong> ${jobPost.jobLocation.city}</li>
-              <li><strong>Budget:</strong> ${jobPost.estimatedBudget || 'N/A'}</li>
               <li><strong>Date:</strong> ${jobPost.date.toDateString()}</li>
             </ul>
             <p style="margin: 20px 0;">
-              <a href="${process.env.APP_URL}/jobs/${jobPost._id}" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #004aad; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
-                View Job Details
-              </a>
+              <p>To View Job Please Log Into Your TradeHunters Account</p>
             </p>
             <hr style="border: none; border-top: 1px solid #e1e4e8;" />
             <p style="font-size: 12px; color: #95a5a6; text-align: center;">

@@ -86,18 +86,25 @@ exports.sendMassNotification = async (req, res) => {
           else if (user.contactName) displayName = user.contactName;
 
           const htmlContent = `
-            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f6fa; padding: 32px;">
+<div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f6fa; padding: 32px;">
               <div style="max-width: 640px; margin: auto; background: #ffffff; border-radius: 14px; box-shadow:0 4px 24px 0 rgba(0,0,0,0.07); overflow: hidden;">
                 <div style="background: linear-gradient(90deg, #004aad, #145acf); color: #fff; padding: 32px 20px 20px 20px;">
-                  <img src="https://tradehunters.com.au/logo.png" alt="Trade Hunters" style="width: 160px; max-width: 80%; margin-bottom: 16px;" />
                   <h2 style="margin: 0 0 8px 0;">Mass Notification</h2>
                   <p style="font-size: 19px; font-weight: 500; line-height: 1.5; margin:0;">${subject}</p>
                 </div>
                 <div style="padding: 32px 20px 26px 20px;">
                   <p style="font-size: 16px;">Hi <strong>${displayName}</strong>,</p>
-                  <div style="font-size: 15px; line-height: 1.7; margin: 18px 0;">
-                    ${message}
+                   <div style="font-size: 15px; line-height: 1.7; margin: 18px 0;">
+                    <div style="display: flex;flex-direction: row;align-items:start">
+                    <b>Subject:</b><p style="margin:0">test</p>
+                    </div>
                   </div>
+                  <div style="font-size: 15px; line-height: 1.7; margin: 18px 0;">
+                    <div style="display: flex;flex-direction: row;align-items:start">
+                    <b>Message:</b><p style="margin:0"> ${message}</p>
+                    </div>
+                  </div>
+                
                   <a href="https://tradehunters.com.au" target="_blank"
                      style="display:inline-block; margin: 22px 0 10px 0; font-size:15px; background:linear-gradient(90deg,#004aad,#145acf); color:#fff; padding:14px 36px; border-radius:7px; text-decoration:none; font-weight:bold; letter-spacing:0.5px;">
                     Visit Trade Hunters
@@ -110,6 +117,7 @@ exports.sendMassNotification = async (req, res) => {
                 </div>
               </div>
             </div>
+
           `;
 
           try {

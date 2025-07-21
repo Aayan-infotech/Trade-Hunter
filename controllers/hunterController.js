@@ -412,7 +412,7 @@ exports.sendJobAssignmentEmail = async (req, res) => {
             <p style="font-size: 16px;">Hi <strong>${businessName}</strong>,</p>
 
             <p style="font-size: 15px; line-height: 1.6;">
-              You've been assigned a new job titled
+              You've been assigned the Job 
               <strong style="color: #27ae60;">${title}</strong> by
               <strong style="color: #004aad;">${contactName}</strong>.
             </p>
@@ -421,11 +421,6 @@ exports.sendJobAssignmentEmail = async (req, res) => {
               Please log in to your Trade Hunters account to view full details and respond.
             </p>
 
-            <div style="margin: 30px 0;">
-              <a href="https://tradehunters.com.au" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #004aad; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
-                View Job
-              </a>
-            </div>
 
             <hr style="border: none; border-top: 1px solid #e1e4e8;" />
 
@@ -489,13 +484,6 @@ exports.sendDirectMessageEmail = async (req, res) => {
           <p style="font-size: 15px;">
             To View and  respond to this message, please login to your Trade Hunters Account.
           </p>
-
-          <!-- CTA Button -->
-          <div style="margin: 30px 0;">
-            <a href="https://tradehunters.com.au" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #004aad; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
-              View Message
-            </a>
-          </div>
 
           <hr style="border: none; border-top: 1px solid #e1e4e8;" />
 
