@@ -104,11 +104,6 @@ exports.sendMassNotification = async (req, res) => {
                     <b>Message:</b><p style="margin:0"> ${message}</p>
                     </div>
                   </div>
-                
-                  <a href="https://tradehunters.com.au" target="_blank"
-                     style="display:inline-block; margin: 22px 0 10px 0; font-size:15px; background:linear-gradient(90deg,#004aad,#145acf); color:#fff; padding:14px 36px; border-radius:7px; text-decoration:none; font-weight:bold; letter-spacing:0.5px;">
-                    Visit Trade Hunters
-                  </a>
                   <hr style="border:none; border-top:1px solid #e1e6eb; margin:32px 0 17px 0" />
                   <div style="color:#7a869a; font-size:12px; text-align:center;">
                     This is an automated notification from Trade Hunters.<br>
