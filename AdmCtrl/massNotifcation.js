@@ -54,62 +54,77 @@ exports.sendMassNotification = async (req, res) => {
 
     setImmediate(async () => {
       try {
+        // 1. PUSH NOTIFICATIONS
         const deviceTokenEntries = await deviceTokenModel.find({ userType });
         const pushPromises = [];
-
         for (const entry of deviceTokenEntries) {
           if (entry.deviceToken) {
             const push = pushNotification(subject, message, entry.deviceToken).catch(console.error);
             pushPromises.push(push);
           }
         }
-
         await Promise.all(pushPromises);
         console.log("Push notifications sent successfully.");
 
+        // 2. EMAILS (ONE BY ONE!)
         let users = [];
         if (userType === "hunter") {
-          users = await Hunter.find({}, "email");
+          users = await Hunter.find({}, "email firstName lastName");
         } else if (userType === "provider") {
-          users = await Provider.find({}, "email");
+          users = await Provider.find({}, "email contactName");
         }
 
-        const emailAddresses = users
-          .map(user => user.email)
-          .filter(email => !!email); 
+        // Filter to only emails and take names if available
+        let notifiedCount = 0;
+        for (const user of users) {
+          const email = user.email;
+          if (!email) continue;
 
-        if (emailAddresses.length > 0) {
+          // Pick a display name if possible
+          let displayName = "there";
+          if (user.firstName) displayName = user.firstName;
+          else if (user.contactName) displayName = user.contactName;
+
           const htmlContent = `
-            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 30px; color: #2c3e50;">
-              <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden;">
-                <div style="background-color: #004aad; color: white; padding: 20px;">
-                  <h2 style="margin: 0;"> Trade Hunters MassNotification</h2>
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f6fa; padding: 32px;">
+              <div style="max-width: 640px; margin: auto; background: #ffffff; border-radius: 14px; box-shadow:0 4px 24px 0 rgba(0,0,0,0.07); overflow: hidden;">
+                <div style="background: linear-gradient(90deg, #004aad, #145acf); color: #fff; padding: 32px 20px 20px 20px;">
+                  <img src="https://tradehunters.com.au/logo.png" alt="Trade Hunters" style="width: 160px; max-width: 80%; margin-bottom: 16px;" />
+                  <h2 style="margin: 0 0 8px 0;">Mass Notification</h2>
+                  <p style="font-size: 19px; font-weight: 500; line-height: 1.5; margin:0;">${subject}</p>
                 </div>
-                <div style="padding: 25px;">
-                  <p style="font-size: 16px;">Hello,</p>
-                  <p style="font-size: 15px; line-height: 1.6;">
-                    You’ve received a Mass Notification from <strong style="color: #004aad;">Trade Hunters</strong>.
-                  </p>
-                  <div style="margin: 30px 0;">
-                    <a href="https://tradehunters.com.au" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #004aad; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
-                      Visit Trade Hunters
-                    </a>
+                <div style="padding: 32px 20px 26px 20px;">
+                  <p style="font-size: 16px;">Hi <strong>${displayName}</strong>,</p>
+                  <div style="font-size: 15px; line-height: 1.7; margin: 18px 0;">
+                    ${message}
                   </div>
-                  <hr style="border: none; border-top: 1px solid #e1e4e8;" />
-                  <p style="font-size: 12px; color: #95a5a6; text-align: center; margin-top: 20px;">
-                    This is an automated notification from Trade Hunters. Please do not reply to this email.
-                  </p>
+                  <a href="https://tradehunters.com.au" target="_blank"
+                     style="display:inline-block; margin: 22px 0 10px 0; font-size:15px; background:linear-gradient(90deg,#004aad,#145acf); color:#fff; padding:14px 36px; border-radius:7px; text-decoration:none; font-weight:bold; letter-spacing:0.5px;">
+                    Visit Trade Hunters
+                  </a>
+                  <hr style="border:none; border-top:1px solid #e1e6eb; margin:32px 0 17px 0" />
+                  <div style="color:#7a869a; font-size:12px; text-align:center;">
+                    This is an automated notification from Trade Hunters.<br>
+                    Please do not reply to this email.
+                  </div>
                 </div>
               </div>
             </div>
           `;
 
-          await massEmail(emailAddresses, subject, htmlContent);
-          console.log("Mass email sent successfully to all users.");
-        } else {
-          console.warn("No email addresses found.");
+          try {
+            await massEmail(email, subject, htmlContent);
+            notifiedCount++;
+          } catch (emailErr) {
+            console.error(`Failed to email ${email}:`, emailErr);
+          }
         }
 
+        if (notifiedCount > 0) {
+          console.log(`Mass email sent successfully to ${notifiedCount} users.`);
+        } else {
+          console.warn("No email addresses notified.");
+        }
       } catch (bgError) {
         console.error("Error during background processing:", bgError);
       }
@@ -120,6 +135,7 @@ exports.sendMassNotification = async (req, res) => {
     return res.status(500).json({ error: "Internal server error." });
   }
 };
+
 
 
 
