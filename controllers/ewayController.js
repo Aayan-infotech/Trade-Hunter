@@ -376,6 +376,7 @@ exports.getSubscriptionByUserId = async (req, res) => {
           subscriptionStartDate: v?.startDate ?? null,
           subscriptionEndDate: v?.endDate ?? null,
           subscriptionStatus: v?.status ?? null,
+          autopayActive: v?.autopayActive ?? null // <-- Added this property
         });
       }
     }
@@ -396,6 +397,7 @@ exports.getSubscriptionByUserId = async (req, res) => {
     });
   }
 };
+
 
 
 

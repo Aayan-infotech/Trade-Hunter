@@ -62,12 +62,8 @@ const createJobPost = async (req, res) => {
       });
     }
 
-    // Handle documents - extract URLs from uploaded files if any
-    let documents = [];
-    if (req.files && req.files.length > 0) {
-      // Assuming your S3 upload middleware adds a "location" property with URL for each file
-      documents = req.files.map(file => file.location || file.url || file.path);
-    }
+    // ⭐️ use req.fileLocations as you did in your working code
+    const documents = req.fileLocations || [];
 
     const jobPost = new JobPost({
       title,
@@ -78,7 +74,7 @@ const createJobPost = async (req, res) => {
       user: userId,
       jobStatus: "Pending",
       date: new Date(date),
-      documents   // <-- Save uploaded document URLs here
+      documents // <<==== This is what works with your S3 middleware
     });
 
     await jobPost.save();
@@ -94,7 +90,6 @@ const createJobPost = async (req, res) => {
       userStatus: "Active"
     }).lean();
 
-    // Filter providers by location radius with haversine distance
     providers = providers.filter(prov => {
       const coords = prov.address?.location?.coordinates;
       const radius = prov.address?.radius || 0;
@@ -164,7 +159,6 @@ const createJobPost = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
-
 
 const getJobPostById = async (req, res) => {
   try {
