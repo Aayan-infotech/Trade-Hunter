@@ -327,7 +327,7 @@ exports.getSubscriptionByUserId = async (req, res) => {
       .lean();
 
     const subscriptions = await SubscriptionVoucherUser.find({ userId })
-      .select("subscriptionPlanId startDate endDate status")
+      .select("subscriptionPlanId startDate endDate status autopayActive")
       .lean();
 
     const txByPlan = {};

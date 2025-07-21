@@ -1,9 +1,7 @@
 const JobPost = require("../models/jobpostModel");
 const apiResponse = require("../utils/responsehandler");
 const Hunter = require("../models/hunterModel");
-const auth = require("../middlewares/auth");
 const mongoose = require("mongoose");
-const { Types } = require("mongoose");
 const Provider = require("../models/providerModel");
 const BusinessType = require("../models/serviceModel");
 
@@ -28,6 +26,8 @@ const createJobPost = async (req, res) => {
       city, jobAddressLine, estimatedBudget,
       businessType, requirements, date
     } = req.body;
+
+    // Validate businessType presence and format
     if (businessType == null)
       return res.status(400).json({ message: "Missing required field: businessType" });
     businessType = Array.isArray(businessType) ? businessType : [businessType];
@@ -49,6 +49,7 @@ const createJobPost = async (req, res) => {
       jobRadius: parseFloat(jobRadius)
     };
 
+    // Validate mandatory fields
     if (
       !title ||
       isNaN(jobLocation.location.coordinates[0]) ||
@@ -61,6 +62,13 @@ const createJobPost = async (req, res) => {
       });
     }
 
+    // Handle documents - extract URLs from uploaded files if any
+    let documents = [];
+    if (req.files && req.files.length > 0) {
+      // Assuming your S3 upload middleware adds a "location" property with URL for each file
+      documents = req.files.map(file => file.location || file.url || file.path);
+    }
+
     const jobPost = new JobPost({
       title,
       jobLocation,
@@ -69,20 +77,24 @@ const createJobPost = async (req, res) => {
       requirements,
       user: userId,
       jobStatus: "Pending",
-      date: new Date(date)
+      date: new Date(date),
+      documents   // <-- Save uploaded document URLs here
     });
+
     await jobPost.save();
 
+    // Emit socket event for realtime client notifications
     req.app.get("io").emit("new Job", { jobId: jobPost._id });
 
     const [jobLng, jobLat] = jobPost.jobLocation.location.coordinates;
 
+    // Find all active providers matching the business types
     let providers = await Provider.find({
       businessType: { $in: businessType },
       userStatus: "Active"
     }).lean();
 
-    // Filter providers by distance
+    // Filter providers by location radius with haversine distance
     providers = providers.filter(prov => {
       const coords = prov.address?.location?.coordinates;
       const radius = prov.address?.radius || 0;
@@ -123,7 +135,7 @@ const createJobPost = async (req, res) => {
       </div>
     `;
 
-    // Send emails sequentially (one by one)
+    // Send emails sequentially to providers
     let notifiedCount = 0;
     for (const prov of providers) {
       try {
@@ -136,21 +148,23 @@ const createJobPost = async (req, res) => {
         notifiedCount++;
       } catch (emailErr) {
         console.error(`Failed to email ${prov.email}:`, emailErr);
-        // continue to next provider regardless of error
+        // Continue sending other emails regardless of error
       }
     }
 
+    // Return success response
     return res.status(201).json({
       message: "Job post created & notifications sent.",
       jobPost,
       notifiedCount
     });
-  }
-  catch (error) {
+
+  } catch (error) {
     console.error("createJobPost error:", error);
     return res.status(500).json({ error: error.message });
   }
 };
+
 
 const getJobPostById = async (req, res) => {
   try {
