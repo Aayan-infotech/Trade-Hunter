@@ -89,14 +89,14 @@ exports.sendMassNotification = async (req, res) => {
 <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f6fa; padding: 32px;">
               <div style="max-width: 640px; margin: auto; background: #ffffff; border-radius: 14px; box-shadow:0 4px 24px 0 rgba(0,0,0,0.07); overflow: hidden;">
                 <div style="background: linear-gradient(90deg, #004aad, #145acf); color: #fff; padding: 32px 20px 20px 20px;">
-                  <h2 style="margin: 0 0 8px 0;">Mass Notification</h2>
-                  <p style="font-size: 19px; font-weight: 500; line-height: 1.5; margin:0;">${subject}</p>
+                  <h2 style="margin: 0 0 8px 0;">Trade Hunters Notification</h2>
+                  <p style="font-size: 19px; font-weight: 500; line-height: 1.5; margin:0;"></p>
                 </div>
                 <div style="padding: 32px 20px 26px 20px;">
-                  <p style="font-size: 16px;">Hi <strong>${displayName}</strong>,</p>
+                  <p style="font-size: 16px;">Hello,</p>
                    <div style="font-size: 15px; line-height: 1.7; margin: 18px 0;">
                     <div style="display: flex;flex-direction: row;align-items:start">
-                    <b>Subject:</b><p style="margin:0">test</p>
+                    <b>Subject:</b><p style="margin:0">${subject}</p>
                     </div>
                   </div>
                   <div style="font-size: 15px; line-height: 1.7; margin: 18px 0;">
