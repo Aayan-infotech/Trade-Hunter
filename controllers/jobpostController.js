@@ -3,22 +3,21 @@ const apiResponse = require("../utils/responsehandler");
 const Hunter = require("../models/hunterModel");
 const auth = require("../middlewares/auth");
 const mongoose = require("mongoose");
-const {Types} = require("mongoose");
+const { Types } = require("mongoose");
 const Provider = require("../models/providerModel");
 const BusinessType = require("../models/serviceModel");
 
 require('dotenv').config();
 const massEmail = require('../services/massNotificationMail');
 
-
 function toRad(deg) { return (deg * Math.PI) / 180; }
 function haversineDistance([lon1, lat1], [lon2, lat2]) {
   const R = 6371000;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
-  const a = Math.sin(dLat/2)**2
-    + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))
-    * Math.sin(dLon/2)**2;
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2))
+    * Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
@@ -37,7 +36,7 @@ const createJobPost = async (req, res) => {
 
     const userId = req.user.userId;
     const hunter = await Hunter.findById(userId);
-    if (!hunter || hunter.userType!=='hunter' || hunter.userStatus!=='Active')
+    if (!hunter || hunter.userType !== 'hunter' || hunter.userStatus !== 'Active')
       return res.status(hunter ? 403 : 404).json({ message: hunter ? "Inactive hunter" : "Hunter not found" });
 
     const jobLocation = {
@@ -50,10 +49,12 @@ const createJobPost = async (req, res) => {
       jobRadius: parseFloat(jobRadius)
     };
 
-    if (!title || isNaN(jobLocation.location.coordinates[0]) ||
-        isNaN(jobLocation.location.coordinates[1]) ||
-        !jobAddressLine || isNaN(jobLocation.jobRadius) ||
-        !city || !date || !requirements
+    if (
+      !title ||
+      isNaN(jobLocation.location.coordinates[0]) ||
+      isNaN(jobLocation.location.coordinates[1]) ||
+      !jobAddressLine || isNaN(jobLocation.jobRadius) ||
+      !city || !date || !requirements
     ) {
       return res.status(400).json({
         message: "Missing or invalid: title, longitude, latitude, jobAddressLine, jobRadius, city, date, or requirements"
@@ -81,12 +82,16 @@ const createJobPost = async (req, res) => {
       userStatus: "Active"
     }).lean();
 
+    // Filter providers by distance
     providers = providers.filter(prov => {
+      const coords = prov.address?.location?.coordinates;
+      const radius = prov.address?.radius || 0;
+      if (!coords || coords.length < 2) return false;
       const dist = haversineDistance(
-        [prov.address.location.coordinates[0], prov.address.location.coordinates[1]],
+        [coords[0], coords[1]],
         [jobLng, jobLat]
       );
-      return dist <= (prov.address.radius || 0);
+      return dist <= radius;
     });
 
     const subject = `New Job: ${jobPost.title} in ${jobPost.jobLocation.city}`;
@@ -97,7 +102,7 @@ const createJobPost = async (req, res) => {
             <h2 style="margin: 0;">New Job Opportunity</h2>
           </div>
           <div style="padding: 25px;">
-            <p style="font-size: 16px;">Hello <strong>${'{providerName}'}</strong>,</p>
+            <p style="font-size: 16px;">Hello <strong>{providerName}</strong>,</p>
             <p style="font-size: 15px; line-height: 1.6;">
               A new job that matches your services just went live:
             </p>
@@ -121,19 +126,27 @@ const createJobPost = async (req, res) => {
       </div>
     `;
 
-    await Promise.all(providers.map(prov =>
-      massEmail(
-        prov.email,
-        subject,
-        htmlMessage.replace('{providerName}', prov.contactName),
-        []
-      )
-    ));
+    // Send emails sequentially (one by one)
+    let notifiedCount = 0;
+    for (const prov of providers) {
+      try {
+        await massEmail(
+          prov.email,
+          subject,
+          htmlMessage.replace('{providerName}', prov.contactName || 'Provider'),
+          []
+        );
+        notifiedCount++;
+      } catch (emailErr) {
+        console.error(`Failed to email ${prov.email}:`, emailErr);
+        // continue to next provider regardless of error
+      }
+    }
 
     return res.status(201).json({
       message: "Job post created & notifications sent.",
       jobPost,
-      notifiedCount: providers.length
+      notifiedCount
     });
   }
   catch (error) {
@@ -163,6 +176,7 @@ const getJobPostById = async (req, res) => {
     });
   }
 };
+
 
 
 
@@ -352,18 +366,19 @@ const myAcceptedJobs = async (req, res) => {
     }
 
     const aggregation = [
-  { $match: matchCriteria },
-  {
-    $facet: {
-      totalCount: [{ $count: 'count' }],
-      paginatedResults: [
-        { $sort: { completionDate: 1 } }, // sorts by latest full date + time
-        { $skip: (page - 1) * limit },
-        { $limit: limit },
-      ],
-    },
-  },
-];
+      { $match: matchCriteria },
+      {
+        $facet: {
+          totalCount: [{ $count: 'count' }],
+          paginatedResults: [
+            { $sort: { completionDate: -1 } },   // ✅ Sort jobs by most recent completionDate
+            { $skip: (page - 1) * limit },
+            { $limit: limit },
+          ],
+        },
+      },
+    ];
+
     const jobsAgg = await JobPost.aggregate(aggregation);
     const totalJobs = jobsAgg[0]?.totalCount[0]?.count || 0;
     const jobs = jobsAgg[0]?.paginatedResults || [];
@@ -384,6 +399,7 @@ const myAcceptedJobs = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error' });
   }
 };
+
 
 const businessTypes = async (req, res) => {
   try {
