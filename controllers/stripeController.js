@@ -537,6 +537,7 @@ exports.cancelStripeSubscription = async (req, res) => {
     });
 
     return res.status(200).json({
+      status:200
       success: true,
       message: "Autopay disabled. Subscription will expire at end of current period.",
       subscription: activeSub
