@@ -492,9 +492,6 @@ exports.cancelStripeSubscription = async (req, res) => {
     activeSub.autopayActive = false;
     await activeSub.save();
 
-    await Provider.findByIdAndUpdate(userId, {
-      subscriptionStatus: 0
-    });
 
     return res.status(200).json({
       status:200,
