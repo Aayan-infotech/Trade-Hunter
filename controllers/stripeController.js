@@ -45,7 +45,7 @@ exports.initiatePayment = async (req, res) => {
     let monthlyAmount;
 
     if (plan.validity === 365) {
-      monthlyAmount = Math.round(totalAmountCents / 12); 
+      monthlyAmount = totalAmountCents; 
     } else {
       monthlyAmount = totalAmountCents;
     }
