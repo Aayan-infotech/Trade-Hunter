@@ -48,11 +48,11 @@ const SubscriptionVoucherUserSchema = new mongoose.Schema({
     default: false
   },
   subscriptionId: {
-    type: String // Stripe subscription ID
+    type: String
   },
   paymentCount: {
     type: Number,
-    default: 1 // First payment done at initiation
+    default: 1 
   },
   retryCount: {
     type: Number,
@@ -61,21 +61,27 @@ const SubscriptionVoucherUserSchema = new mongoose.Schema({
   nextPaymentDate: {
     type: Date
   },
-  retryCount: {
-    type: Number,
-    default: 0
-  },
   lastFailedAttempt: {
     type: Date
   },
   monthlyAmount: {
     type: Number,
-    required: false // Ensure this is set at creation for 365-day plans
+    required: false 
   },
   installmentCount: {
     type: Number,
     default: 0
   },
+
+  cancelAtPeriodEnd: {
+    type: Boolean,
+    default: false
+  },
+  recurringCount: {
+    type: Number,
+    default: 0
+  },
+
   createdAt: {
     type: Date,
     default: Date.now

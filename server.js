@@ -11,6 +11,10 @@ const connectDB = require("./config/db");
 const path = require('path');
 const JobPost = require('./models/jobpostModel');
 const runStripeRecurringBillingCron = require("./middlewares/stripeRecurringPayment");
+const checkAndExpireYearlySubscriptions = require('./utils/checkAndExpireYearlySubscriptions');
+
+// Run every day at 2 AM
+
 dotenv.config();
 
 const app = express();
@@ -122,6 +126,10 @@ cron.schedule("0 2 * * *", runStripeRecurringBillingCron);
 
 // Every hour
 cron.schedule("0 * * * *", runStripeRecurringBillingCron);
+cron.schedule('0 2 * * *', () => {
+  console.log('Running yearly subscription expiry job');
+  checkAndExpireYearlySubscriptions().catch(console.error);
+});
 
 
 server.listen(PORT, () => {

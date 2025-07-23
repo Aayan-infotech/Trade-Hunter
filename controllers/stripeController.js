@@ -18,11 +18,6 @@ let stripe;
     console.error("Stripe not ready:", err.message);
   }
 })();
-const startOfDay = (d) => { d.setHours(0, 0, 0, 0); return d; };
-const monthsBetween = (start, end) => {
-  const s = new Date(start), e = new Date(end);
-  return Math.max(0, (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth()));
-};
 
 exports.initiatePayment = async (req, res) => {
   try {
@@ -35,9 +30,6 @@ exports.initiatePayment = async (req, res) => {
     const provider = await Provider.findById(userId);
     if (!type || !provider) return res.status(404).json({ message: "Invalid provider or subscription type" });
 
-    const isRecurring = plan.validity === 365;
-
-    // Validate total amount
     const totalAmountCents = Number(Payment.TotalAmount);
     if (isNaN(totalAmountCents) || totalAmountCents <= 0) {
       return res.status(400).json({ message: "Invalid or missing payment amount" });
@@ -49,86 +41,56 @@ exports.initiatePayment = async (req, res) => {
 
     const productName = plan.title || "Subscription Plan";
 
-    if (isRecurring) {
-      let stripeRecurringPriceId = plan.stripePriceId;
+    let stripeRecurringPriceId = plan.stripePriceId;
+    let monthlyAmount;
 
-      // Create a product and price if not already created
-      if (!stripeRecurringPriceId) {
-        const product = await stripe.products.create({
-          name: productName,
-        });
-
-        const price = await stripe.prices.create({
-          unit_amount: totalAmountCents, // already in cents from frontend
-          currency: Payment.CurrencyCode?.toLowerCase() || "aud",
-          recurring: { interval: 'month' },
-          product: product.id,
-        });
-
-        stripeRecurringPriceId = price.id;
-
-        // Save it back to the plan so it can be reused later
-        plan.stripePriceId = stripeRecurringPriceId;
-        await plan.save();
-      }
-
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        mode: 'subscription',
-        customer_email: Customer.Email,
-        line_items: [
-          {
-            price: stripeRecurringPriceId,
-            quantity: 1,
-          },
-        ],
-        metadata: {
-          userId,
-          subscriptionPlanId,
-          subscriptionType: type.type,
-          autopayActive: true,
-        },
-        success_url: 'https://tradehunters.com.au/provider/payment/success?session_id={CHECKOUT_SESSION_ID}',
-        cancel_url: 'https://tradehunters.com.au/provider/payment/error',
-      });
-
-      return res.status(200).json({
-        message: "Redirect to Stripe subscription checkout",
-        url: session.url,
-      });
+    if (plan.validity === 365) {
+      monthlyAmount = Math.round(totalAmountCents / 12); 
     } else {
-      // One-time payment logic
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        mode: 'payment',
-        customer_email: Customer.Email,
-        line_items: [
-          {
-            price_data: {
-              currency: Payment.CurrencyCode?.toLowerCase() || "aud",
-              product_data: {
-                name: productName,
-              },
-              unit_amount: totalAmountCents, // already in cents
-            },
-            quantity: 1,
-          },
-        ],
-        metadata: {
-          userId,
-          subscriptionPlanId,
-          subscriptionType: type.type,
-          autopayActive: false,
-        },
-        success_url: 'https://tradehunters.com.au/provider/payment/success?session_id={CHECKOUT_SESSION_ID}',
-        cancel_url: 'https://tradehunters.com.au/provider/payment/error',
+      monthlyAmount = totalAmountCents;
+    }
+
+    if (!stripeRecurringPriceId) {
+      const product = await stripe.products.create({
+        name: productName,
       });
 
-      return res.status(200).json({
-        message: "Redirect to Stripe one-time payment checkout",
-        url: session.url,
+      const price = await stripe.prices.create({
+        unit_amount: monthlyAmount, 
+        currency: Payment.CurrencyCode?.toLowerCase() || "aud",
+        recurring: { interval: 'month' },
+        product: product.id,
       });
+
+      stripeRecurringPriceId = price.id;
+      plan.stripePriceId = stripeRecurringPriceId;
+      await plan.save();
     }
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      customer_email: Customer.Email,
+      line_items: [
+        {
+          price: stripeRecurringPriceId,
+          quantity: 1,
+        },
+      ],
+      metadata: {
+        userId,
+        subscriptionPlanId,
+        subscriptionType: type.type,
+        autopayActive: true,
+      },
+      success_url: 'https://tradehunters.com.au/provider/payment/success?session_id={CHECKOUT_SESSION_ID}',
+      cancel_url: 'https://tradehunters.com.au/provider/payment/error',
+    });
+
+    return res.status(200).json({
+      message: "Redirect to Stripe subscription checkout",
+      url: session.url,
+    });
   } catch (err) {
     console.error("Stripe Payment Error:", err);
     return res.status(500).json({
@@ -137,6 +99,7 @@ exports.initiatePayment = async (req, res) => {
     });
   }
 };
+
 
 exports.getAllTransactions = async (req, res) => {
   try {
@@ -354,7 +317,6 @@ exports.getStripeSessionDetails = async (req, res) => {
     const todayMidnight = new Date();
     todayMidnight.setHours(0, 0, 0, 0);
 
-   
     const existingActive = await SubscriptionVoucherUser.findOne({
       userId,
       status: "active"
@@ -384,29 +346,20 @@ exports.getStripeSessionDetails = async (req, res) => {
       }
     }
 
-    const isRecurring = plan.validity === 365;
+    const isYearly = plan.validity === 365;
     let endDate;
     let recurringCount = 0;
-    let maxRecurringCount = 1;
+    let maxRecurringCount = null; 
 
-    if (isRecurring) {
-      endDate = new Date(newStartDate);
-      endDate.setMonth(endDate.getMonth() + 1);
-      recurringCount = 1;
-      maxRecurringCount = 12;
-    } else {
-      endDate = new Date(newStartDate);
-      endDate.setDate(endDate.getDate() + (plan.validity || 30));
-    }
+    endDate = new Date(newStartDate);
+    endDate.setMonth(endDate.getMonth() + 1);
 
     const txId = session.payment_intent || session.id;
     const amountPaid = session.amount_total;
     const currency = session.currency;
 
-    // Stripe Subscription ID logic
     let stripeSubscriptionId = session.subscription || null;
-
-    if (isRecurring && !stripeSubscriptionId && session.customer) {
+    if (!stripeSubscriptionId && session.customer) {
       try {
         const subscriptions = await stripe.subscriptions.list({
           customer: session.customer,
@@ -504,6 +457,7 @@ exports.getStripeSessionDetails = async (req, res) => {
     });
   }
 };
+
 
 
 exports.cancelStripeSubscription = async (req, res) => {
