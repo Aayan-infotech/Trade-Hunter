@@ -3,7 +3,7 @@ const providerModel = require("../models/providerModel");
 const Hunter = require("../models/hunterModel");
 const Address = require("../models/addressModel");
 // const sendNotification = require("../models/massNotification")
-const sendEmail = require('../services/notificationMail');
+const sendEmail = require('../services/massNotificationMail');
 const sendSupportEmail = require('../services/helpMail');
 
 
