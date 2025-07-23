@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const bodyParser = require('body-parser');
-const getStripe = require('../services/stripeService'); // your async singleton Stripe getter
 const SubscriptionVoucherUser = require('../models/SubscriptionVoucherUserModel');
 const Transaction = require('../models/TransactionModelNew');
 const SubscriptionPlan = require('../models/SubscriptionPlanModel');
@@ -11,26 +10,47 @@ const generateInvoicePDF = require('../utils/generateInvoicePDF');
 const sendEmail = require('../services/invoicesMail');
 const mongoose = require('mongoose');
 
+const getStripe = require('../services/stripeService');
+const getSecrets = require('../utils/awsSecrets'); 
+
+let cachedSecrets = null;
+async function getStripeWebhookSecret() {
+  if (!cachedSecrets) {
+    cachedSecrets = await getSecrets();
+  }
+  return cachedSecrets.STRIPE_WEBHOOK_SECRET;
+}
+
 router.post(
   '/webhook',
   bodyParser.raw({ type: 'application/json' }),
   async (req, res) => {
     const sig = req.headers['stripe-signature'];
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    let webhookSecret;
+    try {
+      webhookSecret = await getStripeWebhookSecret();
+      if (!webhookSecret) {
+        throw new Error('Stripe webhook secret not configured');
+      }
+    } catch (err) {
+      console.error('Failed to load Stripe webhook secret:', err);
+      return res.status(500).send('Server error loading webhook secret');
+    }
 
     let stripe;
     try {
-      stripe = await getStripe(); // async getStripe for dynamic secret loading
+      stripe = await getStripe();
     } catch (err) {
-      console.error('Failed to initialize Stripe client:', err.message);
-      return res.status(500).send('Stripe initialization error');
+      console.error('Failed to initialize Stripe client:', err);
+      return res.status(500).send('Server error initializing Stripe');
     }
 
     let event;
     try {
       event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
     } catch (err) {
-      console.log('⚠️ Webhook signature verification failed.', err.message);
+      console.log(' Webhook signature verification failed.', err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
