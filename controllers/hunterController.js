@@ -2,8 +2,10 @@ const mongoose = require("mongoose");
 const providerModel = require("../models/providerModel");
 const Hunter = require("../models/hunterModel");
 const Address = require("../models/addressModel");
+const sendNotification = require("../models/massNotification")
 const sendEmail = require('../services/notificationMail');
 const sendSupportEmail = require('../services/helpMail');
+
 
 exports.getNearbyServiceProviders = async (req, res) => {
   try {
@@ -556,7 +558,7 @@ exports.sendSupportEmail2 = async (req, res) => {
   </div>
 `;
 
-    await sendEmail(email, subject, htmlMessage);
+    await sendNotification(email, subject, htmlMessage);
     res.status(200).json({ message: 'Support email sent successfully' });
   }
   catch (error) {
