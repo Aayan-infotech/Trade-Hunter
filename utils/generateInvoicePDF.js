@@ -21,7 +21,14 @@ module.exports = async function generateInvoicePDF({
         resolve(pdfBuffer);
       });
 
-      const txIdSafe = (transactionId ?? "N/A").toString();
+      // Format transaction ID with "TH-" + last 6 characters fallback to "N/A"
+      let txIdSafe = "N/A";
+      if (transactionId) {
+        const txStr = transactionId.toString();
+        const lastSix = txStr.length > 6 ? txStr.slice(-6) : txStr;
+        txIdSafe = "TH-" + lastSix;
+      }
+
       const nowDate = invoiceDate?.toLocaleDateString() ?? new Date().toLocaleDateString();
       const subTotal = +(amountCharged / 1.1).toFixed(2);
       const gst = +(amountCharged - subTotal).toFixed(2);
