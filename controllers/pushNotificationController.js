@@ -648,7 +648,7 @@ exports.deleteNotificationById = async (req, res) => {
 
 exports.deleteNotificationByIdForUser = async (req, res) => {
   try {
-    const { notificationId, type } = req.params; // type: 'push' or 'mass'
+    const { notificationId } = req.params;
     const userId = req.user.userId;
 
     if (!notificationId || !userId) {
@@ -660,16 +660,11 @@ exports.deleteNotificationByIdForUser = async (req, res) => {
       });
     }
 
-    if (type === "push") {
-      const notification = await Notification.findById(notificationId);
-      if (!notification) {
-        return res.status(404).json({
-          status: 404,
-          success: false,
-          message: "Notification not found.",
-          data: [],
-        });
-      }
+    // Try finding the notification in personal notifications first
+    const notification = await Notification.findById(notificationId);
+
+    if (notification) {
+      // Soft delete for push notification by adding user to deletedBy
       if (!notification.deletedBy || notification.deletedBy.toString() !== userId) {
         notification.deletedBy = userId;
         await notification.save();
@@ -680,35 +675,32 @@ exports.deleteNotificationByIdForUser = async (req, res) => {
         message: "Notification deleted from user view.",
         data: [notification],
       });
-    } else if (type === "mass") {
-      const notification = await massNotification.findById(notificationId);
-      if (!notification) {
-        return res.status(404).json({
-          status: 404,
-          success: false,
-          message: "Mass notification not found.",
-          data: [],
-        });
-      }
-      if (!notification.deletedBy) notification.deletedBy = [];
-      if (!notification.deletedBy.map(id => id.toString()).includes(userId)) {
-        notification.deletedBy.push(userId);
-        await notification.save();
-      }
-      return res.status(200).json({
-        status: 200,
-        success: true,
-        message: "Mass notification deleted from user view.",
-        data: [notification],
-      });
-    } else {
-      return res.status(400).json({
-        status: 400,
+    }
+
+    // Not found in individual notifications, try in mass notifications
+    const massNotif = await massNotification.findById(notificationId);
+
+    if (!massNotif) {
+      return res.status(404).json({
+        status: 404,
         success: false,
-        message: "Invalid notification type.",
+        message: "Notification not found.",
         data: [],
       });
     }
+
+    if (!massNotif.deletedBy) massNotif.deletedBy = [];
+    if (!massNotif.deletedBy.map(id => id.toString()).includes(userId)) {
+      massNotif.deletedBy.push(userId);
+      await massNotif.save();
+    }
+    
+    return res.status(200).json({
+      status: 200,
+      success: true,
+      message: "Mass notification deleted from user view.",
+      data: [massNotif],
+    });
   } catch (error) {
     console.error("Error deleting notification:", error);
     return res.status(500).json({
@@ -720,6 +712,7 @@ exports.deleteNotificationByIdForUser = async (req, res) => {
     });
   }
 };
+
 
 
 exports.updateNotificationStatus = async (req, res) => {
