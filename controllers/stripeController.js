@@ -326,7 +326,7 @@ exports.getStripeSessionDetails = async (req, res) => {
     if (existingActive && existingActive.type !== "Subscription") {
       existingActive.status = "expired";
       existingActive.endDate = todayMidnight;
-      existingActive.autopayActive = false;      
+      existingActive.autopayActive = false;       
       await existingActive.save();
       newStartDate = todayMidnight;
       newStatus = "active";
@@ -354,7 +354,8 @@ exports.getStripeSessionDetails = async (req, res) => {
     endDate = new Date(newStartDate);
     endDate.setMonth(endDate.getMonth() + 1);
 
-    const txId = session.payment_intent || session.id;
+    // Use payment_intent if present, else fallback to session id
+    const txIdFull = session.payment_intent || session.id;
     const amountPaid = session.amount_total;
     const currency = session.currency;
 
@@ -378,7 +379,7 @@ exports.getStripeSessionDetails = async (req, res) => {
       userId,
       subscriptionPlanId,
       type: subscriptionType,
-      transactionId: txId,
+      transactionId: txIdFull,
       amountPaid,
       currency,
       startDate: newStartDate,
@@ -391,10 +392,15 @@ exports.getStripeSessionDetails = async (req, res) => {
       paymentMethod: "stripe"
     });
 
+    // Format transactionId as "TH-" + last 6 chars of full txId for Transaction schema
+    const shortTxId = txIdFull.toString().slice(-6);
+    const formattedTxId = "TH-" + shortTxId;
+
     const tx = await Transaction.create({
       userId,
       subscriptionPlanId,
-      paymentId: txId,
+      paymentId: txIdFull,
+      transactionId: formattedTxId,
       amount: amountPaid,
       currency,
       status: "completed",
@@ -411,13 +417,12 @@ exports.getStripeSessionDetails = async (req, res) => {
     });
 
     const amountCharged = amountPaid / 100;
-    const shortTxId = txId.slice(-6);
 
     const invoiceBuffer = await generateInvoicePDF({
       provider,
       subscriptionPlan: plan,
       subscriptionType,
-      transactionId: txId,
+      transactionId: txIdFull,  // full ID passed to PDF generator, unmodified
       invoiceDate: new Date(),
       amountCharged
     });
@@ -457,6 +462,7 @@ exports.getStripeSessionDetails = async (req, res) => {
     });
   }
 };
+
 
 
 
