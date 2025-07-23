@@ -42,7 +42,7 @@ exports.sendMassNotification = async (req, res) => {
 
     const notification = new Notification({
       userType,
-      title: "Notification from TradeHunters",
+      title: subject,
       body: message,
     });
     await notification.save();
