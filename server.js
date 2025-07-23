@@ -91,6 +91,7 @@ app.use("/api/jobpost", require("./routes/jobpostRoutes"));
 app.use("/api/address", require("./routes/addressRoute"));
 app.use("/api/eway", require("./routes/ewayRoutes"));
 app.use("/api/stripe", require("./routes/stripeRoutes"))
+app.use("/api/stripeWebhook", require("./routes/stripeWebhook"))
 
 app.get('/testmsg', (req,res) => {
   res.send('Hello world 1234');
