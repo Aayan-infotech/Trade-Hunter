@@ -35,7 +35,7 @@ const notificationEmail = async (recipient, subject, htmlMessage, attachments = 
     });
 
     const mailOptions = {
-      from: `"Trade Hunters" <${emailUser}>`,
+      from: '"Trade Hunters" <notifications.tradehunters@gmail.com>',
       to: recipient,
       subject,
       html: htmlMessage,
