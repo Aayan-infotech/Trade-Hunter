@@ -11,7 +11,7 @@ router.put('/updateById/:id', verifyUser, uploadToS3, hunterController.updateHun
 router.patch('/updateRadius', verifyUser, hunterController.updateRadius);
 router.post('/send-job-email', hunterController.sendJobNotificationEmail);
 router.post('/sendSupportEmail', hunterController.sendSupportEmail);
-router.post('/sendSupportEmail2', hunterController.sendSupportEmail);
+router.post('/notificationEmail', hunterController.sendSupportEmail);
 router.post('/sendMsgEmailProvider', hunterController.sendDirectMessageEmail);
 router.post('/jobAssignEmail', hunterController.sendJobAssignmentEmail);
 
