@@ -1,16 +1,17 @@
 const JobPost = require("../models/jobpostModel");
-const apiResponse = require("../utils/responsehandler");
 const Hunter = require("../models/hunterModel");
-const mongoose = require("mongoose");
 const Provider = require("../models/providerModel");
-const BusinessType = require("../models/serviceModel");
+const Notification = require("../models/massNotification");  // Your notification model
+const mongoose = require("mongoose");
+const massEmail = require("../services/massNotificationMail");
 
 require('dotenv').config();
-const massEmail = require('../services/massNotificationMail');
 
-function toRad(deg) { return (deg * Math.PI) / 180; }
+function toRad(deg) {
+  return (deg * Math.PI) / 180;
+}
 function haversineDistance([lon1, lat1], [lon2, lat2]) {
-  const R = 6371000;
+  const R = 6371000; // meters radius Earth
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a = Math.sin(dLat / 2) ** 2
@@ -27,7 +28,6 @@ const createJobPost = async (req, res) => {
       businessType, requirements, date
     } = req.body;
 
-    // Validate businessType presence and format
     if (businessType == null)
       return res.status(400).json({ message: "Missing required field: businessType" });
     businessType = Array.isArray(businessType) ? businessType : [businessType];
@@ -49,7 +49,6 @@ const createJobPost = async (req, res) => {
       jobRadius: parseFloat(jobRadius)
     };
 
-    // Validate mandatory fields
     if (
       !title ||
       isNaN(jobLocation.location.coordinates[0]) ||
@@ -62,7 +61,6 @@ const createJobPost = async (req, res) => {
       });
     }
 
-    // ⭐️ use req.fileLocations as you did in your working code
     const documents = req.fileLocations || [];
 
     const jobPost = new JobPost({
@@ -74,17 +72,16 @@ const createJobPost = async (req, res) => {
       user: userId,
       jobStatus: "Pending",
       date: new Date(date),
-      documents // <<==== This is what works with your S3 middleware
+      documents
     });
 
     await jobPost.save();
 
-    // Emit socket event for realtime client notifications
+    // Emit socket event
     req.app.get("io").emit("new Job", { jobId: jobPost._id });
 
     const [jobLng, jobLat] = jobPost.jobLocation.location.coordinates;
 
-    // Find all active providers matching the business types
     let providers = await Provider.find({
       businessType: { $in: businessType },
       userStatus: "Active"
@@ -101,15 +98,17 @@ const createJobPost = async (req, res) => {
       return dist <= radius;
     });
 
+    console.log(`Providers matching job criteria: ${providers.length}`);
+
     const subject = `New Job: ${jobPost.title} in ${jobPost.jobLocation.city}`;
-    const htmlMessage = `
+    const htmlTemplate = (providerName) => `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 30px; color: #2c3e50;">
         <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden;">
           <div style="background-color: #004aad; color: white; padding: 20px;">
             <h2 style="margin: 0;">New Job Opportunity</h2>
           </div>
           <div style="padding: 25px;">
-            <p style="font-size: 16px;">Hello <strong>{providerName}</strong>,</p>
+            <p style="font-size: 16px;">Hello <strong>${providerName}</strong>,</p>
             <p style="font-size: 15px; line-height: 1.6;">
               A new job that matches your services just went live:
             </p>
@@ -119,7 +118,7 @@ const createJobPost = async (req, res) => {
               <li><strong>Date:</strong> ${jobPost.date.toDateString()}</li>
             </ul>
             <p style="margin: 20px 0;">
-              <p>To View Job Please Log Into Your TradeHunters Account</p>
+              <p>To view the job, please log into your TradeHunters Account.</p>
             </p>
             <hr style="border: none; border-top: 1px solid #e1e4e8;" />
             <p style="font-size: 12px; color: #95a5a6; text-align: center;">
@@ -130,28 +129,46 @@ const createJobPost = async (req, res) => {
       </div>
     `;
 
-    // Send emails sequentially to providers
-    let notifiedCount = 0;
+    // Track count of notifications saved
+    let notifCount = 0;
+
+    // Send emails and save notification records
     for (const prov of providers) {
       try {
+        if (!prov.email) continue;
+
         await massEmail(
           prov.email,
           subject,
-          htmlMessage.replace('{providerName}', prov.contactName || 'Provider'),
+          htmlTemplate(prov.contactName || 'Provider'),
           []
         );
-        notifiedCount++;
-      } catch (emailErr) {
-        console.error(`Failed to email ${prov.email}:`, emailErr);
-        // Continue sending other emails regardless of error
+
+        // Save notification record in DB
+        const newNotification = new Notification({
+          userId: prov._id,  // link notification to this provider user
+          userType: "provider",
+          title: subject,
+          body: `A new job titled "${jobPost.title}" has been posted in your city ${jobPost.jobLocation.city}. Please check your account for details.`,
+          read: false,
+          createdAt: new Date(),
+        });
+        await newNotification.save();
+
+        notifCount++;
+
+      } catch (err) {
+        console.error(`Failed to notify  provider ${prov.email}:`, err);
+        // Continue notifying others even if one fails
       }
     }
 
-    // Return success response
+    console.log(`Notifications (email + DB) created for ${notifCount} providers`);
+
     return res.status(201).json({
-      message: "Job post created & notifications sent.",
+      message: "Job post created. Emails sent and notifications saved in DB.",
       jobPost,
-      notifiedCount
+      notifiedProviders: notifCount,
     });
 
   } catch (error) {
@@ -159,6 +176,8 @@ const createJobPost = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
+
 
 const getJobPostById = async (req, res) => {
   try {
