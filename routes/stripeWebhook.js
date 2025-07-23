@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const bodyParser = require('body-parser');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const getStripe = require('../services/stripeService'); // your async singleton Stripe getter
 const SubscriptionVoucherUser = require('../models/SubscriptionVoucherUserModel');
 const Transaction = require('../models/TransactionModelNew');
 const SubscriptionPlan = require('../models/SubscriptionPlanModel');
@@ -18,8 +18,15 @@ router.post(
     const sig = req.headers['stripe-signature'];
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-    let event;
+    let stripe;
+    try {
+      stripe = await getStripe(); // async getStripe for dynamic secret loading
+    } catch (err) {
+      console.error('Failed to initialize Stripe client:', err.message);
+      return res.status(500).send('Stripe initialization error');
+    }
 
+    let event;
     try {
       event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
     } catch (err) {
@@ -31,7 +38,7 @@ router.post(
       const invoice = event.data.object;
 
       const subscriptionId = invoice.subscription;
-      const amountPaid = invoice.amount_paid; 
+      const amountPaid = invoice.amount_paid;
       const currency = invoice.currency;
       const paymentIntentId = invoice.payment_intent;
       const invoiceNumber = invoice.number;
@@ -52,7 +59,6 @@ router.post(
         }
 
         sub.recurringCount = (sub.recurringCount || 0) + 1;
-
         sub.endDate = billingPeriodEnd;
         await sub.save();
 
@@ -110,7 +116,6 @@ router.post(
         console.error('Error handling invoice.paid webhook:', err);
         res.status(500).send('Internal Server Error');
       }
-
     } else {
       res.status(200).send('Event received');
     }
