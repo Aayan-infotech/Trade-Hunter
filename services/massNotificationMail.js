@@ -20,9 +20,9 @@ const massNotifcationEmail = async (recipients, subject, htmlMessage, attachment
       tls: { rejectUnauthorized: false },
     });
     const mailOptions = {
-      from: "Trade Hunters"+ process.env.MASS_SMTPFROM,
+      from: "TradeHunters"+ process.env.MASS_SMTPFROM,
       to: recipients,
-      subject: "Notification from Trade Hunters",
+      subject: "Trade Hunters",
       html: htmlMessage,
       attachments: attachments,
     };
