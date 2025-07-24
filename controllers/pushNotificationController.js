@@ -8,6 +8,13 @@ const SubscriptionVoucherUser = require("../models/SubscriptionVoucherUserModel"
 const JobPost = require("../models/jobpostModel"); // Import the Job
 const mongoose = require("mongoose");
 
+async function getUserEmail(userId) {
+  if (!userId) return null;
+  let user = await Provider.findById(userId).select("email").lean();
+  if (!user) user = await Hunter.findById(userId).select("email").lean();
+  return user?.email || null;
+}
+
 exports.sendPushNotification = async (req, res) => {
   try {
     const { title, body, receiverId, notificationType } = req.body;
@@ -183,6 +190,9 @@ exports.getNotificationsByUserId = async (req, res) => {
     const limit = Math.max(1, parseInt(req.query.limit, 10) || 10);
     const skip = (page - 1) * limit;
 
+    // ===== Fetch emails for receiver once =====
+    const receiverEmail = await getUserEmail(receiverId);
+
     // 1) Fetch personal notifications (EXCLUDE deletedBy user)
     const personalNotifs = await Notification.find({
       receiverId: new ObjectId(receiverId),
@@ -217,12 +227,17 @@ exports.getNotificationsByUserId = async (req, res) => {
           }
         }
 
+        // Fetch sender's email, if userId exists
+        const senderEmail = notif.userId ? await getUserEmail(notif.userId) : null;
+
         return {
           ...notif,
           userName,
           isRead: !!notif.isRead,
           jobDetails,
           type: 'push',
+          receiverEmail,
+          senderEmail,
         };
       })
     );
@@ -256,8 +271,21 @@ exports.getNotificationsByUserId = async (req, res) => {
     }
     // ==============================
 
+    // 4b) Attach emails to deduped mass notifs
+    const dedupedMassWithEmails = await Promise.all(
+      dedupedMass.map(async (notif) => {
+        // For mass, senderEmail is likely null, but support if userId present:
+        const senderEmail = notif.userId ? await getUserEmail(notif.userId) : null;
+        return {
+          ...notif,
+          receiverEmail,
+          senderEmail,
+        };
+      })
+    );
+
     // 5) Combine, paginate, return
-    const allNotifs = [...enrichedPersonal, ...dedupedMass].sort(
+    const allNotifs = [...enrichedPersonal, ...dedupedMassWithEmails].sort(
       (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
     );
 
