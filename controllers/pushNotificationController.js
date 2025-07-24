@@ -538,7 +538,7 @@ exports.sendAdminNotification = async (req, res) => {
     };
 
     await admin.messaging().send(message);
-    req.app.get("io").emit("new Admin msg", { receiverId });
+    req.app.get("io").emit("newNotification", { receiverId });
 
     res.status(200).json({
       status: 200,
