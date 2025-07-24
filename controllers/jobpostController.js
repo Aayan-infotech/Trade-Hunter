@@ -79,7 +79,6 @@ const createJobPost = async (req, res) => {
 
     await jobPost.save();
 
-    // Emit socket event
     req.app.get("io").emit("new Job", { jobId: jobPost._id });
 
     const [jobLng, jobLat] = jobPost.jobLocation.location.coordinates;
@@ -131,10 +130,8 @@ const createJobPost = async (req, res) => {
       </div>
     `;
 
-    // Track count of notifications saved
     let notifCount = 0;
 
-    // Send emails and save notification records
     for (const prov of providers) {
       try {
         if (!prov.email) continue;
@@ -146,12 +143,11 @@ const createJobPost = async (req, res) => {
           []
         );
 
-        // Save notification record in DB
         const newNotification = new Notification({
-          userId: prov._id,  // link notification to this provider user
+          userId: prov._id,  
           userType: "provider",
           title: subject,
-          body: `A new job titled "${jobPost.title}" has been posted in your city . Please go to the job section for details.`,
+          body: `A New Job That Matches Your Services Just Went Live, Please Check Your Job Request Page`,
           read: false,
           createdAt: new Date(),
         });
@@ -161,7 +157,6 @@ const createJobPost = async (req, res) => {
 
       } catch (err) {
         console.error(`Failed to notify  provider ${prov.email}:`, err);
-        // Continue notifying others even if one fails
       }
     }
 

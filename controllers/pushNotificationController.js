@@ -538,6 +538,8 @@ exports.sendAdminNotification = async (req, res) => {
     };
 
     await admin.messaging().send(message);
+    req.app.get("io").emit("new Admin msg");
+    console.log("emit gone")
 
     res.status(200).json({
       status: 200,
