@@ -164,6 +164,7 @@ exports.sendPushNotificationAdmin = async (req, res) => {
 };
 
 // NotificationController.js
+
 exports.getNotificationsByUserId = async (req, res) => {
   try {
     const receiverId = req.user.userId;
@@ -236,7 +237,7 @@ exports.getNotificationsByUserId = async (req, res) => {
       userType,
       createdAt: { $gte: joinDate },
       readBy: { $ne: new ObjectId(receiverId) },
-      deletedBy: { $ne: new ObjectId(receiverId) } // <-- this line ensures soft deleted mass notifications are not shown
+      deletedBy: { $ne: new ObjectId(receiverId) }
     }).lean();
 
     const formattedMass = massNotifs.map((mn) => ({
@@ -245,9 +246,19 @@ exports.getNotificationsByUserId = async (req, res) => {
       type: 'mass',
     }));
 
+    // === DEDUPLICATION PATCH BY TITLE ===
+    const uniqueTitles = new Set();
+    const dedupedMass = [];
+    for (const notif of formattedMass) {
+      if (uniqueTitles.has(notif.title)) continue;
+      uniqueTitles.add(notif.title);
+      dedupedMass.push(notif);
+    }
+    // ==============================
+
     // 5) Combine, paginate, return
-    const allNotifs = [...enrichedPersonal, ...formattedMass].sort(
-      (a, b) => new Date(b.createdAt) - new Date(a.createdAt) // Make sure sorting treats dates as Date
+    const allNotifs = [...enrichedPersonal, ...dedupedMass].sort(
+      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
     );
 
     const total = allNotifs.length;
@@ -265,7 +276,7 @@ exports.getNotificationsByUserId = async (req, res) => {
       pagination: {
         total,
         currentPage: page,
-        totalPages,
+        totalPages
       },
       unreadCount,
       message: "Fetched all valid notifications with pagination!",
