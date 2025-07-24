@@ -340,7 +340,7 @@ exports.sendSupportEmail = async (req, res) => {
       <div style="padding: 25px;">
         <p style="font-size: 16px;">Hello,</p>
         <h4 style="font-size: 15px; line-height: 1.6;">
-          You have Recieved a  Messgae From Trade Hunters Support Team.
+          You have Recieved a  Message From Trade Hunters Support Team.
         </h4>
 
         <p style="font-size: 15px;">
