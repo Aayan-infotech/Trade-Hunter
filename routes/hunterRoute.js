@@ -14,6 +14,7 @@ router.post('/sendSupportEmail', hunterController.sendSupportEmail);
 router.post('/notificationEmail', hunterController.sendSupportEmail2);
 router.post('/sendMsgEmailProvider', hunterController.sendDirectMessageEmail);
 router.post('/jobAssignEmail', hunterController.sendJobAssignmentEmail);
-router.post('/jobCompletion', hunterController.sendJobCompletionEmail)
+router.post('/jobCompletion', hunterController.sendJobCompletionEmail);
+router.post('/feedbackEmail',hunterController.feedbackEmail)
 
 module.exports = router;
