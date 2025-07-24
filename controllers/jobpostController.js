@@ -151,7 +151,7 @@ const createJobPost = async (req, res) => {
           userId: prov._id,  // link notification to this provider user
           userType: "provider",
           title: subject,
-          body: `A new job titled "${jobPost.title}" has been posted in your city ${jobPost.jobLocation.city}. Please check your account for details.`,
+          body: `A new job titled "${jobPost.title}" has been posted in your city . Please go to the job section for details.`,
           read: false,
           createdAt: new Date(),
         });
