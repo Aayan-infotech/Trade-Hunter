@@ -5,6 +5,7 @@ const Notification = require("../models/massNotification");  // Your notificatio
 const mongoose = require("mongoose");
 const apiResponse = require("../utils/responsehandler");
 const massEmail = require("../services/massNotificationMail");
+const BusinessType = require("../models/serviceModel")
 
 require('dotenv').config();
 
