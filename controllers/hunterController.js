@@ -523,7 +523,7 @@ exports.sendSupportEmail2 = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required: name, email, message' });
     }
 
-    const subject = '📩  Support Message';
+    const subject = '📩 Notification';
 
     const htmlMessage = `
   <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 30px; color: #2c3e50;">
@@ -531,14 +531,116 @@ exports.sendSupportEmail2 = async (req, res) => {
 
       <!-- Header -->
       <div style="background-color: #004aad; color: white; padding: 20px;">
-        <h2 style="margin: 0;">📬 Support Message</h2>
+        <h2 style="margin: 0;">📬 Notification</h2>
       </div>
 
       <!-- Body -->
       <div style="padding: 25px;">
         <p style="font-size: 16px;">Hello,</p>
         <h4 style="font-size: 15px; line-height: 1.6;">
-          You have Recieved a  Messgae From Trade Hunters Support Team.
+          You Have A Notification From Trade Hunters Admin Team.
+        </h4>
+
+        <p style="font-size: 15px;">
+          Message:
+          <blockquote style="background-color: #f9f9f9; padding: 10px; border-left: 4px solid #004aad;">
+           Please Login to Your Trade Hunters Account to view more details or respond to the message.
+          </blockquote>
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e1e4e8;" />
+
+        <p style="font-size: 12px; color: #95a5a6; text-align: center; margin-top: 20px;">
+          This is an automated message from Trade Hunters. Please do not reply to this email.
+        </p>
+      </div>
+    </div>
+  </div>
+`;
+
+    await sendEmail(email, subject, htmlMessage);
+    res.status(200).json({ message: 'Support email sent successfully' });
+  }
+  catch (error) {
+    res.status(500).json({ message: 'Failed to send support email', error: error.message });
+  }
+}
+
+exports.sendJobCompletionEmail = async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+
+    if (!name || !email || !message) {
+      return res.status(400).json({ message: 'All fields are required: name, email, message' });
+    }
+
+    const subject = '📩 Job Completed';
+
+    const htmlMessage = `
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 30px; color: #2c3e50;">
+    <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden;">
+
+      <!-- Header -->
+      <div style="background-color: #004aad; color: white; padding: 20px;">
+        <h2 style="margin: 0;">📬 Your Job Completed</h2>
+      </div>
+
+      <!-- Body -->
+      <div style="padding: 25px;">
+        <p style="font-size: 16px;">Hello,</p>
+        <h4 style="font-size: 15px; line-height: 1.6;">
+          The Provider had Completed Your Job Please Visit Your Job Page to View.
+        </h4>
+
+        <p style="font-size: 15px;">
+          Message:
+          <blockquote style="background-color: #f9f9f9; padding: 10px; border-left: 4px solid #004aad;">
+           Please Login to Your Trade Hunters Account to view more details or respond to the message.
+          </blockquote>
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e1e4e8;" />
+
+        <p style="font-size: 12px; color: #95a5a6; text-align: center; margin-top: 20px;">
+          This is an automated message from Trade Hunters. Please do not reply to this email.
+        </p>
+      </div>
+    </div>
+  </div>
+`;
+
+    await sendEmail(email, subject, htmlMessage);
+    res.status(200).json({ message: 'Support email sent successfully' });
+  }
+  catch (error) {
+    res.status(500).json({ message: 'Failed to send support email', error: error.message });
+  }
+}
+
+exports.sendJobCompletionEmail = async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+
+    if (!name || !email || !message) {
+      return res.status(400).json({ message: 'All fields are required: name, email, message' });
+    }
+
+    const subject = '📩 Feedback Submitted';
+
+    const htmlMessage = `
+  <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; padding: 30px; color: #2c3e50;">
+    <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden;">
+
+      <!-- Header -->
+      <div style="background-color: #004aad; color: white; padding: 20px;">
+        <h2 style="margin: 0;">📬 Feedback Submitted</h2>
+      </div>
+
+      <!-- Body -->
+      <div style="padding: 25px;">
+        <p style="font-size: 16px;">Hello,</p>
+        <h4 style="font-size: 15px; line-height: 1.6;">
+          The Hunter has Submitted Feedback for the Job Done By You.
         </h4>
 
         <p style="font-size: 15px;">
