@@ -1,11 +1,11 @@
 const JobPost = require("../models/jobpostModel");
 const Hunter = require("../models/hunterModel");
 const Provider = require("../models/providerModel");
-const Notification = require("../models/massNotification");  // Your notification model
+const Notification = require("../models/massNotification");
 const mongoose = require("mongoose");
 const apiResponse = require("../utils/responsehandler");
 const massEmail = require("../services/massNotificationMail");
-const BusinessType = require("../models/serviceModel")
+const BusinessType = require("../models/serviceModel");
 
 require('dotenv').config();
 
@@ -79,6 +79,7 @@ const createJobPost = async (req, res) => {
 
     await jobPost.save();
 
+    // SOCKET.IO: emit to all
     req.app.get("io").emit("new Job", { jobId: jobPost._id });
 
     const [jobLng, jobLat] = jobPost.jobLocation.location.coordinates;
@@ -98,6 +99,17 @@ const createJobPost = async (req, res) => {
       );
       return dist <= radius;
     });
+
+    // === DEDUPLICATION PATCH ===
+    // Ensures each provider is only notified once
+    const seen = new Set();
+    providers = providers.filter((prov) => {
+      const id = String(prov._id);
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+    // === END PATCH ===
 
     console.log(`Providers matching job criteria: ${providers.length}`);
 
@@ -144,7 +156,7 @@ const createJobPost = async (req, res) => {
         );
 
         const newNotification = new Notification({
-          userId: prov._id,  
+          userId: prov._id,
           userType: "provider",
           title: subject,
           body: `A New Job That Matches Your Services Just Went Live, Please Check Your Job Request Page`,
@@ -155,8 +167,18 @@ const createJobPost = async (req, res) => {
 
         notifCount++;
 
+        // OPTIONAL: Real-time notification via socket.io, if your clients join a provider room
+        try {
+          req.app.get("io").to(String(prov._id)).emit("new_provider_job", {
+            job: jobPost,
+            notification: newNotification
+          });
+        } catch (socketErr) {
+          console.error("Socket emission error (provider):", socketErr);
+        }
+
       } catch (err) {
-        console.error(`Failed to notify  provider ${prov.email}:`, err);
+        console.error(`Failed to notify provider ${prov.email}:`, err);
       }
     }
 
@@ -173,6 +195,7 @@ const createJobPost = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
 
 
 
