@@ -3,6 +3,7 @@ const Hunter = require("../models/hunterModel");
 const Provider = require("../models/providerModel");
 const Notification = require("../models/massNotification");  // Your notification model
 const mongoose = require("mongoose");
+const apiResponse = require("../utils/responsehandler");
 const massEmail = require("../services/massNotificationMail");
 
 require('dotenv').config();
