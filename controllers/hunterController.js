@@ -633,7 +633,7 @@ exports.feedbackEmail = async (req, res) => {
       <div style="padding: 25px;">
         <p style="font-size: 16px;">Hello,</p>
         <h4 style="font-size: 15px; line-height: 1.6;">
-          You Have Recieved A Feedback For The COmpleted Job.
+          You Have Recieved A Feedback For The Completed Job.
         </h4>
 
         <p style="font-size: 15px;">
