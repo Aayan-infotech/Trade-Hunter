@@ -154,8 +154,8 @@ exports.sendPushNotificationAdmin = async (req, res) => {
       message: fcmSent
         ? "Notification sent and saved successfully."
         : deviceToken
-        ? "Notification saved but push failed or disabled."
-        : "Notification saved but not sent (no device token).",
+          ? "Notification saved but push failed or disabled."
+          : "Notification saved but not sent (no device token).",
       data: [notificationData],
     });
   } catch (error) {
@@ -429,7 +429,7 @@ exports.sendPushNotification2 = async (req, res) => {
     const io = req.app.get("io");
     const { title, body, receiverId, notificationType, jobId } = req.body;
     const userId = req.user.userId;
-    
+
     if (!title || !body || !receiverId || !notificationType) {
       return res.status(400).json({
         status: 400,
@@ -526,10 +526,10 @@ exports.sendPushNotification2 = async (req, res) => {
 
 
 exports.sendAdminNotification = async (req, res) => {
+
   try {
     const { title, body } = req.body;
     const { receiverId } = req.params;
-
     const notificationType = "admin_message";
 
     if (!title || !body || !receiverId) {
@@ -549,12 +549,29 @@ exports.sendAdminNotification = async (req, res) => {
     });
 
     const device = await DeviceToken.findOne({ userId: receiverId });
+    const io = req.app.get("io");
 
-    if (!device || !device.deviceToken || typeof device.deviceToken !== 'string' || device.deviceToken.trim() === "") {
+    if (
+      !device ||
+      !device.deviceToken ||
+      typeof device.deviceToken !== "string" ||
+      device.deviceToken.trim() === ""
+    ) {
+      if (io) {
+        io.emit("newNotification", {
+          receiverId,
+          title,
+          body,
+          notificationType,
+        });
+      } else {
+      }
+
       return res.status(200).json({
         status: 200,
         success: true,
-        message: "Notification saved but not sent (invalid or missing device token).",
+        message:
+          "Notification saved but not sent via FCM (invalid/missing device token), socket emitted.",
         data: [notificationData],
       });
     }
@@ -563,18 +580,25 @@ exports.sendAdminNotification = async (req, res) => {
       notification: { title, body },
       token: device.deviceToken,
     };
-
     await admin.messaging().send(message);
-    req.app.get("io").emit("newNotification", { receiverId });
+
+    if (io) {
+      io.emit("newNotification", {
+        receiverId,
+        title,
+        body,
+        notificationType,
+      });
+    }
 
     res.status(200).json({
       status: 200,
       success: true,
-      message: "Notification sent successfully.",
+      message: "Notification sent via FCM and socket.",
       data: [notificationData],
     });
   } catch (error) {
-    console.error("Error sending notification:", error);
+    console.error("❌ Error sending notification:", error);
     res.status(500).json({
       status: 500,
       success: false,
@@ -584,6 +608,9 @@ exports.sendAdminNotification = async (req, res) => {
     });
   }
 };
+
+
+
 
 exports.getAdminNotification = async (req, res) => {
   try {
@@ -722,7 +749,7 @@ exports.deleteNotificationByIdForUser = async (req, res) => {
       massNotif.deletedBy.push(userId);
       await massNotif.save();
     }
-    
+
     return res.status(200).json({
       status: 200,
       success: true,
