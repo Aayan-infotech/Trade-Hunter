@@ -170,7 +170,6 @@ exports.sendPushNotificationAdmin = async (req, res) => {
   }
 };
 
-// NotificationController.js
 
 exports.getNotificationsByUserId = async (req, res) => {
   try {
@@ -190,16 +189,13 @@ exports.getNotificationsByUserId = async (req, res) => {
     const limit = Math.max(1, parseInt(req.query.limit, 10) || 10);
     const skip = (page - 1) * limit;
 
-    // ===== Fetch emails for receiver once =====
     const receiverEmail = await getUserEmail(receiverId);
 
-    // 1) Fetch personal notifications (EXCLUDE deletedBy user)
     const personalNotifs = await Notification.find({
       receiverId: new ObjectId(receiverId),
       deletedBy: { $ne: new ObjectId(receiverId) }
     }).lean();
 
-    // 2) Enrich personal notifications
     const enrichedPersonal = await Promise.all(
       personalNotifs.map(async (notif) => {
         let userName = null;
@@ -227,7 +223,6 @@ exports.getNotificationsByUserId = async (req, res) => {
           }
         }
 
-        // Fetch sender's email, if userId exists
         const senderEmail = notif.userId ? await getUserEmail(notif.userId) : null;
 
         return {
@@ -242,12 +237,10 @@ exports.getNotificationsByUserId = async (req, res) => {
       })
     );
 
-    // 3) Find join date
     const joinModel = userType === "provider" ? Provider : Hunter;
     const joinRecord = await joinModel.findById(receiverId).select("createdAt").lean();
     const joinDate = joinRecord?.createdAt || new Date(0);
 
-    // 4) Fetch mass notifications (EXCLUDE read, EXCLUDE deletedBy user)
     const massNotifs = await massNotification.find({
       userType,
       createdAt: { $gte: joinDate },
@@ -261,7 +254,6 @@ exports.getNotificationsByUserId = async (req, res) => {
       type: 'mass',
     }));
 
-    // === DEDUPLICATION PATCH BY TITLE ===
     const uniqueTitles = new Set();
     const dedupedMass = [];
     for (const notif of formattedMass) {
@@ -269,12 +261,9 @@ exports.getNotificationsByUserId = async (req, res) => {
       uniqueTitles.add(notif.title);
       dedupedMass.push(notif);
     }
-    // ==============================
 
-    // 4b) Attach emails to deduped mass notifs
     const dedupedMassWithEmails = await Promise.all(
       dedupedMass.map(async (notif) => {
-        // For mass, senderEmail is likely null, but support if userId present:
         const senderEmail = notif.userId ? await getUserEmail(notif.userId) : null;
         return {
           ...notif,
@@ -284,7 +273,6 @@ exports.getNotificationsByUserId = async (req, res) => {
       })
     );
 
-    // 5) Combine, paginate, return
     const allNotifs = [...enrichedPersonal, ...dedupedMassWithEmails].sort(
       (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
     );

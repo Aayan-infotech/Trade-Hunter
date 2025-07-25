@@ -422,7 +422,7 @@ exports.getStripeSessionDetails = async (req, res) => {
       provider,
       subscriptionPlan: plan,
       subscriptionType,
-      transactionId: txIdFull,  // full ID passed to PDF generator, unmodified
+      transactionId: txIdFull,  
       invoiceDate: new Date(),
       amountCharged
     });

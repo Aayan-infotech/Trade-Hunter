@@ -290,12 +290,6 @@ exports.sendJobNotificationEmail = async (req, res) => {
           To view and respond to this message, please log in to your Trade Hunters account.
         </p>
 
-        <!-- CTA Button -->
-        <div style="margin: 30px 0;">
-          <a href="https://your-app-domain.com/login" target="_blank" style="display: inline-block; padding: 12px 20px; background-color: #004aad; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: bold;">
-            View Message
-          </a>
-        </div>
 
         <hr style="border: none; border-top: 1px solid #e1e4e8;" />
 
@@ -589,7 +583,7 @@ exports.sendJobCompletionEmail = async (req, res) => {
       <div style="padding: 25px;">
         <p style="font-size: 16px;">Hello,</p>
         <h4 style="font-size: 15px; line-height: 1.6;">
-          The Provider had Completed Your Job Please Visit Your Job Page to View.
+          The Provider has Completed Your Job.
         </h4>
 
         <p style="font-size: 15px;">
@@ -639,7 +633,7 @@ exports.feedbackEmail = async (req, res) => {
       <div style="padding: 25px;">
         <p style="font-size: 16px;">Hello,</p>
         <h4 style="font-size: 15px; line-height: 1.6;">
-          The Hunter has Submitted the Feedback for the job done by you please visit tradehunters to view.
+          You Have Recieved A Feedback For The COmpleted Job.
         </h4>
 
         <p style="font-size: 15px;">
