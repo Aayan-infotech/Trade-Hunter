@@ -143,10 +143,19 @@ exports.sendPushNotificationAdmin = async (req, res) => {
         });
         fcmSent = true;
       } catch (fcmError) {
-        console.warn("FCM send error (ignored):", fcmError.message);
       }
+    } else {
     }
-
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("Admin Notification", {
+        receiverId,
+        title,
+        body,
+        notificationType: "admin_message",
+      });
+    } else {
+    }
 
     return res.status(200).json({
       status: 200,
@@ -159,7 +168,7 @@ exports.sendPushNotificationAdmin = async (req, res) => {
       data: [notificationData],
     });
   } catch (error) {
-    console.error("Error in sendPushNotificationAdmin:", error);
+    console.error("❌ Error in sendPushNotificationAdmin:", error);
     return res.status(500).json({
       status: 500,
       success: false,
@@ -169,6 +178,7 @@ exports.sendPushNotificationAdmin = async (req, res) => {
     });
   }
 };
+
 
 
 exports.getNotificationsByUserId = async (req, res) => {
